@@ -13,7 +13,7 @@ func TestUnmarshal(t *testing.T) {
 		Int    int     `pic:"5"`
 		Float  float64 `pic:"5"`
 	}
-	for _, tt := range []struct {
+	for _, test := range []struct {
 		name      string
 		val       []byte
 		target    interface{}
@@ -80,6 +80,7 @@ func TestUnmarshal(t *testing.T) {
 			shouldErr: true,
 		},
 	} {
+		tt := test
 		t.Run(tt.name, func(t *testing.T) {
 			err := Unmarshal(tt.val, tt.target)
 			if tt.shouldErr != (err != nil) {
@@ -136,7 +137,7 @@ func TestUnmarshal(t *testing.T) {
 	})
 
 	t.Run("Invalid Unmarshal Errors", func(t *testing.T) {
-		for _, tt := range []struct {
+		for _, test := range []struct {
 			name      string
 			v         interface{}
 			shouldErr bool
@@ -147,6 +148,7 @@ func TestUnmarshal(t *testing.T) {
 			{"Valid Unmarshal slice", &[]struct{}{}, false},
 			{"Valid Unmarshal struct", &struct{}{}, true},
 		} {
+			tt := test
 			t.Run(tt.name, func(t *testing.T) {
 				err := Unmarshal([]byte{}, tt.v)
 				if tt.shouldErr != (err != nil) {

@@ -68,7 +68,7 @@ func floatSetFunc(size int) setFunc {
 func arraySetFunc(count int) setFunc {
 	return func(v reflect.Value, s string) error {
 		size := len(s) / count
-		if len(s) <= 0 {
+		if len(s) == 0 {
 			return nilSetFunc(v, s)
 		}
 
@@ -97,7 +97,7 @@ func arraySetFunc(count int) setFunc {
 func ptrSetFunc(t reflect.Type) setFunc {
 	innerSetter := newSetFunc(t.Elem(), 0)
 	return func(v reflect.Value, s string) error {
-		if len(s) <= 0 {
+		if len(s) == 0 {
 			return nilSetFunc(v, s)
 		}
 
