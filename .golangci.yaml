@@ -1,7 +1,7 @@
 # This file contains a trimmed down set of available configuration options
 # and is based upon the golangci-lint github example file
 run:
-  modules-download-mode: vendor
+  modules-download-mode: readonly
   # default concurrency is a available CPU number
   concurrency: 4
   # timeout for analysis, e.g. 30s, 5m, default is 1m
