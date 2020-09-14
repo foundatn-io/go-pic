@@ -15,5 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions-contrib/golangci-lint@v1
+        env:
+          GOFLAGS: "-mod=mod"
         with:
           golangci_lint_version: v1.26.0
