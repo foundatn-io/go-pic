@@ -1,0 +1,29 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'enhancement'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'bug'
+  - title: '🔒 Security Changes'
+    labels:
+      - 'security'
+  - title: '📚 Documentation Changes'
+    labels:
+      - 'documentation'
+  - title: '🧰 Maintenance'
+    labels:
+      - 'tech:task'
+      - 'ci'
+  - title: '📦 Dependency Management '
+    labels:
+      - 'dependencies'
+exclude-labels:
+  - 'skip:changelog'
+  - 'trivial'
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+template: |
+  ## Changes
+  $CHANGES
