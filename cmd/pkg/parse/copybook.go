@@ -22,6 +22,7 @@ var templateFuncs = template.FuncMap{
 	"GoType":       GoType,
 	"PICTag":       PICTag,
 	"SanitiseName": SanitiseName,
+	"IndexComment": IndexComment,
 }
 
 var structTemplate = template.Must(
@@ -33,7 +34,7 @@ package tempcopybook
 // YourCopybook contains a representation of your provided Copybook
 type YourCopybook struct {
 	{{- range $element := .}}
-		{{SanitiseName $element.Name}} {{GoType $element.Picture}} {{PICTag $element.Length}}
+		{{SanitiseName $element.Name}} {{GoType $element.Picture}} {{PICTag $element.Length}}{{IndexComment $element.Length}} 
 	{{- end}}
 }
 `))
@@ -103,10 +104,15 @@ func GoType(t reflect.Kind) string {
 }
 
 func PICTag(l int) string {
+
+	return "`" + fmt.Sprintf("pic:\"%d\"", l) + "`"
+}
+
+func IndexComment(l int) string {
 	s := startPos
 	endPos += l
 	startPos = endPos
-	return "`" + fmt.Sprintf("pic:\"%d\"", l) + "`" + fmt.Sprintf(" // start:%d end%d", s, endPos-1)
+	return fmt.Sprintf(" // start:%d end%d", s, endPos-1)
 }
 
 func SanitiseName(s string) string {
