@@ -106,7 +106,7 @@ func PICTag(l int) string {
 	s := startPos
 	endPos += l
 	startPos = endPos
-	return "`" + fmt.Sprintf("pic:\"%d,%d,%d\"", l, s, endPos-1) + "`"
+	return "`" + fmt.Sprintf("pic:\"%d\"", l) + "`" + fmt.Sprintf(" // start:%d end%d", s, endPos-1)
 }
 
 func SanitiseName(s string) string {
