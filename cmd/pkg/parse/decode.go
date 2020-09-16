@@ -60,6 +60,11 @@ var (
 	// 000420                 DUMMY-1                          00000143
 	redefinesStatement = regexp.MustCompile(`^[0-9]+ +[0-9]{2} +[a-zA-Z0-9\-]+ +REDEFINES +0+[0-9]+$`)
 
+	// OCCURS statements can be found in 3 different forms
+	// Intra-line - 001350           15  DUMMY-1 PIC X  OCCURS 12.       00000247
+	// Multi-line - 001290           15  DUMMY-1 PIC X(12)               00000241
+	// 				001300               OCCURS 12.                      00000242
+	// Verbose    - 001630           15  DUMMY-1 OCCURS 7 TIMES.         00000347
 	// occursRegex = regexp.MustCompile(``)
 )
 

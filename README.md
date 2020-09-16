@@ -58,12 +58,11 @@ type Copybook struct{
 
 where the values represent:
 ```go
-Dummy1 int      `pic:"4,1,4"`
+Dummy1 int      `pic:"4"` // start:1, end:4
 ```
 - 4, pos 1 = length
 - 1, pos 2 = starting index
 - 4, pos 3 = ending index
-
 
 ### TODO:
 - Missing `OCCURS` support
