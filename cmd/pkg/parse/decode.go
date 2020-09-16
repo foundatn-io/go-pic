@@ -65,7 +65,8 @@ var (
 	// Multi-line - 001290           15  DUMMY-1 PIC X(12)               00000241
 	// 				001300               OCCURS 12.                      00000242
 	// Verbose    - 001630           15  DUMMY-1 OCCURS 7 TIMES.         00000347
-	// occursRegex = regexp.MustCompile(``)
+	occursLine      = regexp.MustCompile(`^[0-9]+ +[0-9]{2} +[a-zA-Z0-9\-]+ +PIC ([X9]+|[X9]\([0-9]+\))\. OCCURS ([0-9]+ TIMES\.|[0-9]+\.) +0+[0-9]+$`)
+	occursStatement = regexp.MustCompile(`^[0-9]+ +OCCURS ([0-9]+ TIMES\.|[0-9]+\.)$`)
 )
 
 func Unmarshal(data []byte, c *Copybook) error {
