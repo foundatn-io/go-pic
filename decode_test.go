@@ -111,11 +111,11 @@ func TestUnmarshal(t *testing.T) {
 		type basicWithOccurs struct {
 			String    string `pic:"5"`
 			Int       int    `pic:"5"`
-			IntOccurs []int  `pic:"5,5"`
+			IntOccurs []int  `pic:"2,3"`
 		}
-		expect := &basicWithOccurs{"foo", 123, []int{1, 2, 3, 4, 5}}
+		expect := &basicWithOccurs{"foo", 123, []int{12, 34, 56}}
 		got := &basicWithOccurs{}
-		err := Unmarshal([]byte("foo  123  12345"), got)
+		err := Unmarshal([]byte("foo  123  123456"), got)
 		require.NoError(t, err)
 		require.Equal(t, expect, got)
 	})
@@ -123,15 +123,16 @@ func TestUnmarshal(t *testing.T) {
 	t.Run("Replicate basic OCCURS clauses", func(t *testing.T) {
 		type dummy struct {
 			A int `pic:"1"`
+			B int `pic:"1"`
 		}
 		type basicWithOccursStruct struct {
 			String string  `pic:"5"`
 			Int    int     `pic:"5"`
-			Dummy  []dummy `pic:"5,5"`
+			Dummy  []dummy `pic:"2,3"`
 		}
-		expect := &basicWithOccursStruct{"foo", 123, []dummy{{1}, {2}, {3}, {4}, {5}}}
+		expect := &basicWithOccursStruct{"foo", 123, []dummy{{A: 1, B: 2}, {A: 3, B: 4}, {A: 5, B: 6}}}
 		got := &basicWithOccursStruct{}
-		err := Unmarshal([]byte("foo  123  12345"), got)
+		err := Unmarshal([]byte("foo  123  123456"), got)
 		require.NoError(t, err)
 		require.Equal(t, expect, got)
 	})

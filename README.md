@@ -58,12 +58,36 @@ type Copybook struct{
 
 where the values represent:
 ```go
-Dummy1 int      `pic:"4,1,4"`
+Dummy1 int      `pic:"4"` // start:1, end:4
 ```
 - 4, pos 1 = length
 - 1, pos 2 = starting index
 - 4, pos 3 = ending index
 
+### TODO
 
-### TODO:
-- Missing `OCCURS` support
+### Unplanned: 
+- Group OCCURS statements
+
+- Missing complex grouping support such as:
+```
+001280         10  DUMMY-GROUP.                      00000240
+001290           15  DUMMIES PIC X(12)               00000241
+001300               OCCURS 12.                      00000242
+```
+which would translate to:
+```go
+type Copybook struct{
+    DummyGroup DummyGroup 
+}
+
+type DummyGroup struct {
+    Dummies []string
+}
+```
+this group can be completely flattened out and represented as
+```go
+type Copybook struct{
+    Dummies []string 
+}
+```

@@ -39,7 +39,7 @@ func NewDecoder(r io.Reader) *Decoder {
 func (d *Decoder) Decode(v interface{}) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.New("")
+		return errors.New("decode: unmarshal target object is not a pointer, or is nil")
 	}
 
 	if rv.Elem().Kind() == reflect.Slice {
