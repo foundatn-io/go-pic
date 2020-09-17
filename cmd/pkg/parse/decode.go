@@ -74,7 +74,7 @@ func (d *Decoder) scanLine(c *Copybook) (bool, error) {
 // findDataRecord accepts a string, line, representing a line in a copybook definition
 // and attempts to parse the line, detecting whether it is a picture definition (PIC),
 // picture redefinition (REDEFINES), or a repeated picture definition (OCCURS).
-func (d *Decoder) findDataRecord(line string, c *Copybook) (*record, error) {
+func (d *Decoder) findDataRecord(line string, c *Copybook) (*record, error) { // nolint:gocyclo
 	line = trimExtraWhitespace(line)
 	switch getLineType(line) {
 	case pic:
