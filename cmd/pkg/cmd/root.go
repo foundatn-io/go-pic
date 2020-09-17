@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,6 +36,7 @@ var fileCmd = &cobra.Command{
 
 // Execute executes the root command.
 func Execute() error {
+	log.Println("Always check your output! go-pic struct generation is not complete, it does not yet understand every possible aspect of copybook definitions")
 	return rootCmd.Execute()
 }
 
@@ -53,7 +55,7 @@ func init() { // nolint:gochecknoinits
 	rootCmd.AddCommand(fileCmd)
 }
 
-func dirRun(cmd *cobra.Command, args []string) error {
+func dirRun(cmd *cobra.Command, _ []string) error {
 	out, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return err
@@ -82,6 +84,7 @@ func dirRun(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
+		log.Printf("parsing copybook file %s", ff.Name())
 		f, err := os.Open(filepath.Join(in, ff.Name())) // nolint:gosec
 		if err != nil {
 			return err
@@ -95,7 +98,7 @@ func dirRun(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func fileRun(cmd *cobra.Command, args []string) error {
+func fileRun(cmd *cobra.Command, _ []string) error {
 	out, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return err
@@ -106,6 +109,7 @@ func fileRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	log.Printf("parsing copybook file %s", in)
 	f, err := os.Open(in) // nolint:gosec
 	if err != nil {
 		return err
@@ -115,7 +119,9 @@ func fileRun(cmd *cobra.Command, args []string) error {
 }
 
 func run(r io.Reader, output string) error {
-	c := &parse.Copybook{}
+
+	name := strings.TrimSuffix(output, filepath.Ext(output))
+	c := &parse.Copybook{Name: name[strings.LastIndex(name, "/")+1:]}
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
@@ -125,7 +131,7 @@ func run(r io.Reader, output string) error {
 		return err
 	}
 
-	newFile, err := os.Create(fmt.Sprintf("%s.go", strings.TrimSuffix(output, filepath.Ext(output))))
+	newFile, err := os.Create(fmt.Sprintf("%s.go", name))
 	if err != nil {
 		return err
 	}

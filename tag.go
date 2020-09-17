@@ -36,6 +36,10 @@ func parseTag(tag string, prev int) (int, int, int, int, error) {
 		return 0, 0, 0, 0, err
 	}
 
+	if occursSize > 0 {
+		len *= occursSize
+	}
+
 	return len, prev + 1, len + prev, occursSize, nil
 }
 
