@@ -1,4 +1,4 @@
-package parse
+package decoder
 
 import (
 	"regexp"
@@ -14,6 +14,13 @@ const (
 	redefinesSingle
 	occursMulti
 	occursSingle
+
+	picSplitSize                = 6
+	incompletePICSplitSize      = 4
+	multiLineRedefinesSplitSize = 5
+	redefinesSplitSize          = 6
+	occursSplitSize             = 8
+	multiLineOccursSplitSize    = 6
 )
 
 var (
