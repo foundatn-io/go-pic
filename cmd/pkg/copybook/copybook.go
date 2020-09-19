@@ -47,10 +47,9 @@ func (c *Copybook) WriteToStruct(writer io.Writer) error {
 	return err
 }
 
-// RedefineRecord is used to locate a REDEFINES target, remove it from
-// the stored records, and replace it with the source PIC of the
-// REDEFINES statement, otherwise failing if the target is not found.
-func (c *Copybook) RedefineRecord(r *Record) error {
+// RemoveRecord is used to locate a REDEFINES target and remove it from
+// the stored records, otherwise failing if the target is not found.
+func (c *Copybook) RemoveRecord(r *Record) error {
 	cc := *c
 
 	for i, rec := range cc.Records {
@@ -66,11 +65,11 @@ func (c *Copybook) RedefineRecord(r *Record) error {
 	return fmt.Errorf("replacement target %s not found", r.Name)
 }
 
-// ReplaceRecord is used to locate a REDEFINES target that was defined
+// RedefineRecord is used to locate a REDEFINES target that was defined
 // over multiple lines in a copybook file, and replace its name with
 // the source of the REDEFINES statement, otherwise failing if
 // the target is not found.
-func (c *Copybook) ReplaceRecord(want, replace *Record) error {
+func (c *Copybook) RedefineRecord(want, replace *Record) error {
 	cc := *c
 	for i, rec := range cc.Records {
 		if rec.Name == replace.Name {

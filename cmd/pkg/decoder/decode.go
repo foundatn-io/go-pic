@@ -109,7 +109,7 @@ func (d *Decoder) findDataRecord(line string, c *copybook.Copybook) (*copybook.R
 			return nil, err
 		}
 
-		if err := c.RedefineRecord(r); err != nil {
+		if err := c.RemoveRecord(r); err != nil {
 			return nil, err
 		}
 
@@ -121,7 +121,7 @@ func (d *Decoder) findDataRecord(line string, c *copybook.Copybook) (*copybook.R
 			return nil, err
 		}
 
-		if err := c.ReplaceRecord(want, replace); err != nil {
+		if err := c.RedefineRecord(want, replace); err != nil {
 			return nil, err
 		}
 
