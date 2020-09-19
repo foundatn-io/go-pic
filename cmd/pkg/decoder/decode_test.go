@@ -1,4 +1,4 @@
-package parse
+package decoder
 
 import (
 	"bytes"
@@ -6,17 +6,20 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/pgmitche/go-pic/cmd/pkg/copybook"
+	"github.com/pgmitche/go-pic/cmd/pkg/template"
 )
 
 func TestDecoder_Unmarshal(t *testing.T) {
 	tests := []struct {
 		name string
-		c    *Copybook
+		c    *copybook.Copybook
 		in   string
 	}{
 		{
 			name: "SuccessfullyParseBasicDummyCopybook",
-			c:    &Copybook{},
+			c:    copybook.New("dummy", template.CopyBook),
 			in: `000600         10  DUMMY-1                PIC X.                  00000167
 000610         10  DUMMY-2                PIC X(3).               00000168
 000620         10  DUMMY-3                PIC 9(7).               00000169
@@ -34,7 +37,7 @@ func TestDecoder_Unmarshal(t *testing.T) {
 			require.NoError(t, err)
 
 			var b bytes.Buffer
-			err = tt.c.ToSruct(&b)
+			err = tt.c.WriteToStruct(&b)
 			require.NoError(t, err)
 
 			log.Println(b.String())
