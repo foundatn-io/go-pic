@@ -43,11 +43,8 @@ func (d *decoder) Decode(c *copybook.Copybook) error {
 
 // toCache returns a record, just stored into or previously loaded from the cache
 func (d *decoder) toCache(r *copybook.Record) *copybook.Record {
-	if r, ok := d.cache.LoadOrStore(r.Name, r); ok {
-		return r.(*copybook.Record)
-	}
-
-	return nil
+	d.cache.Store(r.Name, r)
+	return r
 }
 
 // fromCache loads a record, by name, from the cache if present

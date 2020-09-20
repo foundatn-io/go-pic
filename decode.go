@@ -30,10 +30,9 @@ type Decoder struct {
 }
 
 func NewDecoder(r io.Reader) *Decoder {
-	d := &Decoder{
+	return &Decoder{
 		s: bufio.NewScanner(r),
 	}
-	return d
 }
 
 func (d *Decoder) Decode(v interface{}) error {
