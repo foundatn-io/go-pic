@@ -116,12 +116,12 @@ func (d *Decoder) findDataRecord(line string, c *copybook.Copybook) (*copybook.R
 		return nil, nil
 
 	case redefinesMulti:
-		want, replace, err := d.multiLineRedefinedRecord(line)
+		want, err := d.multiLineRedefinedRecord(line)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := c.RedefineRecord(want, replace); err != nil {
+		if err := c.RedefineRecord(want); err != nil {
 			return nil, err
 		}
 
@@ -228,37 +228,47 @@ func (d *Decoder) findRedefinesTarget(line string) (*copybook.Record, error) {
 	return r, nil
 }
 
-// Document redefinitions seem to be of two kinds, not always on the same line, examples below:
+// multiLineRedefinedRecord locates a replacement record and edits it
+// to contain the same information as the original target, but updated
+// with the name of the redefinition PIC.
+// The assumption here is that multiline redefinitions are not of different
+// types or lengths
+//
+// TODO: this assumption may be incorrect. Without further examples
+// of all kind of copybook statements, the behaviour cannot be certain
 //
 // 000420             15  DUMMY-5  REDEFINES                 00000142
 // 000420                 DUMMY-4  PIC XX.                   00000143
-func (d *Decoder) multiLineRedefinedRecord(line string) (*copybook.Record, *copybook.Record, error) {
+func (d *Decoder) multiLineRedefinedRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 
 	if len(ss) != multiLineRedefinesSplitSize {
-		return nil, nil, errors.New("multiLineRedefinedRecord: does not match expected length/format")
+		return nil, errors.New("multiLineRedefinedRecord: does not match expected length/format")
 	}
 
 	if ok := d.s.Scan(); !ok {
 		d.done = true
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	replace := string(d.s.Bytes())
 	r, err := d.findRedefinesTarget(replace)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	want := *r
 	want.Name = ss[2]
-	return &want, r, nil
+	return &want, nil
 }
 
 // redefinedRecord locates a replacement record and removes it
 // based on the assumption that intra-line REDEFINES statements
 // are followed by the definition of a subgroup, which wholly replaces
 // the target picture definition
+//
+// TODO: this assumption may be incorrect. Without further examples
+// of all kind of copybook statements, the behaviour cannot be certain
 //
 // 000590     05  DUMMY-3  REDEFINES  DUMMY-2. 00000166
 func (d *Decoder) redefinedRecord(line string) (*copybook.Record, error) {
@@ -277,6 +287,9 @@ func (d *Decoder) redefinedRecord(line string) (*copybook.Record, error) {
 	return nil, fmt.Errorf("REDEFINES %s target is not present", replace)
 }
 
+// occursRecord accepts a line that is suspected to be an OCCURS statement that is defined on a single line.
+// The length of string elements is validated, and subsequently used to build a record from the line elements.
+//
 // Intra-line - 001350           15  DUMMY-1 PIC X  OCCURS 12.       00000247
 func (d *Decoder) occursRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
@@ -321,6 +334,12 @@ func (d *Decoder) occursRecord(line string) (*copybook.Record, error) {
 	return d.toCache(rec), nil
 }
 
+// multiLineOccursRecord accepts a line that is suspected to be an OCCURS statement
+// that has been broken across multiple lines. multiLineOccursRecord validates the length
+// of string elements, then scans ahead to the next line and checks for an OCCURS definition,
+// validates the new line and builds a record from the PIC defined on the first line, and
+// the OCCURS count on the second.
+//
 // Multi-line - 001290           15  DUMMY-1 PIC X(12)               00000241
 // 				001300               OCCURS 12.                      00000242
 func (d *Decoder) multiLineOccursRecord(line string) (*copybook.Record, error) {
