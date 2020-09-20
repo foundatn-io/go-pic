@@ -132,7 +132,7 @@ func structSetFunc(t reflect.Type) setFunc {
 	}
 }
 
-func failSetFunc(v reflect.Value, s string) error {
+func failSetFunc(_ reflect.Value, _ string) error {
 	return errors.New("pic: unknown type")
 }
 

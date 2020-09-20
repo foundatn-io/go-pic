@@ -11,13 +11,15 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/pgmitche/go-pic/cmd/pkg/parse"
+	"github.com/pgmitche/go-pic/cmd/pkg/copybook"
+	"github.com/pgmitche/go-pic/cmd/pkg/decoder"
+	"github.com/pgmitche/go-pic/cmd/pkg/template"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "gopic",
-	Short: "Gopic - COBOL copybooks to structs",
-	Long:  "Gopic helps you generate struct representations from textual PIC definitions (COBOL copybook)",
+	Short: "go-pic - COBOL copybooks to structs",
+	Long:  "go-pic helps you generate struct representations from textual PIC definitions (COBOL copybook). I should have called this Gopybook",
 }
 
 var dirCmd = &cobra.Command{
@@ -36,7 +38,6 @@ var fileCmd = &cobra.Command{
 
 // Execute executes the root command.
 func Execute() error {
-	log.Println("Always check your output! go-pic struct generation is not complete, it does not yet understand every possible aspect of copybook definitions")
 	return rootCmd.Execute()
 }
 
@@ -46,10 +47,10 @@ func init() { // nolint:gochecknoinits
 	fileCmd.Flags().StringP("output", "o", "", "path to output file")
 	fileCmd.Flags().StringP("input", "i", "", "path to input file")
 
-	dirCmd.MarkFlagRequired("output")  // nolint:errcheck,gosec
-	dirCmd.MarkFlagRequired("input")   // nolint:errcheck,gosec
-	fileCmd.MarkFlagRequired("output") // nolint:errcheck,gosec
-	fileCmd.MarkFlagRequired("input")  // nolint:errcheck,gosec
+	_ = dirCmd.MarkFlagRequired("output")  // nolint:errcheck,gosec
+	_ = dirCmd.MarkFlagRequired("input")   // nolint:errcheck,gosec
+	_ = fileCmd.MarkFlagRequired("output") // nolint:errcheck,gosec
+	_ = fileCmd.MarkFlagRequired("input")  // nolint:errcheck,gosec
 
 	rootCmd.AddCommand(dirCmd)
 	rootCmd.AddCommand(fileCmd)
@@ -121,13 +122,16 @@ func fileRun(cmd *cobra.Command, _ []string) error {
 func run(r io.Reader, output string) error {
 
 	name := strings.TrimSuffix(output, filepath.Ext(output))
-	c := &parse.Copybook{Name: name[strings.LastIndex(name, "/")+1:]}
+	n := name[strings.LastIndex(name, "/")+1:]
+
+	c := copybook.New(n, template.CopyBook)
+
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
 	}
 
-	if err = parse.Unmarshal(b, c); err != nil {
+	if err = decoder.Unmarshal(b, c); err != nil {
 		return err
 	}
 
@@ -136,5 +140,5 @@ func run(r io.Reader, output string) error {
 		return err
 	}
 
-	return c.ToSruct(newFile)
+	return c.WriteToStruct(newFile)
 }

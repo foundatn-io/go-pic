@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-var fieldRepCache sync.Map // map[reflect.Type]structSpec
+var fieldRepCache sync.Map // map[reflect.Type]structRepresentation
 
 type structRepresentation struct {
 	len    int
@@ -31,16 +31,16 @@ func parseTag(tag string, prev int) (int, int, int, int, error) {
 		occursSize = o
 	}
 
-	len, err := strconv.Atoi(ss[0])
+	length, err := strconv.Atoi(ss[0])
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
 
 	if occursSize > 0 {
-		len *= occursSize
+		length *= occursSize
 	}
 
-	return len, prev + 1, len + prev, occursSize, nil
+	return length, prev + 1, length + prev, occursSize, nil
 }
 
 func makeStructRepresentation(t reflect.Type) structRepresentation {
@@ -68,7 +68,7 @@ func makeStructRepresentation(t reflect.Type) structRepresentation {
 	return sr
 }
 
-// cachedStructSpec is like buildStructSpec but cached to prevent duplicate work.
+// cachedStructRepresentation is like makeStructRepresentation but cached to prevent duplicate work.
 func cachedStructRepresentation(t reflect.Type) structRepresentation {
 	if f, ok := fieldRepCache.Load(t); ok {
 		return f.(structRepresentation)
