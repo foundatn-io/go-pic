@@ -139,12 +139,12 @@ func (d *Decoder) findDataRecord(line string, c *copybook.Copybook) (*copybook.R
 	return nil, errors.New("matched as record, but record type unimplemented")
 }
 
-// Defines picture clause
-// 000600         10  DUMMY-1       PIC X.                  00000167
-// 000620         10  DUMMY-2        PIC 9(7).               00000169
-//
 // picRecord decodes the line as a picture definition, returns the record details
 // and adds the picture to the PIC definition cache
+//
+// Examples:
+// 	000600         10  DUMMY-1       PIC X.                  00000167
+// 	000620         10  DUMMY-2       PIC 9(7).               00000169
 func (d *Decoder) picRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 	if len(ss) != picSplitSize {
@@ -237,8 +237,9 @@ func (d *Decoder) findRedefinesTarget(line string) (*copybook.Record, error) {
 // TODO: this assumption may be incorrect. Without further examples
 // of all kind of copybook statements, the behaviour cannot be certain
 //
-// 000420             15  DUMMY-5  REDEFINES                 00000142
-// 000420                 DUMMY-4  PIC XX.                   00000143
+// Multi-line:
+// 	000420             15  DUMMY-5  REDEFINES                 00000142
+// 	000420                 DUMMY-4  PIC XX.                   00000143
 func (d *Decoder) multiLineRedefinedRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 
@@ -270,7 +271,8 @@ func (d *Decoder) multiLineRedefinedRecord(line string) (*copybook.Record, error
 // TODO: this assumption may be incorrect. Without further examples
 // of all kind of copybook statements, the behaviour cannot be certain
 //
-// 000590     05  DUMMY-3  REDEFINES  DUMMY-2. 00000166
+// Intra-line:
+// 	000590     05  DUMMY-3  REDEFINES  DUMMY-2. 00000166
 func (d *Decoder) redefinedRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 
@@ -290,7 +292,8 @@ func (d *Decoder) redefinedRecord(line string) (*copybook.Record, error) {
 // occursRecord accepts a line that is suspected to be an OCCURS statement that is defined on a single line.
 // The length of string elements is validated, and subsequently used to build a record from the line elements.
 //
-// Intra-line - 001350           15  DUMMY-1 PIC X  OCCURS 12.       00000247
+// Intra-line:
+// 	001350           15  DUMMY-1 PIC X  OCCURS 12.       00000247
 func (d *Decoder) occursRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 	if len(ss) != occursSplitSize {
@@ -340,8 +343,9 @@ func (d *Decoder) occursRecord(line string) (*copybook.Record, error) {
 // validates the new line and builds a record from the PIC defined on the first line, and
 // the OCCURS count on the second.
 //
-// Multi-line - 001290           15  DUMMY-1 PIC X(12)               00000241
-// 				001300               OCCURS 12.                      00000242
+// Multi-line:
+// 	001290           15  DUMMY-1 PIC X(12)               00000241
+// 	001300               OCCURS 12.                      00000242
 func (d *Decoder) multiLineOccursRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 	if len(ss) != multiLineOccursSplitSize {
