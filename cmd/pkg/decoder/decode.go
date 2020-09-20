@@ -20,17 +20,23 @@ type decoder struct {
 	cache sync.Map
 }
 
+// Unmarshal unpacks the given bytes into the Copybook
+// it operates as a convenient point-of-entry that wraps
+// the calling of New & Decode
 func Unmarshal(data []byte, c *copybook.Copybook) error {
-	return NewDecoder(bytes.NewReader(data)).Decode(c)
+	return New(bytes.NewReader(data)).Decode(c)
 }
 
-func NewDecoder(r io.Reader) *decoder {
-	d := &decoder{
+// New builds a decoder with a scanner based on the provided reader
+func New(r io.Reader) *decoder {
+	return &decoder{
 		s: bufio.NewScanner(r),
 	}
-	return d
 }
 
+// Decode scans the given reader line by line, decoding the information within
+// and adding them to the given Copybook, until the last line in the readers buffer
+// is read
 func (d *decoder) Decode(c *copybook.Copybook) error {
 	return d.scanLines(c)
 }
@@ -216,6 +222,9 @@ func (d *decoder) incompletePICRecord(line string) (*copybook.Record, error) {
 	return d.toCache(rec), nil
 }
 
+// findRedefinesTarget accepts a string, line, expected to contain a REDEFINES target
+// validates the line is in the expected format, and attempts to locate the target in
+// the cache, under the assumption that only previously recorded PICs can be REDEFINED
 func (d *decoder) findRedefinesTarget(line string) (*copybook.Record, error) {
 	line = trimExtraWhitespace(line)
 	ss := strings.Split(line, " ")
