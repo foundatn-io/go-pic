@@ -18,7 +18,7 @@ func parsePICType(pic string) (reflect.Kind, error) {
 		return reflect.Int, nil
 	}
 
-	return reflect.Invalid, errors.New("unexpected PIC type")
+	return reflect.Invalid, errors.New("parsePICType: unexpected PIC type")
 }
 
 // parsePICCount identifies the fixed width, or length, of the given

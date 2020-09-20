@@ -14,7 +14,7 @@ import (
 	"github.com/pgmitche/go-pic/cmd/pkg/copybook"
 )
 
-type Decoder struct {
+type decoder struct {
 	s     *bufio.Scanner
 	done  bool
 	cache sync.Map
@@ -24,27 +24,28 @@ func Unmarshal(data []byte, c *copybook.Copybook) error {
 	return NewDecoder(bytes.NewReader(data)).Decode(c)
 }
 
-func NewDecoder(r io.Reader) *Decoder {
-	d := &Decoder{
+func NewDecoder(r io.Reader) *decoder {
+	d := &decoder{
 		s: bufio.NewScanner(r),
 	}
 	return d
 }
 
-func (d *Decoder) Decode(c *copybook.Copybook) error {
+func (d *decoder) Decode(c *copybook.Copybook) error {
 	return d.scanLines(c)
 }
 
-func (d *Decoder) toCache(r *copybook.Record) *copybook.Record {
-	if r, ok := d.cache.Load(r.Name); ok {
+// toCache returns a record, just stored into or previously loaded from the cache
+func (d *decoder) toCache(r *copybook.Record) *copybook.Record {
+	if r, ok := d.cache.LoadOrStore(r.Name, r); ok {
 		return r.(*copybook.Record)
 	}
 
-	rec, _ := d.cache.LoadOrStore(r.Name, r)
-	return rec.(*copybook.Record)
+	return nil
 }
 
-func (d *Decoder) fromCache(name string) *copybook.Record {
+// fromCache loads a record, by name, from the cache if present
+func (d *decoder) fromCache(name string) *copybook.Record {
 	r, ok := d.cache.Load(name)
 	if !ok {
 		return nil
@@ -53,9 +54,9 @@ func (d *Decoder) fromCache(name string) *copybook.Record {
 	return r.(*copybook.Record)
 }
 
-// scanlines advances the scanner line by line until an error is reached
+// scanLines advances the scanner line by line until an error is reached
 // or the done flag is toggled by the decoder
-func (d *Decoder) scanLines(c *copybook.Copybook) (err error) {
+func (d *decoder) scanLines(c *copybook.Copybook) (err error) {
 	for {
 		_, err := d.scanLine(c)
 		if err != nil {
@@ -72,7 +73,7 @@ func (d *Decoder) scanLines(c *copybook.Copybook) (err error) {
 // scanLine reads each line, advancing the scanner, decoding the buffer as
 // a string and attempting to interpret the line as a record definition
 // appending the record to the running copybook schema
-func (d *Decoder) scanLine(c *copybook.Copybook) (bool, error) {
+func (d *decoder) scanLine(c *copybook.Copybook) (bool, error) {
 	if ok := d.s.Scan(); !ok {
 		d.done = true
 		return false, nil
@@ -94,7 +95,7 @@ func (d *Decoder) scanLine(c *copybook.Copybook) (bool, error) {
 // findDataRecord accepts a string, line, representing a line in a copybook definition
 // and attempts to parse the line, detecting whether it is a picture definition (PIC),
 // picture redefinition (REDEFINES), or a repeated picture definition (OCCURS).
-func (d *Decoder) findDataRecord(line string, c *copybook.Copybook) (*copybook.Record, error) { // nolint:gocyclo
+func (d *decoder) findDataRecord(line string, c *copybook.Copybook) (*copybook.Record, error) { // nolint:gocyclo
 	line = trimExtraWhitespace(line)
 	switch getLineType(line) {
 	case pic:
@@ -145,7 +146,7 @@ func (d *Decoder) findDataRecord(line string, c *copybook.Copybook) (*copybook.R
 // Examples:
 // 	000600         10  DUMMY-1       PIC X.                  00000167
 // 	000620         10  DUMMY-2       PIC 9(7).               00000169
-func (d *Decoder) picRecord(line string) (*copybook.Record, error) {
+func (d *decoder) picRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 	if len(ss) != picSplitSize {
 		return nil, errors.New("picRecord: does not match expected length/format")
@@ -182,15 +183,18 @@ func (d *Decoder) picRecord(line string) (*copybook.Record, error) {
 	return d.toCache(rec), nil
 }
 
-func (d *Decoder) incompletePICRecord(line string) (*copybook.Record, error) {
+// incompletePICRecord accepts lines that are suspected PIC definitions that do not match
+// the perfect PIC pattern, but still contain valid PIC definitions. incompletePICRecord extracts
+// the key information that it can, builds a record and adds it to the cache
+//
+// Missing group:
+// 	000420             DUMMY-1  PIC XX.         00000143
+// Missing header/trailer:
+// 	               10  DUMMY-1  PIC X(23).
+func (d *decoder) incompletePICRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 	if len(ss) != incompletePICSplitSize {
 		return nil, errors.New("incompletePICRecord: does not match expected length/format")
-	}
-
-	lvl, err := strconv.Atoi(ss[0])
-	if err != nil {
-		return nil, err
 	}
 
 	pic, err := parsePICType(ss[3])
@@ -204,7 +208,6 @@ func (d *Decoder) incompletePICRecord(line string) (*copybook.Record, error) {
 	}
 
 	rec := &copybook.Record{
-		Level:   lvl,
 		Name:    ss[1],
 		Picture: pic,
 		Length:  size,
@@ -213,7 +216,7 @@ func (d *Decoder) incompletePICRecord(line string) (*copybook.Record, error) {
 	return d.toCache(rec), nil
 }
 
-func (d *Decoder) findRedefinesTarget(line string) (*copybook.Record, error) {
+func (d *decoder) findRedefinesTarget(line string) (*copybook.Record, error) {
 	line = trimExtraWhitespace(line)
 	ss := strings.Split(line, " ")
 	if len(ss) != multiLineRedefinesSplitSize {
@@ -222,7 +225,7 @@ func (d *Decoder) findRedefinesTarget(line string) (*copybook.Record, error) {
 
 	r := d.fromCache(ss[1])
 	if r == nil {
-		return nil, fmt.Errorf("REDEFINES target %s not found", ss[1])
+		return nil, fmt.Errorf("findRedefinesTarget: target %s not found", ss[1])
 	}
 
 	return r, nil
@@ -230,7 +233,8 @@ func (d *Decoder) findRedefinesTarget(line string) (*copybook.Record, error) {
 
 // multiLineRedefinedRecord locates a replacement record and edits it
 // to contain the same information as the original target, but updated
-// with the name of the redefinition PIC.
+// with the name of the redefinition PIC. multiLineRedefinedRecord removes
+// the target from the cache, replacing it with the redefined PIC.
 // The assumption here is that multiline redefinitions are not of different
 // types or lengths
 //
@@ -240,9 +244,8 @@ func (d *Decoder) findRedefinesTarget(line string) (*copybook.Record, error) {
 // Multi-line:
 // 	000420             15  DUMMY-5  REDEFINES                 00000142
 // 	000420                 DUMMY-4  PIC XX.                   00000143
-func (d *Decoder) multiLineRedefinedRecord(line string) (*copybook.Record, error) {
+func (d *decoder) multiLineRedefinedRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
-
 	if len(ss) != multiLineRedefinesSplitSize {
 		return nil, errors.New("multiLineRedefinedRecord: does not match expected length/format")
 	}
@@ -260,7 +263,8 @@ func (d *Decoder) multiLineRedefinedRecord(line string) (*copybook.Record, error
 
 	want := *r
 	want.Name = ss[2]
-	return &want, nil
+	d.cache.Delete(r.Name)
+	return d.toCache(&want), nil
 }
 
 // redefinedRecord locates a replacement record and removes it
@@ -273,7 +277,7 @@ func (d *Decoder) multiLineRedefinedRecord(line string) (*copybook.Record, error
 //
 // Intra-line:
 // 	000590     05  DUMMY-3  REDEFINES  DUMMY-2. 00000166
-func (d *Decoder) redefinedRecord(line string) (*copybook.Record, error) {
+func (d *decoder) redefinedRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 
 	if len(ss) != redefinesSplitSize {
@@ -294,7 +298,7 @@ func (d *Decoder) redefinedRecord(line string) (*copybook.Record, error) {
 //
 // Intra-line:
 // 	001350           15  DUMMY-1 PIC X  OCCURS 12.       00000247
-func (d *Decoder) occursRecord(line string) (*copybook.Record, error) {
+func (d *decoder) occursRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 	if len(ss) != occursSplitSize {
 		return nil, errors.New("occursRecord: does not match expected length/format")
@@ -346,7 +350,7 @@ func (d *Decoder) occursRecord(line string) (*copybook.Record, error) {
 // Multi-line:
 // 	001290           15  DUMMY-1 PIC X(12)               00000241
 // 	001300               OCCURS 12.                      00000242
-func (d *Decoder) multiLineOccursRecord(line string) (*copybook.Record, error) {
+func (d *decoder) multiLineOccursRecord(line string) (*copybook.Record, error) {
 	ss := strings.Split(line, " ")
 	if len(ss) != multiLineOccursSplitSize {
 		return nil, errors.New("multiLineOccursRecord: does not match expected length/format")
