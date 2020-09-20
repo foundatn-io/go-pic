@@ -239,7 +239,7 @@ func (d *decoder) findRedefinesTarget(line string) (*copybook.Record, error) {
 // types or lengths
 //
 // TODO: this assumption may be incorrect. Without further examples
-// of all kind of copybook statements, the behaviour cannot be certain
+// of all kind of copybook statements, the behavior cannot be certain
 //
 // Multi-line:
 // 	000420             15  DUMMY-5  REDEFINES                 00000142
@@ -273,7 +273,7 @@ func (d *decoder) multiLineRedefinedRecord(line string) (*copybook.Record, error
 // the target picture definition
 //
 // TODO: this assumption may be incorrect. Without further examples
-// of all kind of copybook statements, the behaviour cannot be certain
+// of all kind of copybook statements, the behavior cannot be certain
 //
 // Intra-line:
 // 	000590     05  DUMMY-3  REDEFINES  DUMMY-2. 00000166
