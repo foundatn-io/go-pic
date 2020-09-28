@@ -31,6 +31,10 @@ build: clean
 		-o ./dist/go-pic \
 		cmd/main.go
 
+install: build
+	chmod +x ./dist/go-pic
+	cp ./dist/go-pic $(GOPATH)/bin/go-pic
+
 # Automated code review for Go
 .PHONY: tidy
 tidy: ## Reorders imports
