@@ -7,6 +7,12 @@ COBOL PIC (Picture) clause parsing library
 [![Release](https://img.shields.io/github/release/pgmitche/go-pic.svg?style=flat-square)](https://github.com/pgmitche/go-pic/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/pgmitche/go-pic/blob/master/LICENSE)
 
+## Install
+
+Get started using `gopic` by installing the struct-generation tool from the root directory by running:
+
+`$ make install`
+
 ## Tag-based unmarshalling 
 
 go-pic's main focus is enabling simpler 1:1 mapping of PIC definitions to Go structs. 
