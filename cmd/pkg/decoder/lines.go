@@ -2,6 +2,7 @@ package decoder
 
 import (
 	"regexp"
+	"strings"
 )
 
 type lineKind int
@@ -36,7 +37,8 @@ var (
 	// Defines picture clause
 	// 000600         10  DUMMY-1       PIC X.                  00000167
 	// 000620         10  DUMMY-2       PIC 9(7).               00000169
-	picLine = regexp.MustCompile(`^[0-9]+ +[0-9]{2} +[a-zA-Z0-9\-]+ +PIC ([X9]+|[X9]\([0-9]+\))\. +0+[0-9]+$`)
+	picLine         = regexp.MustCompile(`^[0-9]+ +[0-9]{2} +[a-zA-Z0-9\-]+ +PIC ([X9]+|[X9]\([0-9]+\))\. +0+[0-9]+$`)
+	generousPICLine = regexp.MustCompile(`^[0-9]+ +[0-9]{2} +[a-zA-Z0-9\-]+ +PIC [AXPV9S()]*\. +0+[0-9]+$`)
 
 	// Defines picture clause that deviates from typical pattern
 	//          10  DUMMY-1       PIC X.                  00000167
@@ -92,4 +94,35 @@ func getLineType(line string) lineKind {
 	}
 
 	return xxx
+}
+
+type tt int
+
+const (
+	unsigned tt = iota
+	signed
+	alpha
+)
+
+func picTypeFilter(s string) tt {
+	var t tt
+	if strings.ContainsAny(s, "XA") {
+		if alpha > t {
+			t = alpha
+			return t
+		}
+	}
+
+	if strings.ContainsAny(s, "S") {
+		if signed > t {
+			t = signed
+			return t
+		}
+	}
+
+	if strings.ContainsAny(s, "VP9") {
+		return unsigned
+	}
+
+	return t
 }
