@@ -1,7 +1,9 @@
 package decoder
 
 import (
+	"log"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -125,4 +127,30 @@ func picTypeFilter(s string) tt {
 	}
 
 	return t
+}
+
+func lenCalc(s string) int {
+	// prepare a slice of runes, representing the string
+	c := []rune(s)
+
+	size := 0
+
+	// S9(9)V9(9)
+	// SV = 2 + 18 = 20
+	for strings.Contains(s, "(") {
+		left := strings.Index(s, "(")
+		right := strings.Index(s, ")")
+		start := left - 1
+		end := right + 1
+		amount, err := strconv.Atoi(s[left+1 : right])
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		size += amount
+		c = append(c[:start], c[end:]...)
+		s = string(c)
+	}
+
+	return size + len(c)
 }
