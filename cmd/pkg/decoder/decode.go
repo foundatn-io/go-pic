@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -165,9 +166,9 @@ func (d *decoder) picRecord(line string) (*copybook.Record, error) {
 		return nil, err
 	}
 
-	pic, err := parsePICType(ss[4])
-	if err != nil {
-		return nil, err
+	pic := parsePICType(ss[4])
+	if pic == reflect.Invalid {
+		return nil, errors.New("picTypeFilter: unexpected PIC type")
 	}
 
 	size, err := parsePICCount(ss[4])
@@ -200,9 +201,9 @@ func (d *decoder) incompletePICRecord(line string) (*copybook.Record, error) {
 		return nil, errors.New("incompletePICRecord: does not match expected length/format")
 	}
 
-	pic, err := parsePICType(ss[3])
-	if err != nil {
-		return nil, err
+	pic := parsePICType(ss[3])
+	if pic == reflect.Invalid {
+		return nil, errors.New("picTypeFilter: unexpected PIC type")
 	}
 
 	size, err := parsePICCount(ss[3])
@@ -320,11 +321,10 @@ func (d *decoder) occursRecord(line string) (*copybook.Record, error) {
 		return nil, err
 	}
 
-	t, err := parsePICType(ss[4])
-	if err != nil {
-		return nil, err
+	pic := parsePICType(ss[4])
+	if pic == reflect.Invalid {
+		return nil, errors.New("picTypeFilter: unexpected PIC type")
 	}
-
 	size, err := parsePICCount(ss[4])
 	if err != nil {
 		return nil, err
@@ -339,7 +339,7 @@ func (d *decoder) occursRecord(line string) (*copybook.Record, error) {
 		Num:     num,
 		Level:   lvl,
 		Name:    ss[2],
-		Picture: t,
+		Picture: pic,
 		Length:  size,
 		Occurs:  occurs,
 	}
@@ -387,9 +387,9 @@ func (d *decoder) multiLineOccursRecord(line string) (*copybook.Record, error) {
 		return nil, err
 	}
 
-	t, err := parsePICType(ss[4])
-	if err != nil {
-		return nil, err
+	pic := parsePICType(ss[4])
+	if pic == reflect.Invalid {
+		return nil, errors.New("picTypeFilter: unexpected PIC type")
 	}
 
 	size, err := parsePICCount(ss[4])
@@ -406,7 +406,7 @@ func (d *decoder) multiLineOccursRecord(line string) (*copybook.Record, error) {
 		Num:     num,
 		Level:   lvl,
 		Name:    ss[2],
-		Picture: t,
+		Picture: pic,
 		Length:  size,
 		Occurs:  occurs,
 	}
