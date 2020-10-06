@@ -4,7 +4,7 @@
 ////////////////////////////////
 
 // nolint
-package tempcopybook
+package main
 
 // Copybookexample contains a representation of your provided Copybook
 type Copybookexample struct {
