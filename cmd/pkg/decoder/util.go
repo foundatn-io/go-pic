@@ -1,45 +1,85 @@
 package decoder
 
 import (
-	"errors"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
+type picType int
+
+const (
+	unknown picType = iota
+	unsigned
+	signed
+	alpha
+)
+
+var (
+	types = map[picType]reflect.Kind{
+		unknown:  reflect.Invalid,
+		unsigned: reflect.Uint,
+		signed:   reflect.Int,
+		alpha:    reflect.String,
+	}
+)
+
 // parsePICType identifies an equivalent Go type from the given substring
 // that contains a PIC definition
-func parsePICType(pic string) (reflect.Kind, error) {
-	switch pic[0:1] {
-	case "X":
-		return reflect.String, nil
-	case "9":
-		return reflect.Int, nil
+func parsePICType(s string) reflect.Kind {
+	picType := unknown
+	if strings.ContainsAny(s, "XA") {
+		if alpha > picType {
+			picType = alpha
+			return types[picType]
+		}
 	}
 
-	return reflect.Invalid, errors.New("parsePICType: unexpected PIC type")
+	if strings.ContainsAny(s, "S") {
+		if signed > picType {
+			picType = signed
+			return types[picType]
+		}
+	}
+
+	if strings.ContainsAny(s, "VP9") {
+		picType = unsigned
+		return types[picType]
+	}
+
+	return types[picType]
 }
 
 // parsePICCount identifies the fixed width, or length, of the given
 // PIC definition such as: X(2)., XX., 9(9)., etc.
-func parsePICCount(pic string) (int, error) {
-	// Contains a numerical length within parentheses...
-	if strings.Contains(pic, "(") {
-		leftPos := strings.Index(pic, "(") + 1
-		rightPos := strings.Index(pic, ")")
+func parsePICCount(s string) (int, error) {
+	// prepare a slice of runes, representing the string
+	s = strings.Trim(s, ".")
+	c := []rune(s)
 
-		size, err := strconv.Atoi(pic[leftPos:rightPos])
+	size := 0
+
+	// S9(9)V9(9)
+	// SV = 2 + 18 = 20
+	for strings.Contains(s, "(") {
+		left := strings.Index(s, "(")
+		right := strings.Index(s, ")")
+		// capture type when using parentheses "9(99)" should be stripped to
+		// "" so that it results in 99+0, not 99+len("9")
+		start := left - 1
+		end := right + 1
+		amount, err := strconv.Atoi(s[left+1 : right])
 		if err != nil {
 			return 0, err
 		}
 
-		return size, nil
+		size += amount
+		c = append(c[:start], c[end:]...)
+		s = string(c)
 	}
 
-	// ...or is a type-repeated length definition e.g. XXXX. (as 4)
-	s := strings.Trim(pic, ".")
-	return len(s), nil
+	return size + len(c), nil
 }
 
 // parseOccursCount captures the numerical definition of n occurrences
