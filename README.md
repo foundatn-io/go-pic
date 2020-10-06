@@ -15,7 +15,7 @@ Get started using `gopic` by installing the struct-generation tool from the root
 
 ## Tag-based unmarshalling 
 
-go-pic's main focus is enabling simpler 1:1 mapping of PIC definitions to Go structs. 
+`gopic`'s main focus is enabling simpler 1:1 mapping of PIC definitions to Go structs. 
 
 For example, if your PIC definitions look like:
 ```
@@ -38,11 +38,11 @@ type Copybook struct{
 }
 ```
 
-Or you can make use of `go-pics` other feature below, so that you don't have to define the struct yourself...
+Or you can make use of `gopic`s other feature below, so that you don't have to define the struct yourself...
 
 ## Generating tagged structs
 
-`go-pic` provides support to generate flattened Go struct representations of your COBOL copybooks, tagged with length statements and assigned the appropriate type for unmarshalling files that match your COBOL copybook definitions.
+`gopic` provides support to generate flattened Go struct representations of your COBOL copybooks, tagged with length statements and assigned the appropriate type for unmarshalling files that match your COBOL copybook definitions.
 
 `cmd` contains go struct generation tool from textual PIC definitions
 
@@ -54,24 +54,25 @@ A file:
 A directory of files:  
 `gopic dir -o mystructsdir -i cobolstuff`
 
-When using `go-pic` for struct generation, additional, non-functional values are tagged to the PIC tags, for legibility's sake. 
+When using `gopic` for struct generation, additional, non-functional values are tagged to the PIC tags, for legibility's sake. 
 
-For example, the example struct above, if generated with `go-pic` becomes:
+For example, the example struct above, if generated with `gopic` becomes:
 
 ```go
 type Copybook struct{
-    Dummy1 int      `pic:"4,1,4"`
-    Dummy2 string   `pic:"1,5,5"`
-    Dummy3 int      `pic:"4,6,9"`
-    Dummy4 string   `pic:"40,10,49"`
-    Dummy5 string   `pic:"40,50,89"`
+    Dummy1 int      `pic:"4"`  // start:1 end:4
+    Dummy2 string   `pic:"1"`  // start:5 end:5
+    Dummy3 int      `pic:"4"`  // start:6 end:9
+    Dummy4 string   `pic:"40"` // start:10 end:49
+    Dummy5 string   `pic:"40"` // start:50 end:89
 }
 ```
 
-where the values represent:
+where the values...
 ```go
-Dummy1 int      `pic:"4"` // start:1, end:4
+Dummy1 int      `pic:"4"` // start:1 end:4
 ```
-- 4, pos 1 = length
-- 1, pos 2 = starting index
-- 4, pos 3 = ending index
+Represent:
+- 4 = length
+- 1 = start index
+- 4 = ending index
