@@ -46,32 +46,3 @@ func Test_getLineType(t *testing.T) {
 		})
 	}
 }
-
-func Test_lenCalc(t *testing.T) {
-	tests := []struct {
-		name string
-		in   string
-		want int
-	}{
-		{
-			name: "",
-			in:   "S9(9)V9(9)",
-			want: 20,
-		}, {
-			name: "",
-			in:   "9(99)",
-			want: 99,
-		}, {
-			name: "",
-			in:   "XXXX",
-			want: 4,
-		},
-	}
-	for _, test := range tests {
-		tt := test
-		t.Run(tt.name, func(t *testing.T) {
-			got := lenCalc(tt.in)
-			require.Equal(t, tt.want, got)
-		})
-	}
-}
