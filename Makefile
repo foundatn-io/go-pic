@@ -28,12 +28,12 @@ vendor: ## Cleans up go mod dependencies and vendor's all dependencies
 .PHONY: build
 build: clean
 	go build -v \
-		-o ./dist/go-pic \
+		-o ./dist/gopic \
 		cmd/main.go
 
 install: build
-	chmod +x ./dist/go-pic
-	cp ./dist/go-pic $(GOPATH)/bin/go-pic
+	chmod +x ./dist/gopic
+	cp ./dist/gopic $(GOPATH)/bin/gopic
 
 # Automated code review for Go
 .PHONY: tidy
@@ -56,8 +56,8 @@ cover: test ## Runs unit tests and assesses output coverage file
 
 .PHONY: run
 run: build
-	chmod +x ./dist/go-pic
-	./dist/go-pic dir -i dummy -o dummyout
+	chmod +x ./dist/gopic
+	./dist/gopic dir -i dummy -o dummyout
 
 define CHECK_COVERAGE
 awk \

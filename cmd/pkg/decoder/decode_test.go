@@ -41,10 +41,10 @@ package tempcopybook
 type Copybookdummy struct {
 	DUMMY1 string ` + "`" + `pic:"1"` + "`" + `  // start:1 end:1
 	DUMMY2 string ` + "`" + `pic:"3"` + "`" + `  // start:2 end:4
-	DUMMY3 int    ` + "`" + `pic:"7"` + "`" + `  // start:5 end:11
-	DUMMY4 int    ` + "`" + `pic:"4"` + "`" + `  // start:12 end:15
+	DUMMY3 uint   ` + "`" + `pic:"7"` + "`" + `  // start:5 end:11
+	DUMMY4 uint   ` + "`" + `pic:"4"` + "`" + `  // start:12 end:15
 	DUMMY5 string ` + "`" + `pic:"2"` + "`" + `  // start:16 end:17
-	DUMMY6 int    ` + "`" + `pic:"7"` + "`" + `  // start:18 end:24
+	DUMMY6 uint   ` + "`" + `pic:"7"` + "`" + `  // start:18 end:24
 	DUMMY7 string ` + "`" + `pic:"10"` + "`" + ` // start:25 end:34
 	DUMMY8 string ` + "`" + `pic:"1"` + "`" + `  // start:35 end:35
 }
@@ -95,14 +95,14 @@ func Test_decoder_findDataRecord(t *testing.T) {
 				Length:  3,
 			},
 		}, {
-			name: "BasicPICIntParentheses",
+			name: "BasicPICUintParentheses",
 			line: "000620         10  DUMMY-3                PIC 9(7).               00000169",
 			c:    copybook.New("dummy", template.CopyBook),
 			want: &copybook.Record{
 				Num:     620,
 				Level:   10,
 				Name:    "DUMMY-3",
-				Picture: reflect.Int,
+				Picture: reflect.Uint,
 				Length:  7,
 			},
 		}, {
@@ -115,6 +115,28 @@ func Test_decoder_findDataRecord(t *testing.T) {
 				Name:    "DUMMY-5",
 				Picture: reflect.String,
 				Length:  2,
+			},
+		}, {
+			name: "MultiTypeMultiParenthesesNumber",
+			line: "000640         10  DUMMY-5                PIC S9(9)V9(9).                 00000171",
+			c:    copybook.New("dummy", template.CopyBook),
+			want: &copybook.Record{
+				Num:     640,
+				Level:   10,
+				Name:    "DUMMY-5",
+				Picture: reflect.Int,
+				Length:  20,
+			},
+		}, {
+			name: "MultiTypeMultiParenthesesString",
+			line: "000640         10  DUMMY-5                PIC A(9)V9(9).                 00000171",
+			c:    copybook.New("dummy", template.CopyBook),
+			want: &copybook.Record{
+				Num:     640,
+				Level:   10,
+				Name:    "DUMMY-5",
+				Picture: reflect.String,
+				Length:  19,
 			},
 		},
 	}

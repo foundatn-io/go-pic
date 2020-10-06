@@ -36,12 +36,12 @@ var (
 	// Defines picture clause
 	// 000600         10  DUMMY-1       PIC X.                  00000167
 	// 000620         10  DUMMY-2       PIC 9(7).               00000169
-	picLine = regexp.MustCompile(`^[0-9]+ +[0-9]{2} +[a-zA-Z0-9\-]+ +PIC ([X9]+|[X9]\([0-9]+\))\. +0+[0-9]+$`)
+	generousPICLine = regexp.MustCompile(`^[0-9]+ +[0-9]{2} +[a-zA-Z0-9\-]+ +PIC [AXPVS()0-9]+\. +0+[0-9]+$`)
 
 	// Defines picture clause that deviates from typical pattern
 	//          10  DUMMY-1       PIC X.                  00000167
 	//          10  DUMMY-2       PIC 9(7).               00000169
-	incompletePICLine = regexp.MustCompile(`[0-9]{2} +[a-zA-Z0-9\-]+ +PIC ([X9]+|[X9]\([0-9]+\))\.`)
+	generousIncompletePICLine = regexp.MustCompile(`[0-9]{2} +[a-zA-Z0-9\-]+ +PIC [AXPVS()0-9]+\.`)
 
 	// Matches same-line REDEFINES definitions
 	// 000550     05  DUMMY-1  PIC X(340).             00000162
@@ -75,11 +75,11 @@ func getLineType(line string) lineKind {
 		return redefinesSingle
 	}
 
-	if picLine.MatchString(line) {
+	if generousPICLine.MatchString(line) {
 		return pic
 	}
 
-	if incompletePICLine.MatchString(line) {
+	if generousIncompletePICLine.MatchString(line) {
 		return picIncomplete
 	}
 

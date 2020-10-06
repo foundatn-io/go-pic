@@ -33,6 +33,14 @@ func Test_parsePICCount(t *testing.T) {
 			name: "NumberWithParenthesesSingleDigit",
 			in:   "9(9).",
 			want: 9,
+		}, {
+			name: "SignedNumberWithParenthesesSingleDigit",
+			in:   "S9(9).",
+			want: 10,
+		}, {
+			name: "SignedNumberWithMultiParentheses",
+			in:   "S9(9)V9(9).",
+			want: 20,
 		},
 	}
 	for _, test := range tests {
@@ -66,21 +74,29 @@ func Test_parsePICType(t *testing.T) {
 		}, {
 			name: "NumberWithParenthesesMultipleDigits",
 			in:   "9(99).",
-			want: reflect.Int,
+			want: reflect.Uint,
 		}, {
 			name: "NumberWithParenthesesSingleDigit",
 			in:   "9(9).",
-			want: reflect.Int,
+			want: reflect.Uint,
 		}, {
 			name: "SWithParenthesesSingleDigit",
-			in:   "S(9).",
-			want: reflect.Invalid,
+			in:   "S9(9).",
+			want: reflect.Int,
+		}, {
+			name: "SWithParenthesesSingleDigitDecimalPlace",
+			in:   "S9(9)V9(9).",
+			want: reflect.Int,
+		}, {
+			name: "MultiParenthesesWithAlphanumeric",
+			in:   "S(9)VX(9).",
+			want: reflect.String,
 		},
 	}
 	for _, test := range tests {
 		tt := test
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := parsePICType(tt.in)
+			got := parsePICType(tt.in)
 			require.Equal(t, tt.want, got)
 		})
 	}
