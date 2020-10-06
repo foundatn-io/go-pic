@@ -69,13 +69,14 @@ func (c *Copybook) RemoveRecord(r *Record) error {
 // over multiple lines in a copybook file, and replace its name with
 // the source of the REDEFINES statement, otherwise failing if
 // the target is not found.
-func (c *Copybook) RedefineRecord(want *Record) error {
+func (c *Copybook) RedefineRecord(want *Record, was string) error {
 	cc := *c
 	for i, rec := range cc.Records {
-		if rec.Name == want.Name {
+		if rec.Name == was {
 			cc.Records[i] = want
+			return nil
 		}
 	}
 
-	return fmt.Errorf("replacement target %s not found", want.Name)
+	return fmt.Errorf("replacement target %s not found", was)
 }
