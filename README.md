@@ -49,10 +49,10 @@ Or you can make use of `gopic`s other feature below, so that you don't have to d
 Example struct gen usage:  
 
 A file:  
-`gopic file -o mycopybookstruct -i cobolstuff/copybook.txt`
+`$ gopic file -o mycopybookstruct -i cobolstuff/copybook.txt`
 
 A directory of files:  
-`gopic dir -o mystructsdir -i cobolstuff`
+`$ gopic dir -o mystructsdir -i cobolstuff`
 
 When using `gopic` for struct generation, additional, non-functional values are tagged to the PIC tags, for legibility's sake. 
 
