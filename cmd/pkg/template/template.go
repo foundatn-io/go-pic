@@ -53,6 +53,11 @@ func goType(t reflect.Kind, i int) string {
 			return "[]int"
 		}
 		return "int"
+	case reflect.Uint:
+		if i > 0 {
+			return "[]uint"
+		}
+		return "uint"
 	default:
 		panic(fmt.Sprintf("unrecognized type %v", t))
 	}
