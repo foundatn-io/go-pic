@@ -20,7 +20,7 @@ var (
 	}
 )
 
-var CopyBook = template.Must(
+var copyBook = template.Must(
 	template.New("struct").
 		Funcs(templateFuncs).
 		Parse(`
@@ -39,6 +39,13 @@ type Copybook{{.Name}} struct {
 	{{- end}}
 }
 `))
+
+func Copybook() *template.Template {
+	startPos = 1
+	endPos = 1
+
+	return copyBook
+}
 
 // goType translates a type into a go type
 func goType(t reflect.Kind, i int) string {
