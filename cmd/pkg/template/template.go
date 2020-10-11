@@ -30,7 +30,7 @@ var copyBook = template.Must(
 ////////////////////////////////
 
 // nolint
-package tempcopybook
+package copygen
 
 // Copybook{{.Name}} contains a representation of your provided Copybook
 type Copybook{{.Name}} struct {
