@@ -121,12 +121,12 @@ func (d *decoder) findDataRecord(line string, c *copybook.Copybook) (*copybook.R
 		return nil, nil
 
 	case redefinesMulti:
-		want, err := d.multiLineRedefinedRecord(line)
+		want, replace, err := d.multiLineRedefinedRecord(line)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := c.RedefineRecord(want); err != nil {
+		if err := c.RedefineRecord(want, replace); err != nil {
 			return nil, err
 		}
 
@@ -251,27 +251,27 @@ func (d *decoder) findRedefinesTarget(line string) (*copybook.Record, error) {
 // Multi-line:
 // 	000420             15  DUMMY-5  REDEFINES                 00000142
 // 	000420                 DUMMY-4  PIC XX.                   00000143
-func (d *decoder) multiLineRedefinedRecord(line string) (*copybook.Record, error) {
+func (d *decoder) multiLineRedefinedRecord(line string) (*copybook.Record, string, error) {
 	ss := strings.Split(line, " ")
 	if len(ss) != multiLineRedefinesSplitSize {
-		return nil, errors.New("multiLineRedefinedRecord: does not match expected length/format")
+		return nil, "", errors.New("multiLineRedefinedRecord: does not match expected length/format")
 	}
 
 	if ok := d.s.Scan(); !ok {
 		d.done = true
-		return nil, nil
+		return nil, "", nil
 	}
 
 	replace := string(d.s.Bytes())
 	r, err := d.findRedefinesTarget(replace)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	want := *r
 	want.Name = ss[2]
 	d.cache.Delete(r.Name)
-	return d.toCache(&want), nil
+	return d.toCache(&want), r.Name, nil
 }
 
 // redefinedRecord locates a replacement record and removes it
