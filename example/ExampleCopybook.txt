@@ -21,7 +21,7 @@
 000430             15  DUMMY-GROUP-1-OBJECT-H   PIC 9(4).               00000144
 000550     05  DUMMY-GROUP-2                    PIC X(201).             00000162
 000830     05  DUMMY-GROUP-3     REDEFINES      DUMMY-GROUP-2.          00000195
-000840         10  DUMMY-GROUP-2-OBJECT-A       PIC X(14).              00000196
+000840         10  DUMMY-GROUP-2-OBJECT-A       PIC 9(11).9(2).         00000196
 000850         10  DUMMY-GROUP-2-OBJECT-B       PIC 9(7).               00000197
 001060         10  DUMMY-GROUP-2-OBJECT-C       PIC XXXX.               00000218
 001070         10  DUMMY-GROUP-2-OBJECT-D       PIC X.                  00000219
