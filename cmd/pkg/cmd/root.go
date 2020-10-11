@@ -124,7 +124,7 @@ func run(r io.Reader, output string) error {
 	name := strings.TrimSuffix(output, filepath.Ext(output))
 	n := name[strings.LastIndex(name, "/")+1:]
 
-	c := copybook.New(n, template.CopyBook)
+	c := copybook.New(n, template.Copybook())
 
 	b, err := ioutil.ReadAll(r)
 	if err != nil {

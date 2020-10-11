@@ -13,7 +13,13 @@ const (
 	unknown picType = iota
 	unsigned
 	signed
+	decimal
 	alpha
+
+	alphaIndicators     = "XA"
+	decimalIndicators   = ".VP"
+	signedIntIndicators = "S"
+	intIndicators       = "9"
 )
 
 var (
@@ -21,6 +27,7 @@ var (
 		unknown:  reflect.Invalid,
 		unsigned: reflect.Uint,
 		signed:   reflect.Int,
+		decimal:  reflect.Float64,
 		alpha:    reflect.String,
 	}
 )
@@ -29,21 +36,29 @@ var (
 // that contains a PIC definition
 func parsePICType(s string) reflect.Kind {
 	picType := unknown
-	if strings.ContainsAny(s, "XA") {
+	s = strings.TrimRight(s, ".")
+	if strings.ContainsAny(s, alphaIndicators) {
 		if alpha > picType {
 			picType = alpha
 			return types[picType]
 		}
 	}
 
-	if strings.ContainsAny(s, "S") {
+	if strings.ContainsAny(s, decimalIndicators) {
+		if decimal > picType {
+			picType = decimal
+			return types[picType]
+		}
+	}
+
+	if strings.ContainsAny(s, signedIntIndicators) {
 		if signed > picType {
 			picType = signed
 			return types[picType]
 		}
 	}
 
-	if strings.ContainsAny(s, "VP9") {
+	if strings.ContainsAny(s, intIndicators) {
 		picType = unsigned
 		return types[picType]
 	}
@@ -55,7 +70,7 @@ func parsePICType(s string) reflect.Kind {
 // PIC definition such as: X(2)., XX., 9(9)., etc.
 func parsePICCount(s string) (int, error) {
 	// prepare a slice of runes, representing the string
-	s = strings.Trim(s, ".")
+	s = strings.TrimRight(s, ".")
 	c := []rune(s)
 
 	size := 0

@@ -36,12 +36,12 @@ var (
 	// Defines picture clause
 	// 000600         10  DUMMY-1       PIC X.                  00000167
 	// 000620         10  DUMMY-2       PIC 9(7).               00000169
-	generousPICLine = regexp.MustCompile(`^[0-9]+ +[0-9]{2} +[a-zA-Z0-9\-]+ +PIC [AXPVS()0-9]+\. +0+[0-9]+$`)
+	generousPICLine = regexp.MustCompile(`^[0-9]+ +[0-9]{2} +[a-zA-Z0-9\-]+ +PIC [.AXPVS()0-9]+\. +0+[0-9]+$`)
 
 	// Defines picture clause that deviates from typical pattern
 	//          10  DUMMY-1       PIC X.                  00000167
 	//          10  DUMMY-2       PIC 9(7).               00000169
-	generousIncompletePICLine = regexp.MustCompile(`[0-9]{2} +[a-zA-Z0-9\-]+ +PIC [AXPVS()0-9]+\.`)
+	generousIncompletePICLine = regexp.MustCompile(`[0-9]{2} +[a-zA-Z0-9\-]+ +PIC [.AXPVS()0-9]+\.`)
 
 	// Matches same-line REDEFINES definitions
 	// 000550     05  DUMMY-1  PIC X(340).             00000162

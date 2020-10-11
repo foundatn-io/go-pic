@@ -20,7 +20,7 @@ var (
 	}
 )
 
-var CopyBook = template.Must(
+var copyBook = template.Must(
 	template.New("struct").
 		Funcs(templateFuncs).
 		Parse(`
@@ -30,7 +30,7 @@ var CopyBook = template.Must(
 ////////////////////////////////
 
 // nolint
-package tempcopybook
+package copygen
 
 // Copybook{{.Name}} contains a representation of your provided Copybook
 type Copybook{{.Name}} struct {
@@ -40,27 +40,34 @@ type Copybook{{.Name}} struct {
 }
 `))
 
+func Copybook() *template.Template {
+	startPos = 1
+	endPos = 1
+
+	return copyBook
+}
+
 // goType translates a type into a go type
 func goType(t reflect.Kind, i int) string {
+	tag := ""
 	switch t {
 	case reflect.String:
-		if i > 0 {
-			return "[]string"
-		}
-		return "string"
+		tag = "string"
 	case reflect.Int:
-		if i > 0 {
-			return "[]int"
-		}
-		return "int"
+		tag = "int"
 	case reflect.Uint:
-		if i > 0 {
-			return "[]uint"
-		}
-		return "uint"
+		tag = "uint"
+	case reflect.Float64:
+		tag = "float64"
 	default:
 		panic(fmt.Sprintf("unrecognized type %v", t))
 	}
+
+	if i > 0 {
+		tag = fmt.Sprintf("[]%s", tag)
+	}
+
+	return tag
 }
 
 func picTag(l int, i int) string {

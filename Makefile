@@ -59,6 +59,10 @@ run: build
 	chmod +x ./dist/gopic
 	./dist/gopic dir -i dummy -o dummyout
 
+.PHONY: example
+example: install
+	gopic file -o example/example.go -i example/ExampleCopybook.txt
+
 define CHECK_COVERAGE
 awk \
   -F '[ 	%]+' \

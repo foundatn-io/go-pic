@@ -59,7 +59,7 @@ func makeStructRepresentation(t reflect.Type) structRepresentation {
 		sr.fields[i].start = s
 		sr.fields[i].end = e
 		sr.fields[i].err = err
-		sr.fields[i].setFunc = newSetFunc(f.Type, occursSize)
+		sr.fields[i].setFunc = newSetFunc(f.Type, l, occursSize)
 		if sr.fields[i].end > sr.len {
 			sr.len = sr.fields[i].end
 		}

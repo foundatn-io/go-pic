@@ -36,6 +36,10 @@ func Test_getLineType(t *testing.T) {
 			name: "BasicPICNumberNoPeriodPotentialOccursTarget",
 			line: "12345 01 NAME PIC 9(9) 054321",
 			want: occursMulti,
+		}, {
+			name: "RegularPICLiteralDot",
+			line: "12345 01 NAME PIC 9(9).9(9). 054321",
+			want: pic,
 		},
 	}
 	for _, test := range tests {

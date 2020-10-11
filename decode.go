@@ -62,7 +62,7 @@ func (d *Decoder) scanLine(v reflect.Value) (bool, error) {
 	l := string(d.s.Bytes())
 	t := v.Type()
 
-	set := newSetFunc(t, 0)
+	set := newSetFunc(t, 0, 0)
 	return true, set(v, l)
 }
 
