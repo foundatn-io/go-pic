@@ -8,7 +8,7 @@ import (
 
 type setFunc func(v reflect.Value, s string) error
 
-func newSetFunc(t reflect.Type, occursSize int) setFunc {
+func newSetFunc(t reflect.Type, picSize, occursSize int) setFunc {
 	switch t.Kind() {
 	case reflect.String:
 		return strSetFunc
@@ -19,7 +19,7 @@ func newSetFunc(t reflect.Type, occursSize int) setFunc {
 	case reflect.Float64:
 		return floatSetFunc(64)
 	case reflect.Slice:
-		return arraySetFunc(occursSize)
+		return arraySetFunc(picSize, occursSize)
 	case reflect.Ptr:
 		return ptrSetFunc(t)
 	case reflect.Interface:
@@ -65,9 +65,9 @@ func floatSetFunc(size int) setFunc {
 	}
 }
 
-func arraySetFunc(count int) setFunc {
+func arraySetFunc(l, count int) setFunc {
 	return func(v reflect.Value, s string) error {
-		size := len(s) / count
+		size := l / count
 		if len(s) == 0 {
 			return nilSetFunc(v, s)
 		}
@@ -77,7 +77,7 @@ func arraySetFunc(count int) setFunc {
 		}
 
 		many := reflect.MakeSlice(v.Type(), count, count)
-		sf := newSetFunc(v.Type().Elem(), 0)
+		sf := newSetFunc(v.Type().Elem(), 0, 0)
 		track := 1
 
 		for i := 0; i < count; i++ {
@@ -95,7 +95,7 @@ func arraySetFunc(count int) setFunc {
 }
 
 func ptrSetFunc(t reflect.Type) setFunc {
-	innerSetter := newSetFunc(t.Elem(), 0)
+	innerSetter := newSetFunc(t.Elem(), 0, 0)
 	return func(v reflect.Value, s string) error {
 		if len(s) == 0 {
 			return nilSetFunc(v, s)
@@ -110,7 +110,7 @@ func ptrSetFunc(t reflect.Type) setFunc {
 }
 
 func ifaceSetFunc(v reflect.Value, s string) error {
-	return newSetFunc(v.Elem().Type(), 0)(v.Elem(), s)
+	return newSetFunc(v.Elem().Type(), 0, 0)(v.Elem(), s)
 }
 
 func structSetFunc(t reflect.Type) setFunc {
