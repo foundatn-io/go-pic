@@ -41,6 +41,10 @@ func Test_parsePICCount(t *testing.T) {
 			name: "SignedNumberWithMultiParentheses",
 			in:   "S9(9)V9(9).",
 			want: 20,
+		}, {
+			name: "SignedNumberWithMultiParenthesesLiteralPeriod",
+			in:   "S9(9).9(9).",
+			want: 20,
 		},
 	}
 	for _, test := range tests {

@@ -29,7 +29,8 @@ var (
 // that contains a PIC definition
 func parsePICType(s string) reflect.Kind {
 	picType := unknown
-	if strings.ContainsAny(s, "XA") {
+	s = strings.TrimRight(s, ".")
+	if strings.ContainsAny(s, "XA.") {
 		if alpha > picType {
 			picType = alpha
 			return types[picType]
@@ -55,7 +56,7 @@ func parsePICType(s string) reflect.Kind {
 // PIC definition such as: X(2)., XX., 9(9)., etc.
 func parsePICCount(s string) (int, error) {
 	// prepare a slice of runes, representing the string
-	s = strings.Trim(s, ".")
+	s = strings.TrimRight(s, ".")
 	c := []rune(s)
 
 	size := 0
