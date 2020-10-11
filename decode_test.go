@@ -1,7 +1,6 @@
 package pic
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,6 +12,18 @@ func TestUnmarshal(t *testing.T) {
 		Int    int     `pic:"5"`
 		Float  float64 `pic:"5"`
 	}
+
+	type occursOffset struct {
+		A string   `pic:"13"`    // start:227 end:239
+		B string   `pic:"13"`    // start:240 end:252
+		C string   `pic:"13"`    // start:253 end:265
+		D string   `pic:"13"`    // start:266 end:278
+		E string   `pic:"13"`    // start:279 end:291
+		F string   `pic:"13"`    // start:292 end:304
+		G string   `pic:"2"`     // start:305 end:306
+		H []string `pic:"13,12"` // start:307 end:462
+	}
+
 	for _, test := range []struct {
 		name      string
 		val       []byte
@@ -78,16 +89,41 @@ func TestUnmarshal(t *testing.T) {
 			target:    basicTypes{},
 			expected:  basicTypes{},
 			shouldErr: true,
+		}, {
+			name:   "offsetcheck",
+			val:    []byte("000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 00000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 "),
+			target: &occursOffset{},
+			expected: &occursOffset{
+				A: "000000000.00",
+				B: "000000000.00",
+				C: "000000000.00",
+				D: "000000000.00",
+				E: "000000000.00",
+				F: "000000000.00",
+				G: "00",
+				H: []string{
+					"000000000.00",
+					"000000000.00",
+					"000000000.00",
+					"000000000.00",
+					"000000000.00",
+					"000000000.00",
+					"000000000.00",
+					"000000000.00",
+					"000000000.00",
+					"000000000.00",
+					"000000000.00",
+					"000000000.00"},
+			},
 		},
 	} {
 		tt := test
 		t.Run(tt.name, func(t *testing.T) {
 			err := Unmarshal(tt.val, tt.target)
-			if tt.shouldErr != (err != nil) {
-				t.Errorf("Unmarshal() err want %v, have %v (%v)", tt.shouldErr, err != nil, err)
-			}
-			if !tt.shouldErr && !reflect.DeepEqual(tt.target, tt.expected) {
-				t.Errorf("Unmarshal() want %+v, have %+v", tt.expected, tt.target)
+			if tt.shouldErr {
+				require.Error(t, err)
+			} else {
+				require.Equal(t, tt.target, tt.expected)
 			}
 		})
 	}

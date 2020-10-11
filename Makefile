@@ -73,6 +73,10 @@ cover: test ## Runs unit tests and assesses output coverage file
 example: install ## Builds & installs the gopic struct generation tool, regenerates example files
 	gopic file -o example/example.go -i example/ExampleCopybook.txt
 
+.PHONY: example
+example: install
+	gopic file -o example/example.go -i example/ExampleCopybook.txt
+
 define CHECK_COVERAGE
 awk \
   -F '[ 	%]+' \
