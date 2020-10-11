@@ -90,7 +90,7 @@ func Test_parsePICType(t *testing.T) {
 		}, {
 			name: "SWithParenthesesSingleDigitDecimalPlace",
 			in:   "S9(9)V9(9).",
-			want: reflect.Int,
+			want: reflect.Float64,
 		}, {
 			name: "MultiParenthesesWithAlphanumeric",
 			in:   "S(9)VX(9).",

@@ -49,25 +49,25 @@ func Copybook() *template.Template {
 
 // goType translates a type into a go type
 func goType(t reflect.Kind, i int) string {
+	tag := ""
 	switch t {
 	case reflect.String:
-		if i > 0 {
-			return "[]string"
-		}
-		return "string"
+		tag = "string"
 	case reflect.Int:
-		if i > 0 {
-			return "[]int"
-		}
-		return "int"
+		tag = "int"
 	case reflect.Uint:
-		if i > 0 {
-			return "[]uint"
-		}
-		return "uint"
+		tag = "uint"
+	case reflect.Float64:
+		tag = "float64"
 	default:
 		panic(fmt.Sprintf("unrecognized type %v", t))
 	}
+
+	if i > 0 {
+		tag = fmt.Sprintf("[]%s", tag)
+	}
+
+	return tag
 }
 
 func picTag(l int, i int) string {
