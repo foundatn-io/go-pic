@@ -20,7 +20,7 @@ func TestDecoder_Unmarshal(t *testing.T) {
 	}{
 		{
 			name: "SuccessfullyParseBasicDummyCopybook",
-			c:    copybook.New("dummy", template.CopyBook),
+			c:    copybook.New("dummy", template.Copybook()),
 			in: `000600         10  DUMMY-1                PIC X.                  00000167
 000610         10  DUMMY-2                PIC X(3).               00000168
 000620         10  DUMMY-3                PIC 9(7).               00000169
@@ -75,7 +75,7 @@ func Test_decoder_findDataRecord(t *testing.T) {
 		{
 			name: "BasicPICStringSingle",
 			line: "000600         10  DUMMY-1                PIC X.                  00000167",
-			c:    copybook.New("dummy", template.CopyBook),
+			c:    copybook.New("dummy", template.Copybook()),
 			want: &copybook.Record{
 				Num:     600,
 				Level:   10,
@@ -86,7 +86,7 @@ func Test_decoder_findDataRecord(t *testing.T) {
 		}, {
 			name: "BasicPICStringParentheses",
 			line: "000610         10  DUMMY-2                PIC X(3).               00000168",
-			c:    copybook.New("dummy", template.CopyBook),
+			c:    copybook.New("dummy", template.Copybook()),
 			want: &copybook.Record{
 				Num:     610,
 				Level:   10,
@@ -97,7 +97,7 @@ func Test_decoder_findDataRecord(t *testing.T) {
 		}, {
 			name: "BasicPICUintParentheses",
 			line: "000620         10  DUMMY-3                PIC 9(7).               00000169",
-			c:    copybook.New("dummy", template.CopyBook),
+			c:    copybook.New("dummy", template.Copybook()),
 			want: &copybook.Record{
 				Num:     620,
 				Level:   10,
@@ -108,7 +108,7 @@ func Test_decoder_findDataRecord(t *testing.T) {
 		}, {
 			name: "BasicPICStringMulti",
 			line: "000640         10  DUMMY-5                PIC XX.                 00000171",
-			c:    copybook.New("dummy", template.CopyBook),
+			c:    copybook.New("dummy", template.Copybook()),
 			want: &copybook.Record{
 				Num:     640,
 				Level:   10,
@@ -119,18 +119,18 @@ func Test_decoder_findDataRecord(t *testing.T) {
 		}, {
 			name: "MultiTypeMultiParenthesesNumber",
 			line: "000640         10  DUMMY-5                PIC S9(9)V9(9).                 00000171",
-			c:    copybook.New("dummy", template.CopyBook),
+			c:    copybook.New("dummy", template.Copybook()),
 			want: &copybook.Record{
 				Num:     640,
 				Level:   10,
 				Name:    "DUMMY-5",
-				Picture: reflect.Int,
+				Picture: reflect.Float64,
 				Length:  20,
 			},
 		}, {
 			name: "MultiTypeMultiParenthesesString",
 			line: "000640         10  DUMMY-5                PIC A(9)V9(9).                 00000171",
-			c:    copybook.New("dummy", template.CopyBook),
+			c:    copybook.New("dummy", template.Copybook()),
 			want: &copybook.Record{
 				Num:     640,
 				Level:   10,
