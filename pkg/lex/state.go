@@ -10,6 +10,7 @@ func lexInsideStatement(l *lexer) stateFn {
 		l.emit(itemEOL)
 	case r == eof:
 		l.emit(itemEOF)
+		return nil
 	case isSpace(r):
 		l.backup() // Put space back in case we have " -}}".
 		return lexSpace
