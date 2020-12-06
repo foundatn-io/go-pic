@@ -43,6 +43,7 @@ const (
 	itemDot        // the cursor, spelled '.'
 	itemOCCURS     // OCCURS keyword
 	itemPIC        // PIC keyword
+	itemREDEFINES  // REDEFINES keyword
 )
 
 const (

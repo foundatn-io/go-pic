@@ -30,15 +30,36 @@ func (l *lexer) next() rune {
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
 	l.width = Pos(w)
 	l.pos += l.width
+
 	if r == '\n' {
 		l.line++
 	}
+
 	return r
 }
 
 // peek returns but does not consume the next rune in the input.
 func (l *lexer) peek() rune {
 	r := l.next()
+	l.backup()
+	return r
+}
+
+// bit of a hack tbh
+func (l *lexer) lookAhead(i int) rune {
+	if int(l.pos) >= len(l.input) {
+		l.width = 0
+		return eof
+	}
+
+	r, w := utf8.DecodeRuneInString(l.input[l.pos+Pos(i-1):])
+	l.width = Pos(w)
+	l.pos += l.width
+
+	if r == '\n' {
+		l.line++
+	}
+
 	l.backup()
 	return r
 }

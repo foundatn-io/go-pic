@@ -18,10 +18,12 @@ func lexInsideStatement(l *lexer) stateFn {
 		// special look-ahead for "PIC" so we don't break l.backup().
 		if l.pos < Pos(len(l.input)) {
 			r := l.input[l.pos]
-			if r < '0' || '9' < r {
+			if r < '0' || '9' < r && l.peek() == 'I' && l.lookAhead(2) == 'C' {
 				return lexPIC
 			}
 		}
+	case r == 'R':
+		return lexREDEFINES(l)
 	case r == '+' || r == '-' || ('0' <= r && r <= '9'):
 		l.backup()
 		return lexNumber
@@ -52,6 +54,24 @@ func lexPIC(l *lexer) stateFn {
 	l.next() // glob the PICterminator
 	l.emit(itemPIC)
 	return lexInsideStatement(l)
+}
+
+func lexREDEFINES(l *lexer) stateFn {
+	if !l.scanRedefines() {
+		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
+	}
+
+	l.emit(itemREDEFINES)
+	return lexInsideStatement(l)
+}
+
+func (l *lexer) scanRedefines() bool {
+	l.acceptRun("REDEFINES")
+	if !isSpace(l.peek()) {
+		l.next()
+		return false
+	}
+	return true
 }
 
 func (l *lexer) atPICTerminator() bool {
