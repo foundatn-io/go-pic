@@ -130,12 +130,11 @@ func run(r io.Reader, output string) error {
 		return err
 	}
 
-	t, err := lex.Parse("go-pic", string(b))
-	if err != nil {
-		return err
-	}
+	lxr := lex.New("go-pic", string(b))
+	tree := lex.NewTree(lxr)
+	result := tree.Parse()
 
-	log.Println(t)
+	log.Println(result)
 
 	// if err = decoder.Unmarshal(b, c); err != nil {
 	// 	return err
