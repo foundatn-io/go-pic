@@ -30,6 +30,8 @@ func lexInsideStatement(l *lexer) stateFn {
 	case isAlphaNumeric(r):
 		l.backup()
 		return lexIdentifier
+	case r == '.':
+		l.emit(itemDot)
 	case r <= unicode.MaxASCII && unicode.IsPrint(r):
 		l.emit(itemChar)
 	default:
