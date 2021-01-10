@@ -21,8 +21,8 @@ type lexer struct {
 	startLine int       // start line of this item
 }
 
-// lex creates a new scanner for the input string.
-func lex(name, input string) *lexer {
+// New creates a new scanner for the input string.
+func New(name, input string) *lexer {
 	l := &lexer{
 		name:      name,
 		input:     input,
