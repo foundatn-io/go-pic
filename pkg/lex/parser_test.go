@@ -61,3 +61,15 @@ func Test_parseLines(t *testing.T) {
 	tree.parseLines(tree.state)
 	log.Println(tree.state)
 }
+
+func Test_Parse(t *testing.T) {
+	in := `000160     05  DUMMY-GROUP-1.                                           00000115
+000170         10  DUMMY-SUB-GROUP-1.                                   00000116
+000180             15  DUMMY-GROUP-1-OBJECT-A   PIC 9.               00000117
+000190             15  DUMMY-GROUP-1-OBJECT-B   PIC X.                  00000118
+000200             15  DUMMY-GROUP-1-OBJECT-C   PIC 9.               00000119`
+	lxr := New("go-pic", in)
+	tree := NewTree(lxr)
+	result := tree.Parse()
+	log.Println(result)
+}
