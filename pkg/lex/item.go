@@ -35,7 +35,7 @@ const (
 	itemComplex                      // complex constant (1+2i); imaginary is just a number
 	itemEOF
 	itemEOL
-	itemIdentifier
+	itemIdentifier // Name of PIC or group
 	itemLeftParen  // '(' inside action
 	itemNumber     // simple number, including imaginary
 	itemRightParen // ')' inside action

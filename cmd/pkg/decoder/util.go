@@ -32,9 +32,9 @@ var (
 	}
 )
 
-// parsePICType identifies an equivalent Go type from the given substring
+// ParsePICType identifies an equivalent Go type from the given substring
 // that contains a PIC definition
-func parsePICType(s string) reflect.Kind {
+func ParsePICType(s string) reflect.Kind {
 	picType := unknown
 	s = strings.TrimRight(s, ".")
 	if strings.ContainsAny(s, alphaIndicators) {
@@ -66,9 +66,9 @@ func parsePICType(s string) reflect.Kind {
 	return types[picType]
 }
 
-// parsePICCount identifies the fixed width, or length, of the given
+// ParsePICCount identifies the fixed width, or length, of the given
 // PIC definition such as: X(2)., XX., 9(9)., etc.
-func parsePICCount(s string) (int, error) {
+func ParsePICCount(s string) (int, error) {
 	// prepare a slice of runes, representing the string
 	s = strings.TrimRight(s, ".")
 	c := []rune(s)

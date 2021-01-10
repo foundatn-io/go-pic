@@ -50,7 +50,7 @@ func Test_parsePICCount(t *testing.T) {
 	for _, test := range tests {
 		tt := test
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parsePICCount(tt.in)
+			got, err := ParsePICCount(tt.in)
 			require.NoError(t, err)
 			require.Equal(t, tt.want, got)
 		})
@@ -100,7 +100,7 @@ func Test_parsePICType(t *testing.T) {
 	for _, test := range tests {
 		tt := test
 		t.Run(tt.name, func(t *testing.T) {
-			got := parsePICType(tt.in)
+			got := ParsePICType(tt.in)
 			require.Equal(t, tt.want, got)
 		})
 	}

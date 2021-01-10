@@ -166,12 +166,12 @@ func (d *decoder) picRecord(line string) (*copybook.Record, error) {
 		return nil, err
 	}
 
-	pic := parsePICType(ss[4])
+	pic := ParsePICType(ss[4])
 	if pic == reflect.Invalid {
 		return nil, errors.New("picTypeFilter: unexpected PIC type")
 	}
 
-	size, err := parsePICCount(ss[4])
+	size, err := ParsePICCount(ss[4])
 	if err != nil {
 		return nil, err
 	}
@@ -201,12 +201,12 @@ func (d *decoder) incompletePICRecord(line string) (*copybook.Record, error) {
 		return nil, errors.New("incompletePICRecord: does not match expected length/format")
 	}
 
-	pic := parsePICType(ss[3])
+	pic := ParsePICType(ss[3])
 	if pic == reflect.Invalid {
 		return nil, errors.New("picTypeFilter: unexpected PIC type")
 	}
 
-	size, err := parsePICCount(ss[3])
+	size, err := ParsePICCount(ss[3])
 	if err != nil {
 		return nil, err
 	}
@@ -321,11 +321,11 @@ func (d *decoder) occursRecord(line string) (*copybook.Record, error) {
 		return nil, err
 	}
 
-	pic := parsePICType(ss[4])
+	pic := ParsePICType(ss[4])
 	if pic == reflect.Invalid {
 		return nil, errors.New("picTypeFilter: unexpected PIC type")
 	}
-	size, err := parsePICCount(ss[4])
+	size, err := ParsePICCount(ss[4])
 	if err != nil {
 		return nil, err
 	}
@@ -387,12 +387,12 @@ func (d *decoder) multiLineOccursRecord(line string) (*copybook.Record, error) {
 		return nil, err
 	}
 
-	pic := parsePICType(ss[4])
+	pic := ParsePICType(ss[4])
 	if pic == reflect.Invalid {
 		return nil, errors.New("picTypeFilter: unexpected PIC type")
 	}
 
-	size, err := parsePICCount(ss[4])
+	size, err := ParsePICCount(ss[4])
 	if err != nil {
 		return nil, err
 	}

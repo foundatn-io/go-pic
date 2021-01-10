@@ -153,6 +153,7 @@ linters:
     - gocritic
     - gocyclo
     - gofmt
+    - golint
     - goimports
     - gosec
     - gosimple

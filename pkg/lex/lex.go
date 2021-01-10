@@ -21,6 +21,27 @@ type lexer struct {
 	startLine int       // start line of this item
 }
 
+// lex creates a new scanner for the input string.
+func lex(name, input string) *lexer {
+	l := &lexer{
+		name:      name,
+		input:     input,
+		items:     make(chan item),
+		line:      1,
+		startLine: 1,
+	}
+	go l.run()
+	return l
+}
+
+// run runs the state machine for the lexer.
+func (l *lexer) run() {
+	for state := lexInsideStatement(l); state != nil; {
+		state = state(l)
+	}
+	close(l.items)
+}
+
 // next returns the next rune in the input.
 func (l *lexer) next() rune {
 	if int(l.pos) >= len(l.input) {
@@ -121,25 +142,4 @@ func (l *lexer) nextItem() item {
 func (l *lexer) drain() {
 	for range l.items {
 	}
-}
-
-// lex creates a new scanner for the input string.
-func lex(name, input, left, right string) *lexer {
-	l := &lexer{
-		name:      name,
-		input:     input,
-		items:     make(chan item),
-		line:      1,
-		startLine: 1,
-	}
-	go l.run()
-	return l
-}
-
-// run runs the state machine for the lexer.
-func (l *lexer) run() {
-	for state := lexInsideStatement(l); state != nil; {
-		state = state(l)
-	}
-	close(l.items)
 }
