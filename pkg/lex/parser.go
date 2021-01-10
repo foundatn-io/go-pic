@@ -2,7 +2,9 @@ package lex
 
 import (
 	"io"
+	"log"
 	"reflect"
+	"sync"
 )
 
 var (
@@ -40,39 +42,54 @@ type record struct {
 	Occurs   int
 	Typ      reflect.Kind
 	depthMap map[string]*record
+	cache    sync.Map
 }
 
-func New() *Tree {
+func NewTree(lxr *lexer) *Tree {
 	root := &record{Typ: reflect.Struct, Name: "root", depthMap: make(map[string]*record)}
 	return &Tree{
-		lex:   nil,
-		lines: nil,
+		lex:   lxr,
 		state: root,
 		lIdx:  -1,
 	}
 }
 
-func (t *Tree) parse() {
+func (t *Tree) Parse() *record {
 	for {
 		li := t.scanLine()
-		t.lines = append(t.lines, buildLine(li))
+		log.Printf("building line for %d", t.token.line)
 		if t.token.typ == itemEOF {
 			break
 		}
+
+		l := buildLine(li)
+		if l == nil {
+			break
+		}
+
+		t.lines = append(t.lines, *l)
 	}
+
 	t.parseLines(t.state)
+	return t.state
 }
 
 func (t *Tree) scanLine() []item {
 	var lineItems []item
 	for {
 		t.token = t.next()
-		if t.token.typ != itemEOL && itemEOF != t.token.typ {
-			lineItems = append(lineItems, t.token)
-		} else {
-			return lineItems
+		if t.token == (item{}) || t.token.typ == itemError {
+			break
 		}
+
+		log.Println(t.token.line, t.token.typ)
+		if t.token.typ == itemEOL || itemEOF == t.token.typ {
+			break
+		}
+
+		lineItems = append(lineItems, t.token)
 	}
+	return lineItems
 }
 
 // next returns the next token.
@@ -91,7 +108,9 @@ func (t *Tree) parseLines(root *record) {
 		case lineStruct:
 			t.line.fn(t, t.line, root)
 		default:
-			root.Children = append(root.Children, t.line.fn(t, t.line, root))
+			idx := len(root.Children)
+			root.Children = append(root.Children,
+				root.toCache(t.line.fn(t, t.line, root), idx))
 		}
 	}
 	return
@@ -106,18 +125,19 @@ func (t *Tree) nextLine() error {
 	return nil
 }
 
-func buildLine(items []item) line {
+func buildLine(items []item) *line {
 	for typ, fingerPrinter := range readers {
 		parser, ok := fingerPrinter(items)
 		if ok {
-			return line{
+			return &line{
 				items: items,
 				typ:   typ,
 				fn:    parser,
 			}
 		}
 	}
-	return line{}
+
+	return nil
 }
 
 // itemType identifies the type of lex items.
@@ -160,8 +180,7 @@ func isPic(items []item) (parser, bool) {
 		return nil, false
 	}
 
-	return parsePIC, false
-
+	return parsePIC, true
 }
 
 func isJunk(items []item) (parser, bool) {
@@ -170,8 +189,16 @@ func isJunk(items []item) (parser, bool) {
 }
 
 func isRedefinition(items []item) (parser, bool) {
+	lineFingerprint := make([]itemType, len(items))
+	for i, l := range items {
+		lineFingerprint[i] = l.typ
+	}
 
-	return unimplementedParser, false
+	if !equalFingerprints(redefines, pic) {
+		return nil, false
+	}
+
+	return parseRedefines, true
 }
 
 func isMultilineRedefinition(items []item) (parser, bool) {
@@ -202,4 +229,35 @@ func equalFingerprints(a, b []itemType) bool {
 		}
 	}
 	return true
+}
+
+// toCache returns a record, just stored into or previously loaded from the cache
+func (r *record) toCache(child *record, idx int) *record {
+	r.cache.Store(r.Name, idx)
+	return child
+}
+
+// fromCache loads a record, by name, from the cache if present
+func (r *record) fromCache(name string) (*record, int) {
+	idx, ok := r.cache.Load(name)
+	if !ok {
+		return nil, 0
+	}
+
+	i := idx.(int)
+	return r.Children[i], i
+}
+
+func (r *record) redefine(target string, src *record) *record {
+	dst, i := r.fromCache(target)
+	if dst == nil {
+		log.Fatalln("redefinition target does not exist")
+	}
+
+	r.cache.Delete(dst.Name)
+	dst.Name = src.Name
+	dst.Length = src.Length
+	dst.Typ = src.Typ
+	r.toCache(dst, i)
+	return dst
 }
