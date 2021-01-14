@@ -65,6 +65,7 @@ func Test_lexer_run(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			go tt.l.run()
 
@@ -73,15 +74,15 @@ func Test_lexer_run(t *testing.T) {
 				select {
 				case i, open := <-tt.l.items:
 					if !open {
-						goto finalise
+						goto finalize
 					}
 					items = append(items, i)
 					if i.typ == itemEOF {
-						goto finalise
+						goto finalize
 					}
 				}
 			}
-		finalise:
+		finalize:
 			require.ElementsMatch(t, tt.want, items)
 		})
 	}
