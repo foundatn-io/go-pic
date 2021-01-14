@@ -136,6 +136,5 @@ func (r *record) redefine(target string, src *record) *record {
 	dst.Name = src.Name
 	dst.Length = src.Length
 	dst.Typ = src.Typ
-	r.toCache(dst, i)
-	return dst
+	return r.toCache(dst, i)
 }
