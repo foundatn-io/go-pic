@@ -59,11 +59,10 @@ func (d *Decoder) scanLine(v reflect.Value) (bool, error) {
 		return false, nil
 	}
 
-	l := string(d.s.Bytes())
 	t := v.Type()
 
 	set := newSetFunc(t, 0, 0)
-	return true, set(v, l)
+	return true, set(v, string(d.s.Bytes()))
 }
 
 func (d *Decoder) scanLines(v reflect.Value) (err error) {
@@ -78,6 +77,7 @@ func (d *Decoder) scanLines(v reflect.Value) (err error) {
 		if ok {
 			v.Set(reflect.Append(v, nv))
 		}
+
 		if d.done {
 			break
 		}

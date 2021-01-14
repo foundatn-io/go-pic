@@ -88,6 +88,7 @@ func arraySetFunc(l, count int) setFunc {
 			}
 			track = next
 		}
+
 		v.Set(many)
 
 		return nil
