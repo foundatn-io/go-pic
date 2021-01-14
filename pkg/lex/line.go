@@ -48,7 +48,7 @@ func buildLine(nx func() []item, items []item) *line {
 
 func isStruct(_ func() []item, items []item) (parser, []item, bool) {
 	fp := getFingerPrint(items)
-	if !equalFingerprints(fp, nonNumDelimitedStruct) {
+	if equalFingerprints(fp, nonNumDelimitedStruct) {
 		return parseNonNumDelimitedStruct, items, true
 	}
 
@@ -95,7 +95,7 @@ func isMultilineRedefinition(nx func() []item, items []item) (parser, []item, bo
 		return nil, nil, false
 	}
 
-	return parseRedefines, lineFromMultiRedefines(items, part), false
+	return parseRedefines, lineFromMultiRedefines(items, part), true
 }
 
 func isOccurrence(nx func() []item, items []item) (parser, []item, bool) {
@@ -137,16 +137,23 @@ func equalFingerprints(a, b []itemType) bool {
 //
 // res 	= 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2   PIC X(7).  00000195
 func lineFromMultiRedefines(a, b []item) []item {
-	res := make([]item, 12)
+	res := make([]item, len(redefines))
 	// copy all but the num delimiter at the end of a
-	for i := 0; i < len(a)-1; i++ {
+	i := 0
+	for i < len(a)-1 {
 		res[i] = a[i]
+		i++
 	}
 
-	// should be 7
-	nextIdx := len(res)
-	for i := 2; i < len(b)-1; i++ {
-		res[nextIdx+i] = b[i]
+	// should be 6, so that next is 8, as inserted up to res[7]
+	// j is 2 so that num delimiter and space are ignored from b
+	i -= 2
+	for j := 2; j < len(b); j++ {
+		res[i+j] = b[j]
+	}
+
+	if !equalFingerprints(getFingerPrint(res), redefines) {
+		panic("multiline redefinition builder failed to build a redefinition with the correct fingerprint")
 	}
 
 	return res

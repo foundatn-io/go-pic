@@ -73,3 +73,15 @@ func Test_Parse(t *testing.T) {
 	result := tree.Parse()
 	log.Println(result)
 }
+
+func Test_ParseWMulti(t *testing.T) {
+	in := `000170         10  DUMMY-SUB-GROUP-1.                                   00000116
+001070         10  DUMMY-GROUP-2-OBJECT-D       PIC X.                  00000219
+001130         10  DUMMY-GROUP-2-OBJECT-E       PIC XXXX.               00000225
+001140         10  DUMMY-GROUP-2-OBJECT-F       REDEFINES               00000226
+001150              DUMMY-GROUP-2-OBJECT-E      PIC XXXX.               00000227`
+	lxr := New("go-pic", in)
+	tree := NewTree(lxr)
+	result := tree.Parse()
+	log.Println(result)
+}

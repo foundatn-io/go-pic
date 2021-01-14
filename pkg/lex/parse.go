@@ -86,12 +86,12 @@ func (t *Tree) parseLines(root *record) {
 			break
 		}
 		switch t.line.typ {
-		case lineStruct:
+		case lineStruct, lineRedefines, lineMultilineRedefines:
 			t.line.fn(t, t.line, root)
 		default:
 			idx := len(root.Children)
-			root.Children = append(root.Children,
-				root.toCache(t.line.fn(t, t.line, root), idx))
+			root.Children = append(root.Children, root.toCache(
+				t.line.fn(t, t.line, root), idx))
 		}
 	}
 }
@@ -107,7 +107,7 @@ func (t *Tree) nextLine() error {
 
 // toCache returns a record, just stored into or previously loaded from the cache
 func (r *record) toCache(child *record, idx int) *record {
-	r.cache.Store(r.Name, idx)
+	r.cache.Store(child.Name, idx)
 	return child
 }
 
