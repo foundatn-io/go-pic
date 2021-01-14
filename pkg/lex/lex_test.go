@@ -70,7 +70,7 @@ func Test_lexer_run(t *testing.T) {
 			go tt.l.run()
 
 			items := make([]item, 0)
-			for {
+			for { // nolint: gosimple // test code
 				select {
 				case i, open := <-tt.l.items:
 					if !open {

@@ -101,13 +101,6 @@ func (l *lexer) emit(t itemType) {
 	l.startLine = l.line
 }
 
-// ignore skips over the pending input before this point.
-func (l *lexer) ignore() {
-	l.line += strings.Count(l.input[l.start:l.pos], "\n")
-	l.start = l.pos
-	l.startLine = l.line
-}
-
 // accept consumes the next rune if it's from the valid set.
 func (l *lexer) accept(valid string) bool {
 	if strings.ContainsRune(valid, l.next()) {
@@ -135,11 +128,4 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 // Called by the parser, not in the lexing goroutine.
 func (l *lexer) nextItem() item {
 	return <-l.items
-}
-
-// drain drains the output so the lexing goroutine will exit.
-// Called by the parser, not in the lexing goroutine.
-func (l *lexer) drain() {
-	for range l.items {
-	}
 }

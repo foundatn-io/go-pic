@@ -8,12 +8,15 @@ func lexInsideStatement(l *lexer) stateFn {
 	switch r := l.next(); {
 	case isEndOfLine(r):
 		l.emit(itemEOL)
+
 	case r == eof:
 		l.emit(itemEOF)
 		return nil
+
 	case isSpace(r):
-		l.backup() // Put space back in case we have " -}}".
+		l.backup()
 		return lexSpace
+
 	case r == PICLeft:
 		// special look-ahead for "PIC" so we don't break l.backup().
 		if l.pos < Pos(len(l.input)) {
@@ -22,21 +25,28 @@ func lexInsideStatement(l *lexer) stateFn {
 				return lexPIC
 			}
 		}
+
 	case r == 'R':
 		return lexREDEFINES(l)
+
 	case r == '+' || r == '-' || ('0' <= r && r <= '9'):
 		l.backup()
 		return lexNumber
+
 	case isAlphaNumeric(r):
 		l.backup()
 		return lexIdentifier
+
 	case r == '.':
 		l.emit(itemDot)
+
 	case r <= unicode.MaxASCII && unicode.IsPrint(r):
 		l.emit(itemChar)
+
 	default:
 		return l.errorf("unrecognized character in action: %#U", r)
 	}
+
 	return lexInsideStatement(l)
 }
 
@@ -49,6 +59,7 @@ func lexPIC(l *lexer) stateFn {
 			break
 		}
 	}
+
 	if !l.atPICTerminator() {
 		return l.errorf("bad character %#U", r)
 	}
@@ -73,6 +84,7 @@ func (l *lexer) scanRedefines() bool {
 		l.next()
 		return false
 	}
+
 	return true
 }
 
@@ -94,12 +106,15 @@ Loop:
 			if !l.atTerminator() {
 				return l.errorf("bad character %#U", r)
 			}
+
 			switch {
 			case word == "true", word == "false":
 				l.emit(itemBool)
+
 			default:
 				l.emit(itemIdentifier)
 			}
+
 			break Loop
 		}
 	}
@@ -133,11 +148,12 @@ func (l *lexer) scanNumber() bool {
 	digits := "0123456789_"
 	if l.accept("0") {
 		// Note: Leading 0 does not mean octal in floats.
-		if l.accept("xX") {
+		switch {
+		case l.accept("xX"):
 			digits = "0123456789abcdefABCDEF_"
-		} else if l.accept("oO") {
+		case l.accept("oO"):
 			digits = "01234567_"
-		} else if l.accept("bB") {
+		case l.accept("bB"):
 			digits = "01_"
 		}
 	}
@@ -161,27 +177,6 @@ func (l *lexer) scanNumber() bool {
 		return false
 	}
 	return true
-}
-
-// lexChar scans a character constant. The initial quote is already
-// scanned. Syntax checking is done by the parser.
-func lexChar(l *lexer) stateFn {
-Loop:
-	for {
-		switch l.next() {
-		case '\\':
-			if r := l.next(); r != eof && r != '\n' {
-				break
-			}
-			fallthrough
-		case eof, '\n':
-			return l.errorf("unterminated character constant")
-		case '\'':
-			break Loop
-		}
-	}
-	l.emit(itemCharConstant)
-	return lexInsideStatement(l)
 }
 
 // lexSpace scans a run of space characters.
