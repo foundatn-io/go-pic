@@ -1,7 +1,7 @@
 package lex
 
 var (
-	readers = map[lineType]func(items []item) (parser, bool){
+	readers = map[lineType]func(nx func() []item, items []item) (parser, []item, bool){
 		lineJunk:               isJunk,
 		lineStruct:             isStruct,
 		linePIC:                isPic,
@@ -31,12 +31,12 @@ const (
 	lineMultilineOccurs                    // is a line containing an incomplete PIC occurrence
 )
 
-func buildLine(items []item) *line {
+func buildLine(nx func() []item, items []item) *line {
 	for typ, fingerPrinter := range readers {
-		p, ok := fingerPrinter(items)
+		p, i, ok := fingerPrinter(nx, items)
 		if ok {
 			return &line{
-				items: items,
+				items: i,
 				typ:   typ,
 				fn:    p,
 			}
@@ -46,67 +46,75 @@ func buildLine(items []item) *line {
 	return nil
 }
 
-func isStruct(items []item) (parser, bool) {
-	lineFingerprint := make([]itemType, len(items))
+func isStruct(_ func() []item, items []item) (parser, []item, bool) {
+	fp := getFingerPrint(items)
+	if !equalFingerprints(fp, nonNumDelimitedStruct) {
+		return parseNonNumDelimitedStruct, items, true
+	}
+
+	if equalFingerprints(fp, numDelimitedStruct) {
+		return parseNumDelimitedStruct, items, true
+	}
+
+	return nil, nil, false
+}
+
+func isPic(_ func() []item, items []item) (parser, []item, bool) {
+	fp := getFingerPrint(items)
+	if !equalFingerprints(fp, pic) {
+		return nil, nil, false
+	}
+
+	return parsePIC, items, true
+}
+
+func isJunk(_ func() []item, items []item) (parser, []item, bool) {
+
+	return unimplementedParser, nil, false
+}
+
+func isRedefinition(_ func() []item, items []item) (parser, []item, bool) {
+	fp := getFingerPrint(items)
+	if !equalFingerprints(fp, redefines) {
+		return nil, nil, false
+	}
+
+	return parseRedefines, items, true
+}
+
+func isMultilineRedefinition(nx func() []item, items []item) (parser, []item, bool) {
+	fp := getFingerPrint(items)
+	if !equalFingerprints(fp, multiRedefines) {
+		return nil, nil, false
+	}
+
+	// glob the next line and build it into the response item line
+	part := nx()
+	fp2 := getFingerPrint(part)
+	if !equalFingerprints(fp2, multiRedefinesPart) {
+		return nil, nil, false
+	}
+
+	return parseRedefines, lineFromMultiRedefines(items, part), false
+}
+
+func isOccurrence(nx func() []item, items []item) (parser, []item, bool) {
+
+	return unimplementedParser, nil, false
+}
+
+func isMultilineOccurrence(nx func() []item, items []item) (parser, []item, bool) {
+
+	return unimplementedParser, nil, false
+}
+
+func getFingerPrint(items []item) []itemType {
+	fingerprint := make([]itemType, len(items))
 	for i, l := range items {
-		lineFingerprint[i] = l.typ
+		fingerprint[i] = l.typ
 	}
 
-	if equalFingerprints(lineFingerprint, nonNumDelimitedStruct) {
-		return parseNonNumDelimitedStruct, true
-	}
-
-	if equalFingerprints(lineFingerprint, numDelimitedStruct) {
-		return parseNumDelimitedStruct, true
-	}
-
-	return nil, false
-}
-
-func isPic(items []item) (parser, bool) {
-	lineFingerprint := make([]itemType, len(items))
-	for i, l := range items {
-		lineFingerprint[i] = l.typ
-	}
-
-	if !equalFingerprints(lineFingerprint, pic) {
-		return nil, false
-	}
-
-	return parsePIC, true
-}
-
-func isJunk(items []item) (parser, bool) {
-
-	return unimplementedParser, false
-}
-
-func isRedefinition(items []item) (parser, bool) {
-	lineFingerprint := make([]itemType, len(items))
-	for i, l := range items {
-		lineFingerprint[i] = l.typ
-	}
-
-	if !equalFingerprints(redefines, pic) {
-		return nil, false
-	}
-
-	return parseRedefines, true
-}
-
-func isMultilineRedefinition(items []item) (parser, bool) {
-
-	return unimplementedParser, false
-}
-
-func isOccurrence(items []item) (parser, bool) {
-
-	return unimplementedParser, false
-}
-
-func isMultilineOccurrence(items []item) (parser, bool) {
-
-	return unimplementedParser, false
+	return fingerprint
 }
 
 // equalFingerprints tells whether a and b contain the same elements.
@@ -122,4 +130,24 @@ func equalFingerprints(a, b []itemType) bool {
 		}
 	}
 	return true
+}
+
+// a 	= 000830  05  DUMMY-OBJECT-3  REDEFINES   00000195
+// b 	= 001150  DUMMY-OBJECT-2   PIC X(7).  00000227
+//
+// res 	= 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2   PIC X(7).  00000195
+func lineFromMultiRedefines(a, b []item) []item {
+	res := make([]item, 12)
+	// copy all but the num delimiter at the end of a
+	for i := 0; i < len(a)-1; i++ {
+		res[i] = a[i]
+	}
+
+	// should be 7
+	nextIdx := len(res)
+	for i := 2; i < len(b)-1; i++ {
+		res[nextIdx+i] = b[i]
+	}
+
+	return res
 }

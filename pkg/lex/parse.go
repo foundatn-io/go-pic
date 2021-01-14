@@ -43,7 +43,7 @@ func (t *Tree) Parse() *record {
 			break
 		}
 
-		l := buildLine(li)
+		l := buildLine(t.scanLine, li)
 		if l == nil {
 			break
 		}

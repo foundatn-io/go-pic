@@ -22,6 +22,12 @@ var (
 
 	// 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2 PIC X.  00000195
 	redefines = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
+
+	// 000830  05  DUMMY-OBJECT-3  REDEFINES   00000195
+	multiRedefines = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemNumber}
+
+	// 001150  DUMMY-OBJECT-2   PIC X(7).  00000227
+	multiRedefinesPart = []itemType{itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
 )
 
 type parser func(t *Tree, l line, root *record) *record
