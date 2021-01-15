@@ -37,6 +37,11 @@ func unimplementedParser(t *Tree, l line, root *record) *record {
 }
 
 func parsePIC(_ *Tree, l line, _ *record) *record {
+	// TODO:(pgmitche) looks like PIC counts are recording incorrectly
+	// Test_Parse.RedefinesWithParentheses is reporting
+	// length 5 DUMMY-GROUP-2-OBJECT-D for and
+	// length 8 for DUMMY-GROUP-2-OBJECT-F
+	// where they should both be of length 4
 	len, err := decoder.ParsePICCount(l.items[6].val)
 	if err != nil {
 		log.Fatalln(err)
