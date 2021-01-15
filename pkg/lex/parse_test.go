@@ -63,25 +63,45 @@ func Test_parseLines(t *testing.T) {
 }
 
 func Test_Parse(t *testing.T) {
-	in := `000160     05  DUMMY-GROUP-1.                                           00000115
+	tests := []struct {
+		name string
+		in   *Tree
+	}{
+		{
+			name: "Simple",
+			in: &Tree{
+				lex: New("test", `000160     05  DUMMY-GROUP-1.                                           00000115
 000170         10  DUMMY-SUB-GROUP-1.                                   00000116
 000180             15  DUMMY-GROUP-1-OBJECT-A   PIC 9.               00000117
 000190             15  DUMMY-GROUP-1-OBJECT-B   PIC X.                  00000118
-000200             15  DUMMY-GROUP-1-OBJECT-C   PIC 9.               00000119`
-	lxr := New("go-pic", in)
-	tree := NewTree(lxr)
-	result := tree.Parse()
-	log.Println(result)
-}
-
-func Test_ParseWMulti(t *testing.T) {
-	in := `000170         10  DUMMY-SUB-GROUP-1.                                   00000116
+000200             15  DUMMY-GROUP-1-OBJECT-C   PIC 9.               00000119`),
+			},
+		}, {
+			name: "RedefinesWithParentheses",
+			in: &Tree{
+				lex: New("test", `000170         10  DUMMY-SUB-GROUP-1.                                   00000116
+001070         10  DUMMY-GROUP-2-OBJECT-D       PIC X.                  00000219
+001130         10  DUMMY-GROUP-2-OBJECT-E       PIC X(4).               00000225
+001140         10  DUMMY-GROUP-2-OBJECT-F       REDEFINES               00000226
+001150              DUMMY-GROUP-2-OBJECT-E      PIC X(4).               00000227`),
+			},
+		}, {
+			name: "Redefines",
+			in: &Tree{
+				lex: New("test", `000170         10  DUMMY-SUB-GROUP-1.                                   00000116
 001070         10  DUMMY-GROUP-2-OBJECT-D       PIC X.                  00000219
 001130         10  DUMMY-GROUP-2-OBJECT-E       PIC XXXX.               00000225
 001140         10  DUMMY-GROUP-2-OBJECT-F       REDEFINES               00000226
-001150              DUMMY-GROUP-2-OBJECT-E      PIC XXXX.               00000227`
-	lxr := New("go-pic", in)
-	tree := NewTree(lxr)
-	result := tree.Parse()
-	log.Println(result)
+001150              DUMMY-GROUP-2-OBJECT-E      PIC XXXX.               00000227`),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		tt := test
+		t.Run(tt.name, func(t *testing.T) {
+			res := tt.in.Parse()
+			log.Println(res)
+		})
+	}
 }

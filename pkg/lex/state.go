@@ -54,7 +54,7 @@ func lexPIC(l *lexer) stateFn {
 	var r rune
 	for {
 		r = l.next()
-		if !isAlphaNumeric(r) && !isSpace(r) {
+		if !isAlphaNumeric(r) && !isSpace(r) && !isParentheses(r) {
 			l.backup()
 			break
 		}
@@ -225,4 +225,8 @@ func isEndOfLine(r rune) bool {
 // isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
 func isAlphaNumeric(r rune) bool {
 	return r == '_' || r == '-' || unicode.IsLetter(r) || unicode.IsDigit(r)
+}
+
+func isParentheses(r rune) bool {
+	return r == leftParen || rightParen == r
 }
