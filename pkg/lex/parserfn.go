@@ -9,29 +9,6 @@ import (
 )
 
 var (
-	// num space num space text dot space num eol
-	// 000160  05  DUMMY-GROUP-1.  00000115
-	numDelimitedStruct = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber}
-
-	// space num space text dot space eol
-	//  05  DUMMY-GROUP-1.
-	nonNumDelimitedStruct = []itemType{itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber}
-
-	// num space num space text space pic space num eol
-	// 000190  15  DUMMY-GROUP-1-OBJECT-B  PIC X.  00000118
-	pic = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
-
-	// 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2 PIC X.  00000195
-	redefines = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
-
-	// 000830  05  DUMMY-OBJECT-3  REDEFINES   00000195
-	multiRedefines = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemNumber}
-
-	// 001150  DUMMY-OBJECT-2   PIC X(7).  00000227
-	multiRedefinesPart = []itemType{itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
-)
-
-var (
 	picPrefix = "PIC "
 )
 
@@ -69,6 +46,11 @@ func parseRedefines(_ *Tree, l line, root *record) *record {
 	}
 
 	return root.redefine(l.items[8].val, r)
+}
+
+// TODO: (pgmitche) parse occurs lines
+func parseOccurs(_ *Tree, l line, root *record) *record {
+	return unimplementedParser(nil, l, root)
 }
 
 func parseNumDelimitedStruct(t *Tree, l line, root *record) *record {

@@ -10,6 +10,36 @@ var (
 		lineOccurs:             isOccurrence,
 		lineMultilineOccurs:    isMultilineOccurrence,
 	}
+
+	// num space num space text dot space num eol
+	// 000160  05  DUMMY-GROUP-1.  00000115
+	numDelimitedStruct = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber}
+
+	// space num space text dot space eol
+	//  05  DUMMY-GROUP-1.
+	nonNumDelimitedStruct = []itemType{itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber}
+
+	// num space num space text space pic space num eol
+	// 000190  15  DUMMY-GROUP-1-OBJECT-B  PIC X.  00000118
+	pic = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
+
+	// 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2 PIC X.  00000195
+	redefines = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
+
+	// 000830  05  DUMMY-OBJECT-3  REDEFINES   00000195
+	multiRedefines = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemNumber}
+
+	// 001150  DUMMY-OBJECT-2   PIC X(7).  00000227
+	multiRedefinesPart = []itemType{itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
+
+	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
+	occurs = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemOCCURS, itemSpace, itemNumber, itemSpace, itemNumber}
+
+	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12)  00000241
+	multiOccurs = []itemType{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
+
+	// 001300      OCCURS 12.                            00000242
+	multiOccursPart = []itemType{itemNumber, itemSpace, itemOCCURS, itemSpace, itemNumber, itemDot, itemSpace, itemNumber}
 )
 
 type line struct {
@@ -99,13 +129,28 @@ func isMultilineRedefinition(nx func() []item, items []item) (parser, []item, bo
 }
 
 func isOccurrence(nx func() []item, items []item) (parser, []item, bool) {
+	fp := getFingerPrint(items)
+	if !equalFingerprints(fp, occurs) {
+		return nil, nil, false
+	}
 
-	return unimplementedParser, nil, false
+	return parseOccurs, items, true
 }
 
 func isMultilineOccurrence(nx func() []item, items []item) (parser, []item, bool) {
+	fp := getFingerPrint(items)
+	if !equalFingerprints(fp, multiOccurs) {
+		return nil, nil, false
+	}
 
-	return unimplementedParser, nil, false
+	// glob the next line and build it into the response item line
+	part := nx()
+	fp2 := getFingerPrint(part)
+	if !equalFingerprints(fp2, multiOccursPart) {
+		return nil, nil, false
+	}
+
+	return parseRedefines, lineFromMultiOccurs(items, part), true
 }
 
 func getFingerPrint(items []item) []itemType {
@@ -154,6 +199,36 @@ func lineFromMultiRedefines(a, b []item) []item {
 
 	if !equalFingerprints(getFingerPrint(res), redefines) {
 		panic("multiline redefinition builder failed to build a redefinition with the correct fingerprint")
+	}
+
+	return res
+}
+
+// a 	= 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12)  00000241
+// b 	= 001300      OCCURS 12.                            00000242
+//
+// res  = 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
+func lineFromMultiOccurs(a, b []item) []item {
+	res := make([]item, len(occurs))
+
+	// TODO: (pgmitche) rebuild multi line occurrence from item indices
+	//
+	// copy all but the num delimiter at the end of a
+	// i := 0
+	// for i < len(a)-1 {
+	// 	res[i] = a[i]
+	// 	i++
+	// }
+	//
+	// // should be 6, so that next is 8, as inserted up to res[7]
+	// // j is 2 so that num delimiter and space are ignored from b
+	// i -= 2
+	// for j := 2; j < len(b); j++ {
+	// 	res[i+j] = b[j]
+	// }
+
+	if !equalFingerprints(getFingerPrint(res), occurs) {
+		panic("multiline redefinition builder failed to build an occurrence with the correct fingerprint")
 	}
 
 	return res
