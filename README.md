@@ -35,11 +35,11 @@ copybook
     000180      15  PropertyA    PIC X(5).     00000117
     000190      15  PropertyB    PIC X(2).     00000118
     ```
-
+    You would tag your struct like so
     ```go
     type yourStruct struct {
-        PropertyA string `pic:5` 
-        PropertyB string `pic:2`
+        PropertyA string `pic:"5"` 
+        PropertyB string `pic:"2"`
     }
     ```
 
@@ -101,6 +101,6 @@ if generated with `gopic` becomes:
 ```go
 type Copybook struct{
     PropertyA uint      `pic:"9"`  // start:1 end:9
-    PropertyB string    `pic:"2"`  // start:10 end:12
+    PropertyB string    `pic:"2"`  // start:10 end:11
 }
 ```
