@@ -89,7 +89,7 @@ copybook
 
 When using `gopic` for struct generation, additional, non-functional values are tagged to the PIC tags, for legibility's sake. 
 
-For example, the example struct:
+For example, the example copybook clauses:
 
 ```
 000180      15  PropertyA    PIC 9(5).     00000117
