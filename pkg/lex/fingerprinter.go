@@ -128,7 +128,7 @@ func isMultilineRedefinition(nx func() []item, items []item) (parser, []item, bo
 	return parseRedefines, lineFromMultiRedefines(items, part), true
 }
 
-func isOccurrence(nx func() []item, items []item) (parser, []item, bool) {
+func isOccurrence(_ func() []item, items []item) (parser, []item, bool) {
 	fp := getFingerPrint(items)
 	if !equalFingerprints(fp, occurs) {
 		return nil, nil, false
@@ -150,7 +150,7 @@ func isMultilineOccurrence(nx func() []item, items []item) (parser, []item, bool
 		return nil, nil, false
 	}
 
-	return parseRedefines, lineFromMultiOccurs(items, part), true
+	return parseOccurs, lineFromMultiOccurs(items, part), true
 }
 
 func getFingerPrint(items []item) []itemType {
@@ -210,22 +210,19 @@ func lineFromMultiRedefines(a, b []item) []item {
 // res  = 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
 func lineFromMultiOccurs(a, b []item) []item {
 	res := make([]item, len(occurs))
-
-	// TODO: (pgmitche) rebuild multi line occurrence from item indices
-	//
 	// copy all but the num delimiter at the end of a
-	// i := 0
-	// for i < len(a)-1 {
-	// 	res[i] = a[i]
-	// 	i++
-	// }
-	//
-	// // should be 6, so that next is 8, as inserted up to res[7]
-	// // j is 2 so that num delimiter and space are ignored from b
-	// i -= 2
-	// for j := 2; j < len(b); j++ {
-	// 	res[i+j] = b[j]
-	// }
+	i := 0
+	for i < len(a)-1 {
+		res[i] = a[i]
+		i++
+	}
+
+	// should be 6, so that next is 8, as inserted up to res[7]
+	// j is 2 so that num delimiter and space are ignored from b
+	i -= 2
+	for j := 2; j < len(b); j++ {
+		res[i+j] = b[j]
+	}
 
 	if !equalFingerprints(getFingerPrint(res), occurs) {
 		panic("multiline redefinition builder failed to build an occurrence with the correct fingerprint")
