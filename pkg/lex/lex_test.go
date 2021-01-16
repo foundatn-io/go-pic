@@ -12,7 +12,7 @@ func Test_lexer_run(t *testing.T) {
 		l    *lexer
 		want []item
 	}{
-		{
+		{ // nolint:dupl
 			name: "Simple",
 			l: &lexer{
 				name:  "lexer",
@@ -32,7 +32,7 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemEOL, pos: 80, val: "\n", line: 0},
 				{typ: itemEOF, pos: 81, val: "", line: 1},
 			},
-		}, {
+		}, { // nolint:dupl
 			name: "SimpleIdentifierWithNameStartingWith_RorP",
 			l: &lexer{
 				name:  "lexer",
@@ -52,7 +52,7 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemEOL, pos: 66, val: "\n", line: 0},
 				{typ: itemEOF, pos: 67, val: "", line: 1},
 			},
-		}, {
+		}, { // nolint:dupl
 			name: "SimplePICWithParentheses",
 			l: &lexer{
 				name:  "lexer",

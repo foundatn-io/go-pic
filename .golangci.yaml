@@ -169,15 +169,20 @@ linters:
     - unconvert
     - unparam
     - unused
+    - whitespace
     - varcheck
+    - prealloc
+    - maligned
+    - wrapcheck
+    - gomnd
+    - errorlint
+    - nolintlint
+    - scopelint
 
   # don't enable:
   # - gochecknoglobals
   # - gocognit
-  # - godox
-  # - maligned
   # - prealloc
-  # - golint
   # - stylecheck (more pain than it's worth)
 
 issues:

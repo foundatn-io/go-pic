@@ -18,7 +18,7 @@ func (i item) String() string {
 		return "EOF"
 	case i.typ == itemError:
 		return i.val
-	case len(i.val) > 10:
+	case len(i.val) > 10: // nolint:gomnd // arbitrary length for truncating
 		return fmt.Sprintf("%.10q...", i.val)
 	}
 	return fmt.Sprintf("%q", i.val)
@@ -45,8 +45,8 @@ const (
 
 const (
 	eof        = -1
-	PICLeft    = 'P'
-	PICRight   = '.'
+	picLeft    = 'P'
+	picRight   = '.'
 	leftParen  = '('
 	rightParen = ')'
 )

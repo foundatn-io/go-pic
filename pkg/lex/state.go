@@ -18,11 +18,11 @@ func lexInsideStatement(l *lexer) stateFn {
 		l.backup()
 		return lexSpace
 
-	case r == PICLeft:
+	case r == picLeft:
 		// special look-ahead for "PIC" so we don't break l.backup().
 		if l.pos < Pos(len(l.input)) {
-			// r := l.input[l.pos]
-			if (r < '0' || '9' < r) && l.peek() == 'I' && l.lookAhead(2) == 'C' {
+			// Look for PIC
+			if (r < '0' || '9' < r) && l.peek() == 'I' && l.lookAhead(2) == 'C' { // nolint:gomnd // obvious meaning
 				return lexPIC
 			}
 
@@ -133,7 +133,6 @@ func (l *lexer) scanOccurs() bool {
 				panic(fmt.Sprintf("bad character %#U", r))
 			}
 		}
-
 	}
 
 	return true
@@ -141,7 +140,7 @@ func (l *lexer) scanOccurs() bool {
 
 func (l *lexer) atPICTerminator() bool {
 	r := l.peek()
-	return r == PICRight
+	return r == picRight
 }
 
 // lexIdentifier scans an alphanumeric.

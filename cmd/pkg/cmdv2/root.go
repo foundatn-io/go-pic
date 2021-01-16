@@ -47,10 +47,10 @@ func init() { // nolint:gochecknoinits
 	fileCmd.Flags().StringP("output", "o", "", "path to output file")
 	fileCmd.Flags().StringP("input", "i", "", "path to input file")
 
-	_ = dirCmd.MarkFlagRequired("output")  // nolint:errcheck,gosec
-	_ = dirCmd.MarkFlagRequired("input")   // nolint:errcheck,gosec
-	_ = fileCmd.MarkFlagRequired("output") // nolint:errcheck,gosec
-	_ = fileCmd.MarkFlagRequired("input")  // nolint:errcheck,gosec
+	_ = dirCmd.MarkFlagRequired("output")
+	_ = dirCmd.MarkFlagRequired("input")
+	_ = fileCmd.MarkFlagRequired("output")
+	_ = fileCmd.MarkFlagRequired("input")
 
 	rootCmd.AddCommand(dirCmd)
 	rootCmd.AddCommand(fileCmd)

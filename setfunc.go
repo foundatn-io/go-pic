@@ -15,9 +15,9 @@ func newSetFunc(t reflect.Type, picSize, occursSize int) setFunc {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return intSetFunc
 	case reflect.Float32:
-		return floatSetFunc(32)
+		return floatSetFunc(32) // nolint:gomnd
 	case reflect.Float64:
-		return floatSetFunc(64)
+		return floatSetFunc(64) // nolint:gomnd
 	case reflect.Slice:
 		return arraySetFunc(picSize, occursSize)
 	case reflect.Ptr:

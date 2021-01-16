@@ -1,6 +1,7 @@
 package lex
 
 import (
+	"errors"
 	"io"
 	"log"
 	"reflect"
@@ -82,7 +83,7 @@ func (t *Tree) next() item {
 // and adds it to the tree data
 func (t *Tree) parseLines(root *record) {
 	for {
-		if t.nextLine() == io.EOF {
+		if errors.Is(t.nextLine(), io.EOF) {
 			break
 		}
 		switch t.line.typ {

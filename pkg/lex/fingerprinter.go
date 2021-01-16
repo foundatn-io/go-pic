@@ -65,7 +65,6 @@ func isPic(_ func() []item, items []item) (parser, []item, bool) {
 }
 
 func isJunk(_ func() []item, items []item) (parser, []item, bool) {
-
 	return unimplementedParser, nil, false
 }
 

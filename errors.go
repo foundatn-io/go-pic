@@ -5,21 +5,7 @@ import (
 	"reflect"
 )
 
-type InvalidUnmarshalError struct {
-	Type reflect.Type
-}
-
-func (e *InvalidUnmarshalError) Error() string {
-	if e.Type == nil {
-		return "pic: Unmarshal(nil)"
-	}
-
-	if e.Type.Kind() != reflect.Ptr {
-		return "pic: Unmarshal(non-pointer " + e.Type.String() + ")"
-	}
-	return "pic: Unmarshal(nil " + e.Type.String() + ")"
-}
-
+// UnmarshalTypeError represents an unmarshal malfunction
 type UnmarshalTypeError struct {
 	Value  string       // raw value
 	Type   reflect.Type // type of Go value it could not be assigned to
@@ -28,6 +14,7 @@ type UnmarshalTypeError struct {
 	Cause  error        // original error
 }
 
+// Error converts details of an UnmarshalTypeError into a meaningful string
 func (e *UnmarshalTypeError) Error() string {
 	var err error
 	if e.Struct != "" || e.Field != "" {
@@ -37,7 +24,7 @@ func (e *UnmarshalTypeError) Error() string {
 	}
 
 	if e.Cause != nil {
-		return fmt.Errorf("%s: %w", err, e.Cause).Error()
+		return fmt.Errorf("%s: %w", err.Error(), e.Cause).Error() // nolint:errorlint // can't use two %w directives
 	}
 
 	return err.Error()
