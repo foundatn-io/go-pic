@@ -6,7 +6,7 @@ import (
 
 func lexInsideStatement(l *lexer) stateFn {
 	switch r := l.next(); {
-	case isEndOfLine(r):
+	case isEOL(r):
 		l.emit(itemEOL)
 
 	case r == eof:
@@ -20,9 +20,11 @@ func lexInsideStatement(l *lexer) stateFn {
 	case r == PICLeft:
 		// special look-ahead for "PIC" so we don't break l.backup().
 		if l.pos < Pos(len(l.input)) {
-			r := l.input[l.pos]
-			if r < '0' || '9' < r && l.peek() == 'I' && l.lookAhead(2) == 'C' {
+			// r := l.input[l.pos]
+			if (r < '0' || '9' < r) && l.peek() == 'I' && l.lookAhead(2) == 'C' {
 				return lexPIC
+			} else {
+				return lexIdentifier
 			}
 		}
 
@@ -71,7 +73,7 @@ func lexPIC(l *lexer) stateFn {
 
 func lexREDEFINES(l *lexer) stateFn {
 	if !l.scanRedefines() {
-		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
+		return lexInsideStatement(l)
 	}
 
 	l.emit(itemREDEFINES)
@@ -90,7 +92,7 @@ func (l *lexer) scanRedefines() bool {
 
 func (l *lexer) atPICTerminator() bool {
 	r := l.peek()
-	return r == '.'
+	return r == PICRight
 }
 
 // lexIdentifier scans an alphanumeric.
@@ -202,7 +204,7 @@ func lexSpace(l *lexer) stateFn {
 // appear after an identifier.
 func (l *lexer) atTerminator() bool {
 	r := l.peek()
-	if isSpace(r) || isEndOfLine(r) {
+	if isSpace(r) || isEOL(r) {
 		return true
 	}
 	switch r {
@@ -217,8 +219,8 @@ func isSpace(r rune) bool {
 	return r == ' ' || r == '\t'
 }
 
-// isEndOfLine reports whether r is an end-of-line character.
-func isEndOfLine(r rune) bool {
+// isEOL reports whether r is an end-of-line character.
+func isEOL(r rune) bool {
 	return r == '\r' || r == '\n'
 }
 

@@ -34,6 +34,26 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemEOF, pos: 81, val: "", line: 1},
 			},
 		}, {
+			name: "SimpleIdentifierWithNameStartingWith_RorP",
+			l: &lexer{
+				name:  "lexer",
+				input: "000600         10  P-OBJECT       PIC X.                  00000167\n",
+				items: make(chan item),
+			},
+			want: []item{
+				{typ: itemNumber, pos: 0, val: "000600", line: 0},
+				{typ: itemSpace, pos: 6, val: "         ", line: 0},
+				{typ: itemNumber, pos: 15, val: "10", line: 0},
+				{typ: itemSpace, pos: 17, val: "  ", line: 0},
+				{typ: itemIdentifier, pos: 19, val: "P-OBJECT", line: 0},
+				{typ: itemSpace, pos: 27, val: "       ", line: 0},
+				{typ: itemPIC, pos: 34, val: "PIC X.", line: 0},
+				{typ: itemSpace, pos: 40, val: "                  ", line: 0},
+				{typ: itemNumber, pos: 58, val: "00000167", line: 0},
+				{typ: itemEOL, pos: 66, val: "\n", line: 0},
+				{typ: itemEOF, pos: 67, val: "", line: 1},
+			},
+		}, {
 			name: "SimplePICWithParentheses",
 			l: &lexer{
 				name:  "lexer",
