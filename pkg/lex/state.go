@@ -1,6 +1,7 @@
 package lex
 
 import (
+	"fmt"
 	"unicode"
 )
 
@@ -23,10 +24,13 @@ func lexInsideStatement(l *lexer) stateFn {
 			// r := l.input[l.pos]
 			if (r < '0' || '9' < r) && l.peek() == 'I' && l.lookAhead(2) == 'C' {
 				return lexPIC
-			} else {
-				return lexIdentifier
 			}
+
+			return lexIdentifier
 		}
+
+	case r == 'O':
+		return lexOCCURS(l)
 
 	case r == 'R':
 		return lexREDEFINES(l)
@@ -56,14 +60,20 @@ func lexPIC(l *lexer) stateFn {
 	var r rune
 	for {
 		r = l.next()
-		if !isAlphaNumeric(r) && !isSpace(r) && !isParentheses(r) {
-			l.backup()
-			break
+		if !isPICChar(r) {
+			if r == rightParen && isSpace(l.peek()) {
+				l.emit(itemPIC)
+				return lexSpace(l)
+			}
+			if !l.atPICTerminator() {
+				l.backup()
+				break
+			}
 		}
 	}
 
 	if !l.atPICTerminator() {
-		return l.errorf("bad character %#U", r)
+		l.errorf("bad character %#U", r)
 	}
 
 	l.next() // glob the PICterminator
@@ -72,11 +82,18 @@ func lexPIC(l *lexer) stateFn {
 }
 
 func lexREDEFINES(l *lexer) stateFn {
-	if !l.scanRedefines() {
-		return lexInsideStatement(l)
+	if l.scanRedefines() {
+		l.emit(itemREDEFINES)
 	}
 
-	l.emit(itemREDEFINES)
+	return lexInsideStatement(l)
+}
+
+func lexOCCURS(l *lexer) stateFn {
+	if l.scanOccurs() {
+		l.emit(itemOCCURS)
+	}
+
 	return lexInsideStatement(l)
 }
 
@@ -85,6 +102,28 @@ func (l *lexer) scanRedefines() bool {
 	if !isSpace(l.peek()) {
 		l.next()
 		return false
+	}
+
+	return true
+}
+
+func (l *lexer) scanOccurs() bool {
+	l.acceptRun("OCCURS")
+	if !isSpace(l.peek()) {
+		l.next()
+		return false
+	}
+
+	for {
+		r := l.next()
+		if !isPICChar(r) {
+			if l.atTerminator() {
+				break
+			} else {
+				panic(fmt.Sprintf("bad character %#U", r))
+			}
+		}
+
 	}
 
 	return true
@@ -229,6 +268,7 @@ func isAlphaNumeric(r rune) bool {
 	return r == '_' || r == '-' || unicode.IsLetter(r) || unicode.IsDigit(r)
 }
 
-func isParentheses(r rune) bool {
-	return r == leftParen || rightParen == r
+func isPICChar(r rune) bool {
+	_, ok := picChars[r]
+	return ok || unicode.IsNumber(r)
 }
