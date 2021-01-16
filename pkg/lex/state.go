@@ -59,16 +59,6 @@ func lexInsideStatement(l *lexer) stateFn {
 	return lexInsideStatement(l)
 }
 
-// TODO:(pgmitche) fix PIC lexer. !!!! OCCURS IS BROKEN UNTIL THIS IS FIXED
-// needs to enter a new lexmode when finding (, that expects a sibling ).
-// in each mode the following indicate peeking for OCCURS or REDEFINES is
-// necessary:
-//
-// no parentheses: PIC XXXXX. || PIC XXXXX
-//  - when a space is determined after type indicators, peek for REDEFINES/OCCURS
-//
-// with parentheses: PIC X(5). || PIC X(5)
-//  - when a space is determined after a right parentheses ')', peek for REDEFINES/OCCURS
 func lexPIC(l *lexer) stateFn {
 	var r rune
 	for {
