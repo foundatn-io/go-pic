@@ -58,8 +58,7 @@ func isStruct(_ func() []item, items []item) (parser, []item, bool) {
 }
 
 func isPic(_ func() []item, items []item) (parser, []item, bool) {
-	fp := getFingerprint(items)
-	if !equalFingerprints(fp, pic) {
+	if !equalFingerprints(getFingerprint(items), pic) {
 		return nil, nil, false
 	}
 
@@ -71,8 +70,7 @@ func isJunk(_ func() []item, items []item) (parser, []item, bool) {
 }
 
 func isRedefinition(_ func() []item, items []item) (parser, []item, bool) {
-	fp := getFingerprint(items)
-	if !equalFingerprints(fp, redefines) {
+	if !equalFingerprints(getFingerprint(items), redefines) {
 		return nil, nil, false
 	}
 
@@ -106,8 +104,7 @@ func isMultilineRedefinition(nx func() []item, items []item) (parser, []item, bo
 }
 
 func isOccurrence(_ func() []item, items []item) (parser, []item, bool) {
-	fp := getFingerprint(items)
-	if !equalFingerprints(fp, occurs) {
+	if !equalFingerprints(getFingerprint(items), occurs) {
 		return nil, nil, false
 	}
 
