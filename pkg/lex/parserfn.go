@@ -3,6 +3,7 @@ package lex
 import (
 	"log"
 	"reflect"
+	"strings"
 
 	"github.com/pgmitche/go-pic/cmd/pkg/decoder"
 )
@@ -30,6 +31,10 @@ var (
 	multiRedefinesPart = []itemType{itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
 )
 
+var (
+	picPrefix = "PIC "
+)
+
 type parser func(t *Tree, l line, root *record) *record
 
 func unimplementedParser(t *Tree, l line, root *record) *record {
@@ -37,12 +42,8 @@ func unimplementedParser(t *Tree, l line, root *record) *record {
 }
 
 func parsePIC(_ *Tree, l line, _ *record) *record {
-	// TODO:(pgmitche) looks like PIC counts are recording incorrectly
-	// Test_Parse.RedefinesWithParentheses is reporting
-	// length 5 DUMMY-GROUP-2-OBJECT-D for and
-	// length 8 for DUMMY-GROUP-2-OBJECT-F
-	// where they should both be of length 4
-	len, err := decoder.ParsePICCount(l.items[6].val)
+	picNumDef := strings.TrimPrefix(l.items[6].val, picPrefix)
+	len, err := decoder.ParsePICCount(picNumDef)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -55,7 +56,8 @@ func parsePIC(_ *Tree, l line, _ *record) *record {
 }
 
 func parseRedefines(_ *Tree, l line, root *record) *record {
-	len, err := decoder.ParsePICCount(l.items[10].val)
+	picNumDef := strings.TrimPrefix(l.items[10].val, picPrefix)
+	len, err := decoder.ParsePICCount(picNumDef)
 	if err != nil {
 		log.Fatalln(err)
 	}

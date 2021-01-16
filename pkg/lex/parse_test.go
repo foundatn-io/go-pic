@@ -69,31 +69,31 @@ func Test_Parse(t *testing.T) {
 	}{
 		{
 			name: "Simple",
-			in: &Tree{
-				lex: New("test", `000160     05  DUMMY-GROUP-1.                                           00000115
+			in: NewTree(
+				New("test",
+					`000160     05  DUMMY-GROUP-1.                                           00000115
 000170         10  DUMMY-SUB-GROUP-1.                                   00000116
 000180             15  DUMMY-GROUP-1-OBJECT-A   PIC 9.               00000117
 000190             15  DUMMY-GROUP-1-OBJECT-B   PIC X.                  00000118
-000200             15  DUMMY-GROUP-1-OBJECT-C   PIC 9.               00000119`),
-			},
+000200             15  DUMMY-GROUP-1-OBJECT-C   PIC 9.               00000119`)),
 		}, {
 			name: "RedefinesWithParentheses",
-			in: &Tree{
-				lex: New("test", `000170         10  DUMMY-SUB-GROUP-1.                                   00000116
+			in: NewTree(
+				New("test",
+					`000170         10  DUMMY-SUB-GROUP-1.                                   00000116
 001070         10  DUMMY-GROUP-2-OBJECT-D       PIC X.                  00000219
 001130         10  DUMMY-GROUP-2-OBJECT-E       PIC X(4).               00000225
 001140         10  DUMMY-GROUP-2-OBJECT-F       REDEFINES               00000226
-001150              DUMMY-GROUP-2-OBJECT-E      PIC X(4).               00000227`),
-			},
+001150              DUMMY-GROUP-2-OBJECT-E      PIC X(4).               00000227`)),
 		}, {
 			name: "Redefines",
-			in: &Tree{
-				lex: New("test", `000170         10  DUMMY-SUB-GROUP-1.                                   00000116
+			in: NewTree(
+				New("test",
+					`000170         10  DUMMY-SUB-GROUP-1.                                   00000116
 001070         10  DUMMY-GROUP-2-OBJECT-D       PIC X.                  00000219
 001130         10  DUMMY-GROUP-2-OBJECT-E       PIC XXXX.               00000225
 001140         10  DUMMY-GROUP-2-OBJECT-F       REDEFINES               00000226
-001150              DUMMY-GROUP-2-OBJECT-E      PIC XXXX.               00000227`),
-			},
+001150              DUMMY-GROUP-2-OBJECT-E      PIC XXXX.               00000227`)),
 		},
 	}
 

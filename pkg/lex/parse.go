@@ -90,8 +90,7 @@ func (t *Tree) parseLines(root *record) {
 			t.line.fn(t, t.line, root)
 		default:
 			idx := len(root.Children)
-			root.Children = append(root.Children, root.toCache(
-				t.line.fn(t, t.line, root), idx))
+			root.Children = append(root.Children, root.toCache(t.line.fn(t, t.line, root), idx))
 		}
 	}
 }
