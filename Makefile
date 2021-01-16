@@ -25,7 +25,6 @@ help: ## Prints help text
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-25s\033[0m %s\n", $$1, $$2}'
 	@echo "Coverage Required: ${COLOUR_GREEN}${COVERAGE}%${COLOUR_NORMAL}"
 
-# Clean up project
 .PHONY: clean
 clean: ## Cleans up generated coverage files and binaries
 	go clean ./...
@@ -33,24 +32,21 @@ clean: ## Cleans up generated coverage files and binaries
 	rm -f cover.html
 	rm -rf `find . -type d -name "dist"`
 
-# Updates vendor directory and runs go mod tidy
 .PHONY: vendor
 vendor: ## Cleans up go mod dependencies and vendor's all dependencies
 	go mod tidy
 	go mod vendor
 
-# Build the project and generate binary file
 .PHONY: build
 build: clean ## Builds the gopic struct generation tool
 	go build -v \
 		-o ./dist/gopic \
 		cmd/main.go
 
-install: build ## Builds and inatlls gopic struct generation tool to your GOPATH
+install: build ## Builds and installs gopic struct generation tool to your GOPATH
 	chmod +x ./dist/gopic
 	cp ./dist/gopic $(GOPATH)/bin/gopic
 
-# Automated code review for Go
 .PHONY: tidy
 tidy: ## Reorders imports
 	goimports -v -w -e . ./cmd/*
@@ -59,7 +55,6 @@ tidy: ## Reorders imports
 lint: ## Runs the golangci-lint checker
 	golangci-lint run -v
 
-# Test/coverage targets #
 .PHONY: test
 test: ## Runs unit tests and generates a coverage file at coverage.out
 	go test -covermode=atomic -coverprofile=$(COVERFILE) ./...
@@ -71,10 +66,6 @@ cover: test ## Runs unit tests and assesses output coverage file
 
 .PHONY: example
 example: install ## Builds & installs the gopic struct generation tool, regenerates example files
-	gopic file -o example/example.go -i example/ExampleCopybook.txt
-
-.PHONY: example
-example: install
 	gopic file -o example/example.go -i example/ExampleCopybook.txt
 
 define CHECK_COVERAGE
