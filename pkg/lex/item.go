@@ -54,6 +54,10 @@ const (
 var (
 	picChars = map[rune]struct{}{
 		// rightParen is not included as it is evaluated separately
-		'P': {}, 'I': {}, 'C': {}, ' ': {}, leftParen: {}, 'X': {}, '9': {}, 'S': {}, 'V': {},
+		'P': {}, 'I': {}, 'C': {}, leftParen: {}, rightParen: {}, 'X': {}, '9': {}, 'S': {}, 'V': {},
+	}
+
+	picTypes = map[rune]struct{}{
+		'X': {}, '9': {}, 'S': {}, 'V': {},
 	}
 )

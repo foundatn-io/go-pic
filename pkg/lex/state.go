@@ -2,6 +2,7 @@ package lex
 
 import (
 	"fmt"
+	"log"
 	"unicode"
 )
 
@@ -50,13 +51,15 @@ func lexInsideStatement(l *lexer) stateFn {
 		l.emit(itemChar)
 
 	default:
-		return l.errorf("unrecognized character in action: %#U", r)
+		e := fmt.Errorf("unrecognized character in action: %#U", r)
+		log.Println(e)
+		return l.errorf(e.Error())
 	}
 
 	return lexInsideStatement(l)
 }
 
-// TODO:(pgmitche) fix PIC lexer.
+// TODO:(pgmitche) fix PIC lexer. !!!! OCCURS IS BROKEN UNTIL THIS IS FIXED
 // needs to enter a new lexmode when finding (, that expects a sibling ).
 // in each mode the following indicate peeking for OCCURS or REDEFINES is
 // necessary:
@@ -70,11 +73,18 @@ func lexPIC(l *lexer) stateFn {
 	var r rune
 	for {
 		r = l.next()
+
 		if !isPICChar(r) {
-			if r == rightParen && isSpace(l.peek()) {
-				l.emit(itemPIC)
-				return lexSpace(l)
+			if isSpace(r) {
+				switch nx := l.peek(); {
+				case isPICChar(nx), isPICType(nx), nx == '.':
+					continue
+				default:
+					l.emit(itemPIC)
+					return lexSpace(l)
+				}
 			}
+
 			if !l.atPICTerminator() {
 				l.backup()
 				break
@@ -83,7 +93,9 @@ func lexPIC(l *lexer) stateFn {
 	}
 
 	if !l.atPICTerminator() {
-		l.errorf("bad character %#U", r)
+		e := fmt.Errorf("bad character %#U", r)
+		log.Println(e)
+		return l.errorf(e.Error())
 	}
 
 	l.next() // glob the PICterminator
@@ -126,7 +138,7 @@ func (l *lexer) scanOccurs() bool {
 
 	for {
 		r := l.next()
-		if !isPICChar(r) {
+		if !isPICChar(r) && !isSpace(r) {
 			if l.atTerminator() {
 				break
 			} else {
@@ -154,7 +166,9 @@ Loop:
 			l.backup()
 			word := l.input[l.start:l.pos]
 			if !l.atTerminator() {
-				return l.errorf("bad character %#U", r)
+				e := fmt.Errorf("bad character %#U", r)
+				log.Println(e)
+				return l.errorf(e.Error())
 			}
 
 			switch {
@@ -280,4 +294,9 @@ func isAlphaNumeric(r rune) bool {
 func isPICChar(r rune) bool {
 	_, ok := picChars[r]
 	return ok || unicode.IsNumber(r)
+}
+
+func isPICType(r rune) bool {
+	_, ok := picTypes[r]
+	return ok
 }
