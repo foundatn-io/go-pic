@@ -54,7 +54,7 @@ func lineFromMultiRedefines(a, b []item) []item {
 		res[i+j] = b[j]
 	}
 
-	if !equalFingerprints(getFingerPrint(res), redefines) {
+	if !equalFingerprints(getFingerprint(res), redefines) {
 		panic("multiline redefinition builder failed to build a redefinition with the correct fingerprint")
 	}
 
@@ -81,7 +81,7 @@ func lineFromMultiOccurs(a, b []item) []item {
 		res[i+j] = b[j]
 	}
 
-	if !equalFingerprints(getFingerPrint(res), occurs) {
+	if !equalFingerprints(getFingerprint(res), occurs) {
 		panic("multiline redefinition builder failed to build an occurrence with the correct fingerprint")
 	}
 
