@@ -3,6 +3,7 @@ package lex
 import (
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/pgmitche/go-pic/cmd/pkg/decoder"
@@ -30,7 +31,7 @@ func parsePIC(_ *Tree, l line, _ *record) *record {
 	return &record{
 		Name:   l.items[4].val,
 		Length: len,
-		Typ:    decoder.ParsePICType(l.items[6].val),
+		Typ:    decoder.ParsePICType(picNumDef),
 	}
 }
 
@@ -49,15 +50,30 @@ func parseRedefines(_ *Tree, l line, root *record) *record {
 	r := &record{
 		Name:   l.items[4].val,
 		Length: len,
-		Typ:    decoder.ParsePICType(l.items[10].val),
+		Typ:    decoder.ParsePICType(picNumDef),
 	}
 
 	return root.redefine(l.items[8].val, r)
 }
 
-// TODO: (pgmitche) parse occurs lines
 func parseOccurs(_ *Tree, l line, root *record) *record {
-	return unimplementedParser(nil, l, root)
+	picNumDef := strings.TrimPrefix(strings.TrimSpace(l.items[6].val), picPrefix)
+	len, err := decoder.ParsePICCount(picNumDef)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	n, err := parseOccursCount(l.items[8])
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return &record{
+		Name:   l.items[4].val,
+		Length: len,
+		Occurs: n,
+		Typ:    decoder.ParsePICType(picNumDef),
+	}
 }
 
 // parseNumDelimitedStruct is a parserfn wrapper used to build records
@@ -118,4 +134,10 @@ func parseStruct(t *Tree, l line, root *record, nameIdx, groupIdx int) *record {
 	root.Children = append(root.Children, r)
 	t.parseLines(r)
 	return r
+}
+
+func parseOccursCount(i item) (int, error) {
+	s := strings.TrimPrefix(i.val, "OCCURS ")
+	n := strings.TrimSuffix(s, ".")
+	return strconv.Atoi(n)
 }

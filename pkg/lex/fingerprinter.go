@@ -34,7 +34,7 @@ var (
 	// 001150  DUMMY-OBJECT-2   PIC X(7).  00000227
 	multiRedefinesPart = fingerprint{itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
 
-	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
+	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12. 00000241
 	occurs = fingerprint{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemOCCURS, itemSpace, itemNumber}
 
 	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12)  00000241

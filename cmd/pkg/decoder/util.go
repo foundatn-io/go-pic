@@ -97,6 +97,7 @@ func ParsePICCount(s string) (int, error) {
 	return size + len(c), nil
 }
 
+// TODO: (pgmitche) replace with parserfn.go's parseOccursCount
 // parseOccursCount captures the numerical definition of n occurrences
 // e.g. definitions like "OCCURS 12." are passed in as "12." and return 12
 func parseOccursCount(in string) (int, error) {
