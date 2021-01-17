@@ -1,4 +1,4 @@
-package cmd
+package cmdv2
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/pgmitche/go-pic/cmd/pkg/copybook"
-	"github.com/pgmitche/go-pic/cmd/pkg/decoder"
 	"github.com/pgmitche/go-pic/cmd/pkg/template"
+	"github.com/pgmitche/go-pic/pkg/lex"
 )
 
 var rootCmd = &cobra.Command{
@@ -130,9 +130,9 @@ func run(r io.Reader, output string) error {
 		return err
 	}
 
-	if err = decoder.Unmarshal(b, c); err != nil {
-		return err
-	}
+	lxr := lex.New("go-pic", string(b))
+	tree := lex.NewTree(lxr)
+	c.Root = tree.Parse()
 
 	newFile, err := os.Create(fmt.Sprintf("%s.go", name))
 	if err != nil {

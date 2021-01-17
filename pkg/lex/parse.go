@@ -12,23 +12,23 @@ type Tree struct {
 	lex   *lexer
 	token item
 	lines []line
-	state *record
+	state *Record
 	line  line
 	lIdx  int
 }
 
-type record struct {
-	Children []*record
+type Record struct {
+	Children []*Record
 	Name     string
 	Length   int
 	Occurs   int
 	Typ      reflect.Kind
-	depthMap map[string]*record
+	depthMap map[string]*Record
 	cache    sync.Map
 }
 
 func NewTree(lxr *lexer) *Tree {
-	root := &record{Typ: reflect.Struct, Name: "root", depthMap: make(map[string]*record)}
+	root := &Record{Typ: reflect.Struct, Name: "root", depthMap: make(map[string]*Record)}
 	return &Tree{
 		lex:   lxr,
 		state: root,
@@ -36,7 +36,7 @@ func NewTree(lxr *lexer) *Tree {
 	}
 }
 
-func (t *Tree) Parse() *record {
+func (t *Tree) Parse() *Record {
 	for {
 		li := t.scanLine()
 		log.Printf("building line for %d", t.token.line)
@@ -81,7 +81,7 @@ func (t *Tree) next() item {
 
 // parseLines generates the text for the line
 // and adds it to the tree data
-func (t *Tree) parseLines(root *record) {
+func (t *Tree) parseLines(root *Record) {
 	for {
 		if errors.Is(t.nextLine(), io.EOF) {
 			break
@@ -105,14 +105,14 @@ func (t *Tree) nextLine() error {
 	return nil
 }
 
-// toCache returns a record, just stored into or previously loaded from the cache
-func (r *record) toCache(child *record, idx int) *record {
+// toCache returns a Record, just stored into or previously loaded from the cache
+func (r *Record) toCache(child *Record, idx int) *Record {
 	r.cache.Store(child.Name, idx)
 	return child
 }
 
-// fromCache loads a record, by name, from the cache if present
-func (r *record) fromCache(name string) (*record, int) {
+// fromCache loads a Record, by name, from the cache if present
+func (r *Record) fromCache(name string) (*Record, int) {
 	idx, ok := r.cache.Load(name)
 	if !ok {
 		return nil, 0
@@ -126,7 +126,7 @@ func (r *record) fromCache(name string) (*record, int) {
 	return r.Children[i], i
 }
 
-func (r *record) redefine(target string, src *record) *record {
+func (r *Record) redefine(target string, src *Record) *Record {
 	dst, i := r.fromCache(target)
 	if dst == nil {
 		log.Fatalln("redefinition target does not exist")

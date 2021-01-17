@@ -7,7 +7,7 @@ import (
 )
 
 func Test_parseLines(t *testing.T) {
-	root := &record{Typ: reflect.Struct, Name: "root", depthMap: make(map[string]*record)}
+	root := &Record{Typ: reflect.Struct, Name: "root", depthMap: make(map[string]*Record)}
 	tree := &Tree{
 		lIdx: -1,
 		lines: []line{

@@ -2,17 +2,18 @@ package copybook
 
 import (
 	"bytes"
-	"fmt"
 	"go/format"
 	"io"
 	"reflect"
 	"text/template"
+
+	"github.com/pgmitche/go-pic/pkg/lex"
 )
 
 type Copybook struct {
-	Name    string
-	Records []*Record
-	t       *template.Template
+	Name string
+	Root *lex.Record
+	t    *template.Template
 }
 
 type Record struct {
@@ -26,9 +27,8 @@ type Record struct {
 
 func New(name string, t *template.Template) *Copybook {
 	return &Copybook{
-		Name:    name,
-		Records: make([]*Record, 0),
-		t:       t,
+		Name: name,
+		t:    t,
 	}
 }
 
@@ -45,38 +45,4 @@ func (c *Copybook) WriteToStruct(writer io.Writer) error {
 
 	_, err = writer.Write(bb)
 	return err
-}
-
-// RemoveRecord is used to locate a REDEFINES target and remove it from
-// the stored records, otherwise failing if the target is not found.
-func (c *Copybook) RemoveRecord(r *Record) error {
-	cc := *c
-
-	for i, rec := range cc.Records {
-		if rec.Name == r.Name {
-			copy(cc.Records[i:], cc.Records[i+1:])
-			cc.Records[len(cc.Records)-1] = nil
-			cc.Records = cc.Records[:len(cc.Records)-1]
-			*c = cc
-			return nil
-		}
-	}
-
-	return fmt.Errorf("replacement target %s not found", r.Name)
-}
-
-// RedefineRecord is used to locate a REDEFINES target that was defined
-// over multiple lines in a copybook file, and replace its name with
-// the source of the REDEFINES statement, otherwise failing if
-// the target is not found.
-func (c *Copybook) RedefineRecord(want *Record, was string) error {
-	cc := *c
-	for i, rec := range cc.Records {
-		if rec.Name == was {
-			cc.Records[i] = want
-			return nil
-		}
-	}
-
-	return fmt.Errorf("replacement target %s not found", was)
 }
