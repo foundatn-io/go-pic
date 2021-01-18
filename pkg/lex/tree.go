@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"reflect"
-	"sync"
 )
 
 type Tree struct {
@@ -17,17 +16,8 @@ type Tree struct {
 	lIdx  int
 }
 
-type Record struct {
-	Children []*Record
-	Name     string
-	Length   int
-	Occurs   int
-	Typ      reflect.Kind
-	depthMap map[string]*Record
-	cache    sync.Map
-}
-
 func NewTree(lxr *lexer) *Tree {
+	log.Println("building new tree")
 	root := &Record{Typ: reflect.Struct, Name: "root", depthMap: make(map[string]*Record)}
 	return &Tree{
 		lex:   lxr,
@@ -37,10 +27,11 @@ func NewTree(lxr *lexer) *Tree {
 }
 
 func (t *Tree) Parse() *Record {
+	log.Println("parsing lexer tokens")
 	for {
 		li := t.scanLine()
-		log.Printf("building line for %d", t.token.line)
 		if t.token.typ == itemEOF {
+			log.Println("reached EOF token, input lexed.")
 			break
 		}
 
@@ -64,7 +55,6 @@ func (t *Tree) scanLine() []item {
 			break
 		}
 
-		log.Println(t.token.line, t.token.typ)
 		if t.token.typ == itemEOL || itemEOF == t.token.typ {
 			break
 		}
@@ -86,9 +76,11 @@ func (t *Tree) parseLines(root *Record) {
 		if errors.Is(t.nextLine(), io.EOF) {
 			break
 		}
+
 		switch t.line.typ {
 		case lineStruct, lineRedefines, lineMultilineRedefines:
 			t.line.fn(t, t.line, root)
+
 		default:
 			idx := len(root.Children)
 			root.Children = append(root.Children, root.toCache(t.line.fn(t, t.line, root), idx))
@@ -103,38 +95,4 @@ func (t *Tree) nextLine() error {
 	t.lIdx++
 	t.line = t.lines[t.lIdx]
 	return nil
-}
-
-// toCache returns a Record, just stored into or previously loaded from the cache
-func (r *Record) toCache(child *Record, idx int) *Record {
-	r.cache.Store(child.Name, idx)
-	return child
-}
-
-// fromCache loads a Record, by name, from the cache if present
-func (r *Record) fromCache(name string) (*Record, int) {
-	idx, ok := r.cache.Load(name)
-	if !ok {
-		return nil, 0
-	}
-
-	i, ok := idx.(int)
-	if !ok {
-		log.Fatalln("failed to cast cache return value to integer")
-	}
-
-	return r.Children[i], i
-}
-
-func (r *Record) redefine(target string, src *Record) *Record {
-	dst, i := r.fromCache(target)
-	if dst == nil {
-		log.Fatalln("redefinition target does not exist")
-	}
-
-	r.cache.Delete(dst.Name)
-	dst.Name = src.Name
-	dst.Length = src.Length
-	dst.Typ = src.Typ
-	return r.toCache(dst, i)
 }
