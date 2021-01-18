@@ -2,6 +2,7 @@ package lex
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"unicode/utf8"
 )
@@ -23,6 +24,7 @@ type lexer struct {
 
 // New creates a new scanner for the input string.
 func New(name, input string) *lexer {
+	log.Println("building new lexer")
 	l := &lexer{
 		name:      name,
 		input:     input,

@@ -25,6 +25,10 @@ var (
 	// 000190  15  DUMMY-GROUP-1-OBJECT-B  PIC X.  00000118
 	pic = fingerprint{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
 
+	// TODO: (pgmitche) Doesn't work for group redefinitions for example:
+	// 000830     05  DUMMY-GROUP-3     REDEFINES      DUMMY-GROUP-2.          00000195
+	// does not work as a PIC definition is missing
+	//
 	// 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2 PIC X.  00000195
 	redefines = fingerprint{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
 

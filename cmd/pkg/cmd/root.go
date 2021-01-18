@@ -1,4 +1,4 @@
-package cmdv2
+package cmd
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -130,8 +131,8 @@ func run(r io.Reader, output string) error {
 		return err
 	}
 
-	lxr := lex.New("go-pic", string(b))
-	tree := lex.NewTree(lxr)
+	tree := lex.NewTree(lex.New("go-pic", string(b)))
+	time.Sleep(time.Millisecond)
 	c.Root = tree.Parse()
 
 	newFile, err := os.Create(fmt.Sprintf("%s.go", name))
