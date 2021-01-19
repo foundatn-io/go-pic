@@ -1,5 +1,10 @@
 package lex
 
+import (
+	"fmt"
+	"log"
+)
+
 // lineType identifies the type of a full line
 type lineType int
 
@@ -8,6 +13,7 @@ const (
 	linePIC                                // is a new PIC line
 	lineJunk                               // is a line full of rubbish text
 	lineRedefines                          // is a line containing a PIC redefinition
+	lineGroupRedefines                     // is a line containing a group redefinition
 	lineMultilineRedefines                 // is a line containing a redefinition without a target
 	lineOccurs                             // is a line containing a PIC occurrence
 	lineMultilineOccurs                    // is a line containing an incomplete PIC occurrence
@@ -31,6 +37,7 @@ func buildLine(nx func() []item, items []item) *line {
 		}
 	}
 
+	log.Println(fmt.Sprintf("failed to determined parser for line of tokens: %+v", items))
 	return nil
 }
 
@@ -39,7 +46,7 @@ func buildLine(nx func() []item, items []item) *line {
 //
 // res 	= 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2   PIC X(7).  00000195
 func lineFromMultiRedefines(a, b []item) []item {
-	res := make([]item, len(redefines))
+	res := make([]item, len(fingerprints["redefines"]))
 	// copy all but the num delimiter at the end of a
 	i := 0
 	for i < len(a)-1 {
@@ -54,7 +61,7 @@ func lineFromMultiRedefines(a, b []item) []item {
 		res[i+j] = b[j]
 	}
 
-	if !equalFingerprints(getFingerprint(res), redefines) {
+	if !equalFingerprints(getFingerprint(res), fingerprints["redefines"]) {
 		panic("multiline redefinition builder failed to build a redefinition with the correct fingerprint")
 	}
 
@@ -66,7 +73,7 @@ func lineFromMultiRedefines(a, b []item) []item {
 //
 // res  = 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
 func lineFromMultiOccurs(a, b []item) []item {
-	res := make([]item, len(occurs))
+	res := make([]item, len(fingerprints["occurs"]))
 	// copy all but the num delimiter at the end of a
 	i := 0
 	for i < len(a)-1 {
@@ -81,7 +88,7 @@ func lineFromMultiOccurs(a, b []item) []item {
 		res[i+j] = b[j]
 	}
 
-	if !equalFingerprints(getFingerprint(res), occurs) {
+	if !equalFingerprints(getFingerprint(res), fingerprints["occurs"]) {
 		panic("multiline redefinition builder failed to build an occurrence with the correct fingerprint")
 	}
 

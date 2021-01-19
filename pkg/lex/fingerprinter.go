@@ -8,53 +8,69 @@ var (
 		lineStruct:             isStruct,
 		linePIC:                isPic,
 		lineRedefines:          isRedefinition,
+		lineGroupRedefines:     isGroupRedefinition,
 		lineMultilineRedefines: isMultilineRedefinition,
 		lineOccurs:             isOccurrence,
 		lineMultilineOccurs:    isMultilineOccurrence,
 	}
+	fingerprints = map[string]fingerprint{
+		// num space num space text dot space num eol
+		// 000160  05  DUMMY-GROUP-1.  00000115
+		"numDelimitedStruct": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber},
 
-	// num space num space text dot space num eol
-	// 000160  05  DUMMY-GROUP-1.  00000115
-	numDelimitedStruct = fingerprint{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber}
+		// space num space text dot space eol
+		//  05  DUMMY-GROUP-1.
+		"nonNumDelimitedStruct": {itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber},
 
-	// space num space text dot space eol
-	//  05  DUMMY-GROUP-1.
-	nonNumDelimitedStruct = fingerprint{itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber}
+		// num space num space text space pic space num eol
+		// 000190  15  DUMMY-GROUP-1-OBJECT-B  PIC X.  00000118
+		"pic": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemDot, itemSpace, itemNumber},
 
-	// num space num space text space pic space num eol
-	// 000190  15  DUMMY-GROUP-1-OBJECT-B  PIC X.  00000118
-	pic = fingerprint{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
+		// 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2 PIC X.  00000195
+		"redefines": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemIdentifier, itemSpace, itemPIC, itemDot, itemSpace, itemNumber},
 
-	// TODO: (pgmitche) Doesn't work for group redefinitions for example:
-	// 000830     05  DUMMY-GROUP-3     REDEFINES      DUMMY-GROUP-2.          00000195
-	// does not work as a PIC definition is missing
-	//
-	// 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2 PIC X.  00000195
-	redefines = fingerprint{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
+		// 000830  05  DUMMY-GROUP-3  REDEFINES   DUMMY-GROUP-2.  00000195
+		"groupRedefines": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber},
 
-	// 000830  05  DUMMY-OBJECT-3  REDEFINES   00000195
-	multiRedefines = fingerprint{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemNumber}
+		// 000830  05  DUMMY-OBJECT-3  REDEFINES   00000195
+		"multiRedefines": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemNumber},
 
-	// 001150  DUMMY-OBJECT-2   PIC X(7).  00000227
-	multiRedefinesPart = fingerprint{itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
+		// 001150  DUMMY-OBJECT-2   PIC X(7).  00000227
+		"multiRedefinesPart": {itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemDot, itemSpace, itemNumber},
 
-	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12. 00000241
-	occurs = fingerprint{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemOCCURS, itemSpace, itemNumber}
+		// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12. 00000241
+		"occurs": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemOCCURS, itemSpace, itemNumber},
 
-	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12)  00000241
-	multiOccurs = fingerprint{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
+		// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12)  00000241
+		"multiOccurs": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber},
 
-	// 001300      OCCURS 12.                            00000242
-	multiOccursPart = fingerprint{itemNumber, itemSpace, itemOCCURS, itemSpace, itemNumber, itemDot, itemSpace, itemNumber}
+		// 001300      OCCURS 12.                            00000242
+		"multiOccursPart": {itemNumber, itemSpace, itemOCCURS, itemSpace, itemNumber},
+	}
 )
+
+func init() { // nolint:gochecknoinits
+	fps := make([]fingerprint, 0)
+	for _, v := range fingerprints {
+		fps = append(fps, v)
+	}
+
+	for i, a := range fps {
+		for _, b := range fps[i+1:] {
+			if equalFingerprints(a, b) {
+				panic("duplicate fingerprints")
+			}
+		}
+	}
+}
 
 func isStruct(_ func() []item, items []item) (parser, []item, bool) {
 	fp := getFingerprint(items)
-	if equalFingerprints(fp, nonNumDelimitedStruct) {
+	if equalFingerprints(fp, fingerprints["nonNumDelimitedStruct"]) {
 		return parseNonNumDelimitedStruct, items, true
 	}
 
-	if equalFingerprints(fp, numDelimitedStruct) {
+	if equalFingerprints(fp, fingerprints["numDelimitedStruct"]) {
 		return parseNumDelimitedStruct, items, true
 	}
 
@@ -62,23 +78,31 @@ func isStruct(_ func() []item, items []item) (parser, []item, bool) {
 }
 
 func isPic(_ func() []item, items []item) (parser, []item, bool) {
-	if !equalFingerprints(getFingerprint(items), pic) {
+	if !equalFingerprints(getFingerprint(items), fingerprints["pic"]) {
 		return nil, nil, false
 	}
 
 	return parsePIC, items, true
 }
 
-func isJunk(_ func() []item, items []item) (parser, []item, bool) {
+func isJunk(_ func() []item, _ []item) (parser, []item, bool) {
 	return unimplementedParser, nil, false
 }
 
 func isRedefinition(_ func() []item, items []item) (parser, []item, bool) {
-	if !equalFingerprints(getFingerprint(items), redefines) {
+	if !equalFingerprints(getFingerprint(items), fingerprints["redefines"]) {
 		return nil, nil, false
 	}
 
 	return parseRedefines, items, true
+}
+
+func isGroupRedefinition(_ func() []item, items []item) (parser, []item, bool) {
+	if !equalFingerprints(getFingerprint(items), fingerprints["groupRedefines"]) {
+		return nil, nil, false
+	}
+
+	return parseGroupRedefines, items, true
 }
 
 // isMultilineRedefinition is a fingerprinting function that validates whether a
@@ -93,14 +117,14 @@ func isRedefinition(_ func() []item, items []item) (parser, []item, bool) {
 // a new, single, line object built from the two fingerprinted line objects.
 func isMultilineRedefinition(nx func() []item, items []item) (parser, []item, bool) {
 	fp := getFingerprint(items)
-	if !equalFingerprints(fp, multiRedefines) {
+	if !equalFingerprints(fp, fingerprints["multiRedefines"]) {
 		return nil, nil, false
 	}
 
 	// glob the next line and build it into the response item line
 	part := nx()
 	fp2 := getFingerprint(part)
-	if !equalFingerprints(fp2, multiRedefinesPart) {
+	if !equalFingerprints(fp2, fingerprints["multiRedefinesPart"]) {
 		return nil, nil, false
 	}
 
@@ -108,7 +132,7 @@ func isMultilineRedefinition(nx func() []item, items []item) (parser, []item, bo
 }
 
 func isOccurrence(_ func() []item, items []item) (parser, []item, bool) {
-	if !equalFingerprints(getFingerprint(items), occurs) {
+	if !equalFingerprints(getFingerprint(items), fingerprints["occurs"]) {
 		return nil, nil, false
 	}
 
@@ -116,7 +140,7 @@ func isOccurrence(_ func() []item, items []item) (parser, []item, bool) {
 }
 
 // isMultilineOccurrence is a fingerprinting function that validates whether a
-// line is an indicator for, and sibling of a multi-line occurrence defintion
+// line is an indicator for, and sibling of a multi-line occurrence definition
 //
 // it first checks the fingerprint of the line against the first fingerprint of
 // a multi-line OCCURS definition
@@ -127,14 +151,14 @@ func isOccurrence(_ func() []item, items []item) (parser, []item, bool) {
 // new, single, line object built from the two fingerprinted line objects.
 func isMultilineOccurrence(nx func() []item, items []item) (parser, []item, bool) {
 	fp := getFingerprint(items)
-	if !equalFingerprints(fp, multiOccurs) {
+	if !equalFingerprints(fp, fingerprints["multiOccurs"]) {
 		return nil, nil, false
 	}
 
 	// glob the next line and build it into the response item line
 	part := nx()
 	fp2 := getFingerprint(part)
-	if !equalFingerprints(fp2, multiOccursPart) {
+	if !equalFingerprints(fp2, fingerprints["multiOccursPart"]) {
 		return nil, nil, false
 	}
 
