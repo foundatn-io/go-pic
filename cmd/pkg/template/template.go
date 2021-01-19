@@ -30,7 +30,7 @@ func getTemplateFuncs() template.FuncMap {
 	}
 }
 
-func TemplateV2() *template.Template {
+func getTemplate() *template.Template {
 	return template.Must(
 		template.New("root").
 			Funcs(getTemplateFuncs()).
@@ -65,7 +65,7 @@ func Copybook() *template.Template {
 	startPos = 1
 	endPos = 1
 
-	return TemplateV2()
+	return getTemplate()
 }
 
 // goType translates a type into a go type
