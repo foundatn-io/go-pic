@@ -88,7 +88,7 @@ func lexPIC(l *lexer) stateFn {
 		return l.errorf(e.Error())
 	}
 
-	l.next() // glob the PICterminator
+	// l.next() // don't! glob the PICterminator
 	l.emit(itemPIC)
 	return lexInsideStatement(l)
 }
