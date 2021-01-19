@@ -56,7 +56,60 @@ func parseRedefines(_ *Tree, l line, root *Record) *Record {
 	return root.redefine(l.items[8].val, r)
 }
 
-func parseOccurs(_ *Tree, l line, root *Record) *Record {
+// parseGroupRedefines is a parserfn that is used to build records
+// for lines that are determined to be REDEFINES definitions
+// for groups, instead of PICs
+//
+// It will build the new Record and replace the the redefinition
+// target
+func parseGroupRedefines(t *Tree, l line, root *Record) *Record {
+	target := strings.TrimSuffix(l.items[8].val, ".")
+	dst, _ := root.fromCache(target)
+	if dst == nil {
+		log.Fatalln(fmt.Sprintf("redefinition target %s does not exist", target))
+	}
+
+	// TODO: (pgmitche) group seeking is failing to work
+	// root
+	//   |- 05 GroupA
+	//	 |		|- 10 AGroup1
+	//   |			  |- 15 PropA
+	//	 |- 05 GroupB
+	//	        |- 10 PropA
+	//	 		|- 10 BGroup1
+	//   			  |- 15 BGroupB
+	//
+	// Is instead rendering as
+	// root
+	//   |- 05 GroupA
+	//	 |		|- 10 AGroup1
+	//   |			  |- 15 PropA
+	//	 |		|- 10 BGroup1
+	//   |			  |- 15 BGroup1  --- BGroupB should belong to GroupB
+	//	 |- 05 GroupB
+	//	 |		|- 10 PropA
+	//
+	// There is a bug with the transfer and lookup of parents' depth cache
+
+	// if this is a new group
+	if dst.depthMap == nil {
+		// then check whether a node has children at this depth
+		parent, seenGroup := root.depthMap[dst.depth]
+		if seenGroup {
+			dst.depthMap = parent.depthMap
+		}
+	}
+
+	r := delve(t, l, root, &Record{
+		Name:     l.items[4].val,
+		Length:   dst.Length,
+		Typ:      reflect.Struct,
+		depthMap: dst.depthMap,
+	}, 2)
+	return root.redefine(target, r)
+}
+
+func parseOccurs(_ *Tree, l line, _ *Record) *Record {
 	picNumDef := strings.TrimPrefix(strings.TrimSpace(l.items[6].val), picPrefix)
 	len, err := parsePICCount(picNumDef)
 	if err != nil {
@@ -112,29 +165,53 @@ func parseNonNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 //  |-group2
 //  |	|-picA
 func parseStruct(t *Tree, l line, root *Record, nameIdx, groupIdx int) *Record {
-	r := &Record{
+	return delve(t, l, root, &Record{
 		Name: l.items[nameIdx].val,
 		Typ:  reflect.Struct,
-	}
+	}, groupIdx)
+}
+
+func delve(t *Tree, l line, root *Record, newRecord *Record, group int) *Record {
+	// TODO: (pgmitche) group seeking is failing to work
+	// root
+	//   |- 05 GroupA
+	//	 |		|- 10 AGroup1
+	//   |			  |- 15 PropA
+	//	 |- 05 GroupB
+	//	        |- 10 PropA
+	//	 		|- 10 BGroup1
+	//   			  |- 15 BGroupB
+	//
+	// Is instead rendering as
+	// root
+	//   |- 05 GroupA
+	//	 |		|- 10 AGroup1
+	//   |			  |- 15 PropA
+	//	 |		|- 10 BGroup1
+	//   |			  |- 15 BGroup1  --- BGroupB should belong to GroupB
+	//	 |- 05 GroupB
+	//	 |		|- 10 PropA
+	//
+	// There is a bug with the transfer and lookup of parents' depth cache
 
 	// if the parent object already contains this depth
 	// root
 	//  | - 05 Group1
 	//  | - 05 Group2
-	parent, seenGroup := root.depthMap[l.items[groupIdx].val]
+	parent, seenGroup := root.depthMap[l.items[group].val]
 	if seenGroup {
-		// then the root is the target for continued addition of children
-		parent.Children = append(parent.Children, r)
-		t.parseLines(r)
+		parent.Children = append(parent.Children, newRecord)
+		t.parseLines(newRecord)
+		// then the parent is the target for continued addition of children
 		return parent
 	}
 
-	// else the newStruct is the target for continued addition of children
-	root.depthMap[l.items[groupIdx].val] = root
-	r.depthMap = root.depthMap
-	root.Children = append(root.Children, r)
-	t.parseLines(r)
-	return r
+	root.depthMap[l.items[group].val] = root
+	newRecord.depthMap = root.depthMap
+	root.Children = append(root.Children, newRecord)
+	t.parseLines(newRecord)
+	// else the newRecord is the target for continued addition of children
+	return newRecord
 }
 
 func parseOccursCount(i item) (int, error) {

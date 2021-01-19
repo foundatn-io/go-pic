@@ -78,7 +78,7 @@ func (t *Tree) parseLines(root *Record) {
 		}
 
 		switch t.line.typ {
-		case lineStruct, lineRedefines, lineMultilineRedefines:
+		case lineStruct, lineRedefines, lineGroupRedefines, lineMultilineRedefines:
 			t.line.fn(t, t.line, root)
 
 		default:
