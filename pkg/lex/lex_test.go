@@ -17,7 +17,7 @@ func Test_lexer_run(t *testing.T) {
 			l: &lexer{
 				name:  "lexer",
 				input: "000600         10  X710203-STATEMENT-TYPE       PIC X.                  00000167\n",
-				items: make(chan item),
+				items: make([]item, 0),
 			},
 			want: []item{
 				{typ: itemNumber, pos: 0, val: "000600", line: 0},
@@ -37,7 +37,7 @@ func Test_lexer_run(t *testing.T) {
 			l: &lexer{
 				name:  "lexer",
 				input: "000600         10  P-OBJECT       PIC X.                  00000167\n",
-				items: make(chan item),
+				items: make([]item, 0),
 			},
 			want: []item{
 				{typ: itemNumber, pos: 0, val: "000600", line: 0},
@@ -57,7 +57,7 @@ func Test_lexer_run(t *testing.T) {
 			l: &lexer{
 				name:  "lexer",
 				input: "000600         10  X710203-STATEMENT-TYPE       PIC(10).                  00000167\n",
-				items: make(chan item),
+				items: make([]item, 0),
 			},
 			want: []item{
 				{typ: itemNumber, pos: 0, val: "000600", line: 0},
@@ -78,7 +78,7 @@ func Test_lexer_run(t *testing.T) {
 			l: &lexer{
 				name:  "lexer",
 				input: "000420             15  X710203-SORT-CNTRY-CD    REDEFINES               00000142\n000420                 X710203-DOCUMENT-ID-TIE  PIC XX.                 00000143\n",
-				items: make(chan item),
+				items: make([]item, 0),
 			},
 			want: []item{
 				{typ: itemNumber, val: "000420"},
@@ -107,7 +107,7 @@ func Test_lexer_run(t *testing.T) {
 			l: &lexer{
 				name:  "lexer",
 				input: "000600         10  X710203-STATEMENT-TYPE       PIC(10)  OCCURS 2.  00000167\n",
-				items: make(chan item),
+				items: make([]item, 0),
 			},
 			want: []item{
 				{typ: itemNumber, pos: 0, val: "000600", line: 0},
@@ -129,23 +129,8 @@ func Test_lexer_run(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			go tt.l.run()
-
-			items := make([]item, 0)
-			for { // nolint: gosimple // test code
-				select {
-				case i, open := <-tt.l.items:
-					if !open {
-						goto finalize
-					}
-					items = append(items, i)
-					if i.typ == itemEOF {
-						goto finalize
-					}
-				}
-			}
-		finalize:
-			require.ElementsMatch(t, tt.want, items)
+			tt.l.run()
+			require.ElementsMatch(t, tt.want, tt.l.items)
 		})
 	}
 }
