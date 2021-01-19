@@ -1,6 +1,7 @@
 package lex
 
 import (
+	"fmt"
 	"log"
 	"reflect"
 	"sync"
@@ -12,6 +13,7 @@ type Record struct {
 	Length   int
 	Occurs   int
 	Typ      reflect.Kind
+	depth    string
 	depthMap map[string]*Record
 	cache    sync.Map
 }
@@ -40,12 +42,13 @@ func (r *Record) fromCache(name string) (*Record, int) {
 func (r *Record) redefine(target string, src *Record) *Record {
 	dst, i := r.fromCache(target)
 	if dst == nil {
-		log.Fatalln("redefinition target does not exist")
+		log.Fatalln(fmt.Sprintf("redefinition target %s does not exist", target))
 	}
 
 	r.cache.Delete(dst.Name)
 	dst.Name = src.Name
 	dst.Length = src.Length
 	dst.Typ = src.Typ
+	dst.depthMap = src.depthMap
 	return r.toCache(dst, i)
 }

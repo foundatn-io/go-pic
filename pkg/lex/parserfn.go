@@ -1,6 +1,7 @@
 package lex
 
 import (
+	"fmt"
 	"log"
 	"reflect"
 	"strconv"
@@ -13,7 +14,7 @@ var (
 
 type parser func(t *Tree, l line, root *Record) *Record
 
-func unimplementedParser(t *Tree, l line, root *Record) *Record {
+func unimplementedParser(_ *Tree, _ line, _ *Record) *Record {
 	panic("unimplemented")
 }
 
@@ -29,6 +30,7 @@ func parsePIC(_ *Tree, l line, _ *Record) *Record {
 	return &Record{
 		Name:   l.items[4].val,
 		Length: len,
+		depth:  l.items[2].val,
 		Typ:    parsePICType(picNumDef),
 	}
 }
@@ -70,6 +72,7 @@ func parseOccurs(_ *Tree, l line, root *Record) *Record {
 		Name:   l.items[4].val,
 		Length: len,
 		Occurs: n,
+		depth:  l.items[2].val,
 		Typ:    parsePICType(picNumDef),
 	}
 }

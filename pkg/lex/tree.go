@@ -92,6 +92,7 @@ func (t *Tree) nextLine() error {
 	if t.lIdx == len(t.lines)-1 {
 		return io.EOF
 	}
+
 	t.lIdx++
 	t.line = t.lines[t.lIdx]
 	return nil
