@@ -68,45 +68,26 @@ func parseGroupRedefines(t *Tree, l line, root *Record) *Record {
 	if dst == nil {
 		log.Fatalln(fmt.Sprintf("redefinition target %s does not exist", target))
 	}
-
-	// TODO: (pgmitche) group seeking is failing to work
-	// root
-	//   |- 05 GroupA
-	//	 |		|- 10 AGroup1
-	//   |			  |- 15 PropA
-	//	 |- 05 GroupB
-	//	        |- 10 PropA
-	//	 		|- 10 BGroup1
-	//   			  |- 15 BGroupB
-	//
-	// Is instead rendering as
-	// root
-	//   |- 05 GroupA
-	//	 |		|- 10 AGroup1
-	//   |			  |- 15 PropA
-	//	 |		|- 10 BGroup1
-	//   |			  |- 15 BGroup1  --- BGroupB should belong to GroupB
-	//	 |- 05 GroupB
-	//	 |		|- 10 PropA
-	//
-	// There is a bug with the transfer and lookup of parents' depth cache
-
-	// if this is a new group
 	if dst.depthMap == nil {
 		// then check whether a node has children at this depth
 		parent, seenGroup := root.depthMap[dst.depth]
 		if seenGroup {
-			dst.depthMap = parent.depthMap
+			copyDepthMap(parent, dst)
+			root = parent
 		}
 	}
 
-	r := delve(t, l, root, &Record{
+	r := &Record{
 		Name:     l.items[4].val,
 		Length:   dst.Length,
 		Typ:      reflect.Struct,
+		depth:    l.items[2].val,
 		depthMap: dst.depthMap,
-	}, 2)
-	return root.redefine(target, r)
+	}
+
+	r = root.redefine(target, r)
+	t.parseLines(r)
+	return r
 }
 
 func parseOccurs(_ *Tree, l line, _ *Record) *Record {
@@ -165,40 +146,15 @@ func parseNonNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 //  |-group2
 //  |	|-picA
 func parseStruct(t *Tree, l line, root *Record, nameIdx, groupIdx int) *Record {
-	return delve(t, l, root, &Record{
-		Name: l.items[nameIdx].val,
-		Typ:  reflect.Struct,
-	}, groupIdx)
+	return delve(t, root, &Record{
+		Name:  l.items[nameIdx].val,
+		Typ:   reflect.Struct,
+		depth: l.items[groupIdx].val,
+	})
 }
 
-func delve(t *Tree, l line, root *Record, newRecord *Record, group int) *Record {
-	// TODO: (pgmitche) group seeking is failing to work
-	// root
-	//   |- 05 GroupA
-	//	 |		|- 10 AGroup1
-	//   |			  |- 15 PropA
-	//	 |- 05 GroupB
-	//	        |- 10 PropA
-	//	 		|- 10 BGroup1
-	//   			  |- 15 BGroupB
-	//
-	// Is instead rendering as
-	// root
-	//   |- 05 GroupA
-	//	 |		|- 10 AGroup1
-	//   |			  |- 15 PropA
-	//	 |		|- 10 BGroup1
-	//   |			  |- 15 BGroup1  --- BGroupB should belong to GroupB
-	//	 |- 05 GroupB
-	//	 |		|- 10 PropA
-	//
-	// There is a bug with the transfer and lookup of parents' depth cache
-
-	// if the parent object already contains this depth
-	// root
-	//  | - 05 Group1
-	//  | - 05 Group2
-	parent, seenGroup := root.depthMap[l.items[group].val]
+func delve(t *Tree, root *Record, newRecord *Record) *Record {
+	parent, seenGroup := root.depthMap[newRecord.depth]
 	if seenGroup {
 		parent.Children = append(parent.Children, newRecord)
 		t.parseLines(newRecord)
@@ -206,8 +162,9 @@ func delve(t *Tree, l line, root *Record, newRecord *Record, group int) *Record 
 		return parent
 	}
 
-	root.depthMap[l.items[group].val] = root
-	newRecord.depthMap = root.depthMap
+	root.depthMap[newRecord.depth] = root
+	copyDepthMap(root, newRecord)
+
 	root.Children = append(root.Children, newRecord)
 	t.parseLines(newRecord)
 	// else the newRecord is the target for continued addition of children
@@ -308,4 +265,13 @@ func parsePICCount(s string) (int, error) {
 	}
 
 	return size + len(c), nil
+}
+
+func copyDepthMap(src, dst *Record) {
+	if dst.depthMap == nil {
+		dst.depthMap = make(map[string]*Record)
+	}
+	for key, value := range src.depthMap {
+		dst.depthMap[key] = value
+	}
 }
