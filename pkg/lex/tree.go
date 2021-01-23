@@ -82,8 +82,14 @@ func (t *Tree) parseLines(root *Record) {
 			t.line.fn(t, t.line, root)
 
 		default:
+			rec := t.line.fn(t, t.line, root)
+			parent, ok := root.depthMap[rec.depth]
+			if ok {
+				root = parent
+			}
+
 			idx := len(root.Children)
-			root.Children = append(root.Children, root.toCache(t.line.fn(t, t.line, root), idx))
+			root.Children = append(root.Children, root.toCache(rec, idx))
 		}
 	}
 }
