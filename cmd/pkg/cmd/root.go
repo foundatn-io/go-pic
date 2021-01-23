@@ -43,10 +43,12 @@ func Execute() error {
 }
 
 func init() { // nolint:gochecknoinits
+	dirCmd.Flags().BoolP("preview", "p", false, "preview in terminal results of parsing (not templated)")
 	dirCmd.Flags().StringP("output", "o", "", "path to output directory")
 	dirCmd.Flags().StringP("input", "i", "", "path to input directory")
 	fileCmd.Flags().StringP("output", "o", "", "path to output file")
 	fileCmd.Flags().StringP("input", "i", "", "path to input file")
+	fileCmd.Flags().BoolP("preview", "p", false, "toggle to show struct preview in terminal")
 
 	_ = dirCmd.MarkFlagRequired("output")
 	_ = dirCmd.MarkFlagRequired("input")
@@ -67,6 +69,8 @@ func dirRun(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+
+	p, _ := cmd.Flags().GetBool("preview")
 
 	fs, err := ioutil.ReadDir(in)
 	if err != nil {
@@ -92,7 +96,7 @@ func dirRun(cmd *cobra.Command, _ []string) error {
 			return err
 		}
 
-		if err := run(f, filepath.Join(out, ff.Name())); err != nil {
+		if err := run(f, filepath.Join(out, ff.Name()), p); err != nil {
 			return err
 		}
 	}
@@ -111,16 +115,18 @@ func fileRun(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
+	p, _ := cmd.Flags().GetBool("preview")
+
 	log.Printf("parsing copybook file %s", in)
 	f, err := os.Open(in) // nolint:gosec
 	if err != nil {
 		return err
 	}
 
-	return run(f, out)
+	return run(f, out, p)
 }
 
-func run(r io.Reader, output string) error {
+func run(r io.Reader, output string, preview bool) error {
 	name := strings.TrimSuffix(output, filepath.Ext(output))
 	n := name[strings.LastIndex(name, "/")+1:]
 
@@ -134,6 +140,9 @@ func run(r io.Reader, output string) error {
 	tree := lex.NewTree(lex.New("go-pic", string(b)))
 	time.Sleep(time.Millisecond)
 	c.Root = tree.Parse()
+	if preview {
+		c.Preview()
+	}
 
 	newFile, err := os.Create(fmt.Sprintf("%s.go", name))
 	if err != nil {

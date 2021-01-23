@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"go/format"
 	"io"
+	"log"
 	"reflect"
+	"strings"
 	"text/template"
 
 	"github.com/pgmitche/go-pic/pkg/lex"
@@ -29,6 +31,26 @@ func New(name string, t *template.Template) *Copybook {
 	return &Copybook{
 		Name: name,
 		t:    t,
+	}
+}
+
+func (c *Copybook) Preview() {
+	log.Println("------ STRUCT PREVIEW -----")
+	treePrint(c.Root, 0)
+	log.Println("------- END PREVIEW -------")
+}
+
+func treePrint(node *lex.Record, nest int) {
+	if node.Typ == reflect.Struct {
+		indent := strings.Repeat(">", nest)
+		log.Printf("L%d: %s%s", nest, indent, node.Name)
+		nest++
+		for _, nn := range node.Children {
+			treePrint(nn, nest)
+		}
+	} else {
+		indent := strings.Repeat("-", nest)
+		log.Printf("L%d: %s%s", nest, indent, node.Name)
 	}
 }
 
