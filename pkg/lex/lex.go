@@ -135,7 +135,6 @@ func (l *lexer) nextItem() item {
 		return item{}
 	}
 
-	log.Println("popping next lexed item")
 	next, l.items = l.items[0], l.items[1:]
 	return next
 }

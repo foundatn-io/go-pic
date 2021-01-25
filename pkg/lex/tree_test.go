@@ -4,6 +4,8 @@ import (
 	"log"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func Test_parseLines(t *testing.T) {
@@ -63,12 +65,19 @@ func Test_parseLines(t *testing.T) {
 }
 
 func Test_Parse(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		in   *Tree
+		want *Record
 	}{
 		{
 			name: "Simple",
+			want: &Record{
+				Name:     "root",
+				Typ:      reflect.Struct,
+				Children: []*Record{},
+			},
 			in: NewTree(
 				New("test",
 					`000160     05  DUMMY-GROUP-1.                                           00000115
@@ -79,6 +88,11 @@ func Test_Parse(t *testing.T) {
 		`)),
 		}, {
 			name: "RedefinesWithParentheses",
+			want: &Record{
+				Name:     "root",
+				Typ:      reflect.Struct,
+				Children: []*Record{},
+			},
 			in: NewTree(
 				New("test",
 					`000170         10  DUMMY-SUB-GROUP-1.                                   00000116
@@ -89,6 +103,11 @@ func Test_Parse(t *testing.T) {
 		`)),
 		}, {
 			name: "Redefines",
+			want: &Record{
+				Name:     "root",
+				Typ:      reflect.Struct,
+				Children: []*Record{},
+			},
 			in: NewTree(
 				New("test",
 					`000170         10  DUMMY-SUB-GROUP-1.                                   00000116
@@ -100,6 +119,11 @@ func Test_Parse(t *testing.T) {
 		},
 		{
 			name: "SimpleOccurs",
+			want: &Record{
+				Name:     "root",
+				Typ:      reflect.Struct,
+				Children: []*Record{},
+			},
 			in: NewTree(
 				New("test",
 					`000160     05  DUMMY-GROUP-1.                                           00000115
@@ -108,6 +132,26 @@ func Test_Parse(t *testing.T) {
 `)),
 		}, {
 			name: "MultilineOccurs",
+			want: &Record{
+				Name: "root",
+				Typ:  reflect.Struct,
+				Children: []*Record{{
+					Name: "DUMMY-GROUP-1",
+					Typ:  reflect.Struct,
+					Children: []*Record{{
+						Name: "DUMMY-SUB-GROUP-1",
+						Typ:  reflect.Struct,
+						Children: []*Record{
+							{
+								Name:   "DUMMY-GROUP-1-OBJECT-A",
+								Typ:    reflect.Uint,
+								Length: 1,
+								Occurs: 12,
+							},
+						},
+					}},
+				}},
+			},
 			in: NewTree(
 				New("test",
 					`000160     05  DUMMY-GROUP-1.                             00000115
@@ -117,6 +161,11 @@ func Test_Parse(t *testing.T) {
 `)),
 		}, {
 			name: "ExampleData",
+			want: &Record{
+				Name:     "root",
+				Typ:      reflect.Struct,
+				Children: []*Record{},
+			},
 			in: NewTree(New("exampledata",
 				`000160     05  DUMMY-GROUP-1.                                           00000115
 000170         10  DUMMY-SUB-GROUP-1.                                   00000116
@@ -148,9 +197,22 @@ func Test_Parse(t *testing.T) {
 	for _, test := range tests {
 		tt := test
 		t.Run(tt.name, func(t *testing.T) {
-			res := tt.in.Parse()
-			log.Println(res)
+			t.Parallel()
+			deepCompare(t, tt.want, tt.in.Parse())
 		})
+	}
+}
+
+func deepCompare(t *testing.T, want, got *Record) {
+	require.Equal(t, want.Name, got.Name)
+	require.Equal(t, want.Length, got.Length)
+	require.Equal(t, want.Typ, got.Typ)
+	require.Equal(t, want.Occurs, got.Occurs)
+	require.Equal(t, len(want.Children), len(got.Children), "nodes' children not equal, comparison not holistic")
+	if want.Typ == reflect.Struct {
+		for i, nn := range want.Children {
+			deepCompare(t, nn, got.Children[i])
+		}
 	}
 }
 
