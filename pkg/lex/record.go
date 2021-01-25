@@ -8,11 +8,12 @@ import (
 )
 
 type Record struct {
-	Children []*Record
 	Name     string
 	Length   int
 	Occurs   int
 	Typ      reflect.Kind
+	Children []*Record
+
 	depth    string
 	depthMap map[string]*Record
 	cache    sync.Map

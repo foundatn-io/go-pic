@@ -69,6 +69,7 @@ func lexPIC(l *lexer) stateFn {
 				switch nx := l.peek(); {
 				case isPICChar(nx), isPICType(nx), nx == '.':
 					continue
+
 				default:
 					l.emit(itemPIC)
 					return lexSpace(l)
@@ -131,9 +132,9 @@ func (l *lexer) scanOccurs() bool {
 		if !isPICChar(r) && !isSpace(r) {
 			if l.atTerminator() {
 				break
-			} else {
-				panic(fmt.Sprintf("bad character %#U", r))
 			}
+
+			panic(fmt.Sprintf("bad character %#U", r))
 		}
 	}
 
@@ -172,6 +173,7 @@ Loop:
 			break Loop
 		}
 	}
+
 	return lexInsideStatement(l)
 }
 
@@ -183,15 +185,18 @@ func lexNumber(l *lexer) stateFn {
 	if !l.scanNumber() {
 		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
 	}
+
 	if sign := l.peek(); sign == '+' || sign == '-' {
 		// Complex: 1+2i. No spaces, must end in 'i'.
 		if !l.scanNumber() || l.input[l.pos-1] != 'i' {
 			return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
 		}
+
 		l.emit(itemComplex)
 	} else {
 		l.emit(itemNumber)
 	}
+
 	return lexInsideStatement(l)
 }
 
@@ -205,24 +210,30 @@ func (l *lexer) scanNumber() bool {
 		switch {
 		case l.accept("xX"):
 			digits = "0123456789abcdefABCDEF_"
+
 		case l.accept("oO"):
 			digits = "01234567_"
+
 		case l.accept("bB"):
 			digits = "01_"
 		}
 	}
+
 	l.acceptRun(digits)
 	if l.accept(".") {
 		l.acceptRun(digits)
 	}
+
 	if len(digits) == 10+1 && l.accept("eE") {
 		l.accept("+-")
 		l.acceptRun("0123456789_")
 	}
+
 	if len(digits) == 16+6+1 && l.accept("pP") {
 		l.accept("+-")
 		l.acceptRun("0123456789_")
 	}
+
 	// Is it imaginary?
 	l.accept("i")
 	// Next thing mustn't be alphanumeric.
@@ -244,6 +255,7 @@ func lexSpace(l *lexer) stateFn {
 		if !isSpace(r) {
 			break
 		}
+
 		l.next()
 		numSpaces++
 	}
@@ -259,10 +271,12 @@ func (l *lexer) atTerminator() bool {
 	if isSpace(r) || isEOL(r) {
 		return true
 	}
+
 	switch r {
 	case eof, '.', ',', '|', ':', ')', '(':
 		return true
 	}
+
 	return false
 }
 

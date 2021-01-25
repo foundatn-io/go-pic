@@ -26,19 +26,19 @@ func (i item) String() string {
 type itemType int
 
 const (
-	itemError   itemType = iota // error occurred; value is text of error
-	itemBool                    // boolean constant
-	itemChar                    // printable ASCII character; grab bag for comma etc.
-	itemComplex                 // complex constant (1+2i); imaginary is just a number
-	itemEOF
-	itemEOL
-	itemIdentifier // Name of PIC or group
-	itemNumber     // simple number, including imaginary
-	itemSpace      // run of spaces separating arguments
-	itemDot        // the cursor, spelled '.'
-	itemOCCURS     // OCCURS keyword
-	itemPIC        // PIC keyword
-	itemREDEFINES  // REDEFINES keyword
+	itemError      itemType = iota // error occurred; value is text of error
+	itemBool                       // boolean constant
+	itemChar                       // printable ASCII character; grab bag for comma etc.
+	itemComplex                    // complex constant (1+2i); imaginary is just a number
+	itemEOF                        // end of file
+	itemEOL                        // end of line
+	itemIdentifier                 // Name of PIC or group
+	itemNumber                     // simple number, including imaginary
+	itemSpace                      // run of spaces separating arguments
+	itemDot                        // the cursor, spelled '.'
+	itemOCCURS                     // OCCURS keyword
+	itemPIC                        // PIC keyword
+	itemREDEFINES                  // REDEFINES keyword
 )
 
 const (

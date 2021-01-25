@@ -38,9 +38,9 @@ var fileCmd = &cobra.Command{
 }
 
 var (
-	preview = "preview"
-	out     = "output"
-	in      = "input"
+	previewFlag = "preview"
+	outFlag     = "output"
+	inFlag      = "input"
 
 	previewHelp = "preview in terminal, the results of parsing (not templated)"
 	inputHelp   = "path to input file"
@@ -53,34 +53,34 @@ func Execute() error {
 }
 
 func init() { // nolint:gochecknoinits
-	dirCmd.Flags().BoolP(preview, "p", false, previewHelp)
-	dirCmd.Flags().StringP(out, "o", "", outputHelp)
-	dirCmd.Flags().StringP(in, "i", "", inputHelp)
-	fileCmd.Flags().BoolP(preview, "p", false, previewHelp)
-	fileCmd.Flags().StringP(out, "o", "", outputHelp)
-	fileCmd.Flags().StringP(in, "i", "", inputHelp)
+	dirCmd.Flags().BoolP(previewFlag, "p", false, previewHelp)
+	dirCmd.Flags().StringP(outFlag, "o", "", outputHelp)
+	dirCmd.Flags().StringP(inFlag, "i", "", inputHelp)
+	fileCmd.Flags().BoolP(previewFlag, "p", false, previewHelp)
+	fileCmd.Flags().StringP(outFlag, "o", "", outputHelp)
+	fileCmd.Flags().StringP(inFlag, "i", "", inputHelp)
 
-	_ = dirCmd.MarkFlagRequired(out)
-	_ = dirCmd.MarkFlagRequired(in)
-	_ = fileCmd.MarkFlagRequired(out)
-	_ = fileCmd.MarkFlagRequired(in)
+	_ = dirCmd.MarkFlagRequired(outFlag)
+	_ = dirCmd.MarkFlagRequired(inFlag)
+	_ = fileCmd.MarkFlagRequired(outFlag)
+	_ = fileCmd.MarkFlagRequired(inFlag)
 
 	rootCmd.AddCommand(dirCmd)
 	rootCmd.AddCommand(fileCmd)
 }
 
 func dirRun(cmd *cobra.Command, _ []string) error {
-	out, err := cmd.Flags().GetString(out)
+	out, err := cmd.Flags().GetString(outFlag)
 	if err != nil {
 		return err
 	}
 
-	in, err := cmd.Flags().GetString(in)
+	in, err := cmd.Flags().GetString(inFlag)
 	if err != nil {
 		return err
 	}
 
-	p, _ := cmd.Flags().GetBool(preview)
+	p, _ := cmd.Flags().GetBool(previewFlag)
 
 	fs, err := ioutil.ReadDir(in)
 	if err != nil {
@@ -115,17 +115,17 @@ func dirRun(cmd *cobra.Command, _ []string) error {
 }
 
 func fileRun(cmd *cobra.Command, _ []string) error {
-	out, err := cmd.Flags().GetString(out)
+	out, err := cmd.Flags().GetString(outFlag)
 	if err != nil {
 		return err
 	}
 
-	in, err := cmd.Flags().GetString(in)
+	in, err := cmd.Flags().GetString(inFlag)
 	if err != nil {
 		return err
 	}
 
-	p, _ := cmd.Flags().GetBool(preview)
+	p, _ := cmd.Flags().GetBool(previewFlag)
 
 	log.Printf("parsing copybook file %s", in)
 	f, err := os.Open(in) // nolint:gosec

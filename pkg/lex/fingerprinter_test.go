@@ -192,7 +192,8 @@ func Test_Fingerprinter(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for _, test := range tests {
+		tt := test
 		t.Run(tt.name, func(t *testing.T) {
 			didMatch := false
 			for idx, fn := range fpFns {

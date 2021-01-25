@@ -89,6 +89,7 @@ func (l *lexer) lookAhead(i int) rune {
 // backup steps back one rune. Can only be called once per call of next.
 func (l *lexer) backup() {
 	l.pos -= l.width
+
 	// Correct newline count.
 	if l.width == 1 && l.input[l.pos] == '\n' {
 		l.line--
@@ -116,13 +117,19 @@ func (l *lexer) accept(valid string) bool {
 func (l *lexer) acceptRun(valid string) {
 	for strings.ContainsRune(valid, l.next()) {
 	}
+
 	l.backup()
 }
 
 // errorf returns an error token and terminates the scan by passing
 // back a nil pointer that will be the next state, terminating l.nextItem.
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	l.items = append(l.items, item{itemError, l.start, fmt.Sprintf(format, args...), l.startLine})
+	l.items = append(l.items, item{
+		typ:  itemError,
+		pos:  l.start,
+		val:  fmt.Sprintf(format, args...),
+		line: l.startLine})
+
 	return nil
 }
 

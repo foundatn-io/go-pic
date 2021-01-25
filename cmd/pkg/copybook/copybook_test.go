@@ -42,7 +42,7 @@ func Test_Build(t *testing.T) {
 			c.Root = tree.Parse()
 
 			var buf bytes.Buffer
-			c.WriteToStruct(&buf)
+			require.NoError(t, c.WriteToStruct(&buf))
 
 			require.NotEmpty(t, buf)
 		})

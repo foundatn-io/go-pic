@@ -61,6 +61,7 @@ func (t *Tree) scanLine() []item {
 
 		lineItems = append(lineItems, t.token)
 	}
+
 	return lineItems
 }
 

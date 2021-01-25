@@ -46,20 +46,7 @@ func buildLine(nx func() []item, items []item) *line {
 //
 // res 	= 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2   PIC X(7).  00000195
 func lineFromMultiRedefines(a, b []item) []item {
-	res := make([]item, len(fingerprints["redefines"]))
-	// copy all but the num delimiter at the end of a
-	i := 0
-	for i < len(a)-1 {
-		res[i] = a[i]
-		i++
-	}
-
-	// should be 6, so that next is 8, as inserted up to res[7]
-	// j is 2 so that num delimiter and space are ignored from b
-	i -= 2
-	for j := 2; j < len(b); j++ {
-		res[i+j] = b[j]
-	}
+	res := joinLines(len(fingerprints["redefines"]), a, b)
 
 	if !equalFingerprints(getFingerprint(res), fingerprints["redefines"]) {
 		panic("multiline redefinition builder failed to build a redefinition with the correct fingerprint")
@@ -73,7 +60,17 @@ func lineFromMultiRedefines(a, b []item) []item {
 //
 // res  = 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
 func lineFromMultiOccurs(a, b []item) []item {
-	res := make([]item, len(fingerprints["occurs"]))
+	res := joinLines(len(fingerprints["occurs"]), a, b)
+
+	if !equalFingerprints(getFingerprint(res), fingerprints["occurs"]) {
+		panic("multiline redefinition builder failed to build an occurrence with the correct fingerprint")
+	}
+
+	return res
+}
+
+func joinLines(size int, a, b []item) []item {
+	res := make([]item, size)
 	// copy all but the num delimiter at the end of a
 	i := 0
 	for i < len(a)-1 {
@@ -81,15 +78,10 @@ func lineFromMultiOccurs(a, b []item) []item {
 		i++
 	}
 
-	// should be 6, so that next is 8, as inserted up to res[7]
 	// j is 2 so that num delimiter and space are ignored from b
 	i -= 2
 	for j := 2; j < len(b); j++ {
 		res[i+j] = b[j]
-	}
-
-	if !equalFingerprints(getFingerprint(res), fingerprints["occurs"]) {
-		panic("multiline redefinition builder failed to build an occurrence with the correct fingerprint")
 	}
 
 	return res
