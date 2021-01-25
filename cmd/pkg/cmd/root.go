@@ -32,8 +32,8 @@ var dirCmd = &cobra.Command{
 
 var fileCmd = &cobra.Command{
 	Use:   "file",
-	Short: "Path to a directory with copybooks",
-	Long:  `Provide a path to a directory containing only copybook files`,
+	Short: "Path to a copybook file",
+	Long:  `Provide a path to a single copybook file`,
 	RunE:  fileRun,
 }
 
