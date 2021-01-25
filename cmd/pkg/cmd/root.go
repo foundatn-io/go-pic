@@ -37,40 +37,50 @@ var fileCmd = &cobra.Command{
 	RunE:  fileRun,
 }
 
+var (
+	preview = "preview"
+	out     = "output"
+	in      = "input"
+
+	previewHelp = "preview in terminal, the results of parsing (not templated)"
+	inputHelp   = "path to input file"
+	outputHelp  = "path to output file"
+)
+
 // Execute executes the root command.
 func Execute() error {
 	return rootCmd.Execute()
 }
 
 func init() { // nolint:gochecknoinits
-	dirCmd.Flags().BoolP("preview", "p", false, "preview in terminal results of parsing (not templated)")
-	dirCmd.Flags().StringP("output", "o", "", "path to output directory")
-	dirCmd.Flags().StringP("input", "i", "", "path to input directory")
-	fileCmd.Flags().StringP("output", "o", "", "path to output file")
-	fileCmd.Flags().StringP("input", "i", "", "path to input file")
-	fileCmd.Flags().BoolP("preview", "p", false, "toggle to show struct preview in terminal")
+	dirCmd.Flags().BoolP(preview, "p", false, previewHelp)
+	dirCmd.Flags().StringP(out, "o", "", outputHelp)
+	dirCmd.Flags().StringP(in, "i", "", inputHelp)
+	fileCmd.Flags().BoolP(preview, "p", false, previewHelp)
+	fileCmd.Flags().StringP(out, "o", "", outputHelp)
+	fileCmd.Flags().StringP(in, "i", "", inputHelp)
 
-	_ = dirCmd.MarkFlagRequired("output")
-	_ = dirCmd.MarkFlagRequired("input")
-	_ = fileCmd.MarkFlagRequired("output")
-	_ = fileCmd.MarkFlagRequired("input")
+	_ = dirCmd.MarkFlagRequired(out)
+	_ = dirCmd.MarkFlagRequired(in)
+	_ = fileCmd.MarkFlagRequired(out)
+	_ = fileCmd.MarkFlagRequired(in)
 
 	rootCmd.AddCommand(dirCmd)
 	rootCmd.AddCommand(fileCmd)
 }
 
 func dirRun(cmd *cobra.Command, _ []string) error {
-	out, err := cmd.Flags().GetString("output")
+	out, err := cmd.Flags().GetString(out)
 	if err != nil {
 		return err
 	}
 
-	in, err := cmd.Flags().GetString("input")
+	in, err := cmd.Flags().GetString(in)
 	if err != nil {
 		return err
 	}
 
-	p, _ := cmd.Flags().GetBool("preview")
+	p, _ := cmd.Flags().GetBool(preview)
 
 	fs, err := ioutil.ReadDir(in)
 	if err != nil {
@@ -105,17 +115,17 @@ func dirRun(cmd *cobra.Command, _ []string) error {
 }
 
 func fileRun(cmd *cobra.Command, _ []string) error {
-	out, err := cmd.Flags().GetString("output")
+	out, err := cmd.Flags().GetString(out)
 	if err != nil {
 		return err
 	}
 
-	in, err := cmd.Flags().GetString("input")
+	in, err := cmd.Flags().GetString(in)
 	if err != nil {
 		return err
 	}
 
-	p, _ := cmd.Flags().GetBool("preview")
+	p, _ := cmd.Flags().GetBool(preview)
 
 	log.Printf("parsing copybook file %s", in)
 	f, err := os.Open(in) // nolint:gosec
