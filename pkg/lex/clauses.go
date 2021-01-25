@@ -31,7 +31,7 @@ var (
 	}
 )
 
-// ParsePICType identifies an equivalent Go type from the given substring
+// parsePICType identifies an equivalent Go type from the given substring
 // that contains a PIC definition
 func parsePICType(s string) reflect.Kind {
 	picType := unknown
@@ -65,7 +65,7 @@ func parsePICType(s string) reflect.Kind {
 	return types[picType]
 }
 
-// ParsePICCount identifies the fixed width, or length, of the given
+// parsePICCount identifies the fixed width, or length, of the given
 // PIC definition such as: X(2)., XX., 9(9)., etc.
 func parsePICCount(s string) (int, error) {
 	// prepare a slice of runes, representing the string
@@ -96,6 +96,8 @@ func parsePICCount(s string) (int, error) {
 	return size + len(c), nil
 }
 
+// parseOccursCount captures N where N is the OCCURS count
+// e.g. OCCURS 12. returns 12
 func parseOccursCount(i item) (int, error) {
 	s := strings.TrimPrefix(i.val, "OCCURS ")
 	n := strings.TrimSuffix(s, ".")
