@@ -1,9 +1,10 @@
 package lex
 
 type fingerprint []itemType
+type fingerprinter func(nx func() []item, items []item) (parser, []item, bool)
 
 var (
-	readers = map[lineType]func(nx func() []item, items []item) (parser, []item, bool){
+	readers = map[lineType]fingerprinter{
 		lineJunk:               isJunk,
 		lineStruct:             isStruct,
 		linePIC:                isPic,
@@ -13,6 +14,7 @@ var (
 		lineOccurs:             isOccurrence,
 		lineMultilineOccurs:    isMultilineOccurrence,
 	}
+
 	fingerprints = map[string]fingerprint{
 		// num space num space text dot space num eol
 		// 000160  05  DUMMY-GROUP-1.  00000115
@@ -20,7 +22,7 @@ var (
 
 		// space num space text dot space eol
 		//  05  DUMMY-GROUP-1.
-		"nonNumDelimitedStruct": {itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber},
+		"nonNumDelimitedStruct": {itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace},
 
 		// num space num space text space pic space num eol
 		// 000190  15  DUMMY-GROUP-1-OBJECT-B  PIC X.  00000118
