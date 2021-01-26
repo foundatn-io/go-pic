@@ -24,7 +24,7 @@ func (e *UnmarshalTypeError) Error() string {
 	}
 
 	if e.Cause != nil {
-		return fmt.Errorf("%s: %w", err.Error(), e.Cause).Error() // nolint:errorlint // can't use two %w directives
+		return fmt.Sprintf("%s: %s", err.Error(), e.Cause.Error())
 	}
 
 	return err.Error()
