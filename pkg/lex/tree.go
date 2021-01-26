@@ -79,11 +79,17 @@ func (t *Tree) parseLines(root *Record) {
 		}
 
 		switch t.line.typ {
+		case lineJunk:
+			continue
 		case lineStruct, lineRedefines, lineGroupRedefines, lineMultilineRedefines:
 			t.line.fn(t, t.line, root)
 
 		default:
 			rec := t.line.fn(t, t.line, root)
+			if rec == nil {
+				// TODO:
+			}
+
 			parent, ok := root.depthMap[rec.depth]
 			if ok {
 				root = parent

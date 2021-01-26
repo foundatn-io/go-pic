@@ -1,7 +1,6 @@
 package lex
 
 import (
-	"fmt"
 	"log"
 )
 
@@ -37,8 +36,12 @@ func buildLine(nx func() []item, items []item) *line {
 		}
 	}
 
-	log.Println(fmt.Sprintf("failed to determined parser for line of tokens: %+v", items))
-	return nil
+	log.Println("no parser determined, returning junk noOp line")
+	return &line{
+		items: items,
+		typ:   lineJunk,
+		fn:    noOp,
+	}
 }
 
 // a 	= 000830  05  DUMMY-OBJECT-3  REDEFINES   00000195

@@ -13,8 +13,8 @@ const (
 
 type parser func(t *Tree, l line, root *Record) *Record
 
-func unimplementedParser(_ *Tree, _ line, _ *Record) *Record {
-	panic("unimplemented")
+func noOp(_ *Tree, _ line, _ *Record) *Record {
+	return nil
 }
 
 // parsePIC is a parserfn that is used to build records

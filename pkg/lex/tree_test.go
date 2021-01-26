@@ -327,6 +327,31 @@ func Test_Parse(t *testing.T) {
 001290           15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12)               00000241
 001300             OCCURS 12.                                           00000242
 `)),
+		}, {
+			name: "JunkHeader",
+			in: NewTree(New("JunkHeader",
+				`000010******************************************************************00000100
+000020****                                                             *00000101
+000020****                                                             *00000101
+000030**** DATA GROUP  : EXAMPLES                                      *00000102
+000040**** COPY BOOK   : EXAMPLES                                      *00000103
+000050**** DESCRIPTION : OUTPUT FORMAT FOR GO-PIC EXAMPLE ROUTINE      *00000104
+000060****                                                             *00000105
+000070******************************************************************00000106
+000080 01  EXAMPLE.                                                     00000107
+000150**** STUFF                                                        00000114
+000160     05  DUMMY-GROUP-1.                                           00000115
+`)),
+			want: &Record{
+				Name: "root",
+				Typ:  reflect.Struct,
+				Children: []*Record{
+					{
+						Name: "DUMMY-GROUP-1",
+						Typ:  reflect.Struct,
+					},
+				},
+			},
 		},
 	}
 

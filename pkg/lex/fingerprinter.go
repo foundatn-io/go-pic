@@ -3,6 +3,10 @@ package lex
 type fingerprint []itemType
 type fingerprinter func(nx func() []item, items []item) (parser, []item, bool)
 
+const (
+	recordDescriptionIndicator = "01"
+)
+
 var (
 	readers = map[lineType]fingerprinter{
 		lineJunk:               isJunk,
@@ -69,10 +73,22 @@ func init() { // nolint:gochecknoinits
 func isStruct(_ func() []item, items []item) (parser, []item, bool) {
 	fp := getFingerprint(items)
 	if equalFingerprints(fp, fingerprints["nonNumDelimitedStruct"]) {
+		// if the level number is 01, ignore this object.
+		// refer to README.md Level Number section
+		if items[1].val == recordDescriptionIndicator {
+			return noOp, items, true
+		}
+
 		return parseNonNumDelimitedStruct, items, true
 	}
 
 	if equalFingerprints(fp, fingerprints["numDelimitedStruct"]) {
+		// if the level number is 01, ignore this object.
+		// refer to README.md Level Number section
+		if items[2].val == recordDescriptionIndicator {
+			return noOp, items, true
+		}
+
 		return parseNumDelimitedStruct, items, true
 	}
 
@@ -88,7 +104,7 @@ func isPic(_ func() []item, items []item) (parser, []item, bool) {
 }
 
 func isJunk(_ func() []item, _ []item) (parser, []item, bool) {
-	return unimplementedParser, nil, false
+	return noOp, nil, false
 }
 
 func isRedefinition(_ func() []item, items []item) (parser, []item, bool) {
