@@ -1,6 +1,7 @@
 package pic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,22 +15,47 @@ func TestUnmarshal(t *testing.T) {
 	}
 
 	type occursOffset struct {
-		A string   `pic:"13"`    // start:227 end:239
-		B string   `pic:"13"`    // start:240 end:252
-		C string   `pic:"13"`    // start:253 end:265
-		D string   `pic:"13"`    // start:266 end:278
-		E string   `pic:"13"`    // start:279 end:291
-		F string   `pic:"13"`    // start:292 end:304
-		G string   `pic:"2"`     // start:305 end:306
-		H []string `pic:"13,12"` // start:307 end:462
+		A string   `pic:"13"`
+		B string   `pic:"13"`
+		C string   `pic:"13"`
+		D string   `pic:"13"`
+		E string   `pic:"13"`
+		F string   `pic:"13"`
+		G string   `pic:"2"`
+		H []string `pic:"13,12"`
+	}
+
+	type C struct {
+		CA []string `pic:"1,5"`
+	}
+
+	type D struct {
+		DA string `pic:"2"`
+	}
+
+	type C2 struct {
+		CA []string `pic:"1,5"`
+		CB D        `pic:"2"`
+	}
+
+	type nestedStruct struct {
+		A string `pic:"13"`
+		B string `pic:"13"`
+		C C      `pic:"5"`
+	}
+
+	type multiNestedStruct struct {
+		A string `pic:"13"`
+		B string `pic:"13"`
+		C C2     `pic:"7"`
 	}
 
 	for _, test := range []struct {
-		name      string
-		val       []byte
-		target    interface{}
-		expected  interface{}
-		shouldErr bool
+		name     string
+		val      []byte
+		target   interface{}
+		expected interface{}
+		err      error
 	}{
 		{
 			name:   "Slice Case (no trailing new line)",
@@ -39,9 +65,7 @@ func TestUnmarshal(t *testing.T) {
 				{"foo", 123, 1.2},
 				{"bar", 321, 2.1},
 			},
-			shouldErr: false,
-		},
-		{
+		}, {
 			name:   "Slice Case (trailing new line)",
 			val:    []byte("foo  123  1.2  " + "\n" + "bar  321  2.1  " + "\n"),
 			target: &[]basicTypes{},
@@ -49,9 +73,7 @@ func TestUnmarshal(t *testing.T) {
 				{"foo", 123, 1.2},
 				{"bar", 321, 2.1},
 			},
-			shouldErr: false,
-		},
-		{
+		}, {
 			name:   "Slice Case (blank line mid file)",
 			val:    []byte("foo  123  1.2  " + "\n" + "\n" + "bar  321  2.1  " + "\n"),
 			target: &[]basicTypes{},
@@ -60,35 +82,29 @@ func TestUnmarshal(t *testing.T) {
 				{"", 0, 0},
 				{"bar", 321, 2.1},
 			},
-			shouldErr: false,
-		},
-		{
-			name:      "Basic Struct Case",
-			val:       []byte("foo  123  1.2  "),
-			target:    &basicTypes{},
-			expected:  &basicTypes{"foo", 123, 1.2},
-			shouldErr: false,
-		},
-		{
-			name:      "Unmarshal Error",
-			val:       []byte("foo  nan  ddd  "),
-			target:    &basicTypes{},
-			expected:  &basicTypes{},
-			shouldErr: true,
-		},
-		{
-			name:      "Empty Line",
-			val:       []byte(""),
-			target:    &basicTypes{},
-			expected:  &basicTypes{},
-			shouldErr: true,
-		},
-		{
-			name:      "Invalid Target",
-			val:       []byte("foo  123  1.2  "),
-			target:    basicTypes{},
-			expected:  basicTypes{},
-			shouldErr: true,
+		}, {
+			name:     "Basic Struct Case",
+			val:      []byte("foo  123  1.2  "),
+			target:   &basicTypes{},
+			expected: &basicTypes{"foo", 123, 1.2},
+		}, {
+			name:     "Unmarshal Error",
+			val:      []byte("foo  nan  ddd  "),
+			target:   &basicTypes{},
+			expected: &basicTypes{},
+			err:      fmt.Errorf(""),
+		}, {
+			name:     "Empty Line",
+			val:      []byte(""),
+			target:   &basicTypes{},
+			expected: &basicTypes{},
+			err:      fmt.Errorf(""),
+		}, {
+			name:     "Invalid Target",
+			val:      []byte("foo  123  1.2  "),
+			target:   basicTypes{},
+			expected: basicTypes{},
+			err:      fmt.Errorf(""),
 		}, {
 			name:   "offsetcheck",
 			val:    []byte("000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 00000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 "),
@@ -115,15 +131,33 @@ func TestUnmarshal(t *testing.T) {
 					"000000000.00",
 					"000000000.00"},
 			},
+		}, {
+			name:   "BasicStructUnpack",
+			val:    []byte("thirteen13131thirteen13131ABCDE"),
+			target: &nestedStruct{},
+			expected: &nestedStruct{
+				A: "thirteen13131",
+				B: "thirteen13131",
+				C: C{CA: []string{"A", "B", "C", "D", "E"}},
+			},
+		}, {
+			name:   "MultiNestedStructUnpack",
+			val:    []byte("thirteen13131thirteen13131ABCDEAA"),
+			target: &multiNestedStruct{},
+			expected: &multiNestedStruct{
+				A: "thirteen13131",
+				B: "thirteen13131",
+				C: C2{CA: []string{"A", "B", "C", "D", "E"}, CB: D{DA: "AA"}},
+			},
 		},
 	} {
 		tt := test
 		t.Run(tt.name, func(t *testing.T) {
 			err := Unmarshal(tt.val, tt.target)
-			if tt.shouldErr {
-				require.Error(t, err)
+			if tt.err != nil || err != nil {
+				require.EqualError(t, err, tt.err.Error())
 			} else {
-				require.Equal(t, tt.target, tt.expected)
+				require.Equal(t, tt.expected, tt.target)
 			}
 		})
 	}

@@ -8,8 +8,8 @@ package main
 
 // Copybookexample contains a representation of your provided Copybook
 type root struct {
-	DUMMYGROUP1 DUMMYGROUP1
-	DUMMYGROUP3 DUMMYGROUP3
+	DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`
+	DUMMYGROUP3 DUMMYGROUP3 `pic:"201"`
 }
 
 type DUMMYSUBGROUP1 struct {
@@ -23,7 +23,7 @@ type DUMMYSUBGROUP1 struct {
 }
 
 type DUMMYGROUP1 struct {
-	DUMMYSUBGROUP1 DUMMYSUBGROUP1
+	DUMMYSUBGROUP1 DUMMYSUBGROUP1 `pic:"63"`
 }
 
 type DUMMYSUBGROUP2GETSDROPPED struct {
@@ -31,12 +31,12 @@ type DUMMYSUBGROUP2GETSDROPPED struct {
 }
 
 type DUMMYGROUP3 struct {
-	DUMMYGROUP2OBJECTA        string `pic:"14"` // start:64 end:77
-	DUMMYGROUP2OBJECTB        uint   `pic:"7"`  // start:78 end:84
-	DUMMYGROUP2OBJECTC        string `pic:"4"`  // start:85 end:88
-	DUMMYGROUP2OBJECTD        string `pic:"1"`  // start:89 end:89
-	DUMMYGROUP2OBJECTF        string `pic:"7"`  // start:90 end:96
-	DUMMYSUBGROUP2GETSDROPPED DUMMYSUBGROUP2GETSDROPPED
-	DUMMYGROUP2OBJECTG        string `pic:"12"` // start:241 end:252
-	DUMMYGROUP2OBJECTH        string `pic:"12"` // start:253 end:264
+	DUMMYGROUP2OBJECTA        string                    `pic:"14"` // start:64 end:77
+	DUMMYGROUP2OBJECTB        uint                      `pic:"7"`  // start:78 end:84
+	DUMMYGROUP2OBJECTC        string                    `pic:"4"`  // start:85 end:88
+	DUMMYGROUP2OBJECTD        string                    `pic:"1"`  // start:89 end:89
+	DUMMYGROUP2OBJECTF        string                    `pic:"7"`  // start:90 end:96
+	DUMMYSUBGROUP2GETSDROPPED DUMMYSUBGROUP2GETSDROPPED `pic:"144"`
+	DUMMYGROUP2OBJECTG        string                    `pic:"12"` // start:241 end:252
+	DUMMYGROUP2OBJECTH        string                    `pic:"12"` // start:253 end:264
 }

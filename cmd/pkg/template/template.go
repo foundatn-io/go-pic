@@ -93,6 +93,7 @@ func goType(l *lex.Record) string {
 	return tag
 }
 
+// TODO: (pgmitche) MUST add support for struct tags (sum of child length)
 func picTag(l int, i int) string {
 	if i > 0 {
 		return "`" + fmt.Sprintf("pic:\"%d,%d\"", l, i) + "`"
