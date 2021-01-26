@@ -16,9 +16,11 @@ func (i item) String() string {
 	switch {
 	case i.typ == itemEOF:
 		return "EOF"
+
 	case i.typ == itemError:
 		return i.val
 	}
+
 	return fmt.Sprintf("%q", i.val)
 }
 
@@ -51,7 +53,6 @@ const (
 
 var (
 	picChars = map[rune]struct{}{
-		// rightParen is not included as it is evaluated separately
 		'P': {}, 'I': {}, 'C': {}, leftParen: {}, rightParen: {}, 'X': {}, '9': {}, 'S': {}, 'V': {},
 	}
 

@@ -6,7 +6,7 @@ import (
 	"unicode"
 )
 
-func lexInsideStatement(l *lexer) stateFn {
+func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simplifying this
 	switch r := l.next(); {
 	case isEOL(r):
 		l.emit(itemEOL)
@@ -200,7 +200,7 @@ func lexNumber(l *lexer) stateFn {
 	return lexInsideStatement(l)
 }
 
-func (l *lexer) scanNumber() bool {
+func (l *lexer) scanNumber() bool { // nolint:gocyclo // good luck simplifying this
 	// Optional leading sign.
 	l.accept("+-")
 	// Is it hex?

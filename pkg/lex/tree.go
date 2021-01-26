@@ -8,7 +8,7 @@ import (
 )
 
 type Tree struct {
-	lex   *lexer
+	lex   Lexer
 	token item
 	lines []line
 	state *Record
@@ -16,7 +16,7 @@ type Tree struct {
 	lIdx  int
 }
 
-func NewTree(lxr *lexer) *Tree {
+func NewTree(lxr Lexer) *Tree {
 	log.Println("building new tree")
 	root := &Record{Typ: reflect.Struct, Name: "root", depthMap: make(map[string]*Record)}
 	return &Tree{

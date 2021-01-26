@@ -22,8 +22,12 @@ type lexer struct {
 	startLine int    // start line of this item
 }
 
+type Lexer interface {
+	nextItem() item
+}
+
 // New creates a new scanner for the input string.
-func New(name, input string) *lexer {
+func New(name, input string) Lexer {
 	log.Println("building new lexer")
 	l := &lexer{
 		name:      name,

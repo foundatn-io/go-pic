@@ -1,6 +1,7 @@
 package pic
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -32,14 +33,14 @@ func parseTag(tag string, prev int) (int, int, int, int, error) {
 	if len(ss) == occursIndicator {
 		o, err := strconv.Atoi(ss[1])
 		if err != nil {
-			return 0, 0, 0, 0, err
+			return 0, 0, 0, 0, fmt.Errorf("failed string->int conversion: %w", err)
 		}
 		occursSize = o
 	}
 
 	length, err := strconv.Atoi(ss[0])
 	if err != nil {
-		return 0, 0, 0, 0, err
+		return 0, 0, 0, 0, fmt.Errorf("failed string->int conversion: %w", err)
 	}
 
 	if occursSize > 0 {

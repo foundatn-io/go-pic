@@ -1,6 +1,7 @@
 package lex
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -85,7 +86,7 @@ func parsePICCount(s string) (int, error) {
 		end := right + 1
 		amount, err := strconv.Atoi(s[left+1 : right])
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed string->int conversion: %w", err)
 		}
 
 		size += amount

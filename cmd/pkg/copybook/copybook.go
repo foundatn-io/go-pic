@@ -2,6 +2,7 @@ package copybook
 
 import (
 	"bytes"
+	"fmt"
 	"go/format"
 	"io"
 	"log"
@@ -57,14 +58,14 @@ func treePrint(node *lex.Record, nest int) {
 func (c *Copybook) WriteToStruct(writer io.Writer) error {
 	b := bytes.Buffer{}
 	if err := c.t.Execute(&b, c); err != nil {
-		return err
+		return fmt.Errorf("failed template copybook data: %w", err)
 	}
 
 	bb, err := format.Source(b.Bytes())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to gofmt templated copybook data: %w", err)
 	}
 
 	_, err = writer.Write(bb)
-	return err
+	return fmt.Errorf("failed to write templated copybook data: %w", err)
 }

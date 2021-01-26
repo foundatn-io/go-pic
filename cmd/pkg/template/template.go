@@ -124,6 +124,8 @@ func getStructs() []string {
 	return structs
 }
 
+// TODO: (pgmitche) if record is struct but has no children,
+// it should probably be ignored entirely
 func getStructTemplate() *template.Template {
 	t, err := template.New("struct").
 		Funcs(getTemplateFuncs()).
@@ -145,6 +147,8 @@ type {{ sanitiseName .Name }} struct {
 	return t
 }
 
+// TODO: (pgmitche) if record is struct but has no children,
+// it should probably be ignored entirely
 func buildStruct(r *lex.Record) string {
 	b := bytes.Buffer{}
 	if err := getStructTemplate().Execute(&b, r); err != nil {

@@ -72,26 +72,26 @@ func init() { // nolint:gochecknoinits
 func dirRun(cmd *cobra.Command, _ []string) error {
 	out, err := cmd.Flags().GetString(outFlag)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to extract value for flag %s: %w", outFlag, err)
 	}
 
 	in, err := cmd.Flags().GetString(inFlag)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to extract value for flag %s: %w", inFlag, err)
 	}
 
 	p, _ := cmd.Flags().GetBool(previewFlag)
 
 	fs, err := ioutil.ReadDir(in)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read files for dir %s: %w", in, err)
 	}
 
 	_, err = os.Stat(out)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(out, 0750)
 		if errDir != nil {
-			return errDir
+			return fmt.Errorf("failed to create dir %s: %w", out, errDir)
 		}
 	}
 
@@ -103,7 +103,7 @@ func dirRun(cmd *cobra.Command, _ []string) error {
 		log.Printf("parsing copybook file %s", ff.Name())
 		f, err := os.Open(filepath.Join(in, ff.Name())) // nolint:gosec
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to open file %s: %w", ff.Name(), err)
 		}
 
 		if err := run(f, filepath.Join(out, ff.Name()), p); err != nil {
@@ -117,12 +117,12 @@ func dirRun(cmd *cobra.Command, _ []string) error {
 func fileRun(cmd *cobra.Command, _ []string) error {
 	out, err := cmd.Flags().GetString(outFlag)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to extract value for flag %s: %w", outFlag, err)
 	}
 
 	in, err := cmd.Flags().GetString(inFlag)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to extract value for flag %s: %w", inFlag, err)
 	}
 
 	p, _ := cmd.Flags().GetBool(previewFlag)
@@ -130,7 +130,7 @@ func fileRun(cmd *cobra.Command, _ []string) error {
 	log.Printf("parsing copybook file %s", in)
 	f, err := os.Open(in) // nolint:gosec
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open file %s: %w", in, err)
 	}
 
 	return run(f, out, p)
@@ -144,19 +144,22 @@ func run(r io.Reader, output string, preview bool) error {
 
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read input data: %w", err)
 	}
 
 	tree := lex.NewTree(lex.New("go-pic", string(b)))
 	time.Sleep(time.Millisecond)
 	c.Root = tree.Parse()
+	// TODO: (pgmitche) if record in tree is struct but has no children,
+	// it should probably be ignored entirely
 	if preview {
 		c.Preview()
 	}
 
-	newFile, err := os.Create(fmt.Sprintf("%s.go", name))
+	name = fmt.Sprintf("%s.go", name)
+	newFile, err := os.Create(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create file %s: %w", name, err)
 	}
 
 	return c.WriteToStruct(newFile)

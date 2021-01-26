@@ -2,6 +2,7 @@ package pic
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 )
@@ -42,7 +43,7 @@ func intSetFunc(v reflect.Value, s string) error {
 
 	i, err := strconv.Atoi(s)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed string->int conversion: %w", err)
 	}
 
 	v.SetInt(int64(i))
@@ -57,7 +58,7 @@ func floatSetFunc(size int) setFunc {
 
 		f, err := strconv.ParseFloat(s, size)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed string->float64 conversion: %w", err)
 		}
 
 		v.SetFloat(f)
