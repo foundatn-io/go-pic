@@ -6,6 +6,10 @@ import (
 	"unicode"
 )
 
+const (
+	substituteHex = '\U0000001A'
+)
+
 func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simplifying this
 	switch r := l.next(); {
 	case isEOL(r):
@@ -50,6 +54,9 @@ func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simpl
 	case r <= unicode.MaxASCII && unicode.IsPrint(r):
 		l.emit(itemChar)
 
+	case r == substituteHex:
+		log.Printf("found SUBSTITUTE rune")
+		l.emit(itemEOF)
 	default:
 		e := fmt.Errorf("unrecognized character in action: %#U", r)
 		log.Println(e)

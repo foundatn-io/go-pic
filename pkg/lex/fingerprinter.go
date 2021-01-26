@@ -20,15 +20,15 @@ var (
 	}
 
 	fingerprints = map[string]fingerprint{
-		// num space num space text dot space num eol
+		// num space num space text dot space num
 		// 000160  05  DUMMY-GROUP-1.  00000115
 		"numDelimitedStruct": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber},
 
-		// space num space text dot space eol
+		// space num space text dot space
 		//  05  DUMMY-GROUP-1.
 		"nonNumDelimitedStruct": {itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace},
 
-		// num space num space text space pic space num eol
+		// num space num space text space pic space num
 		// 000190  15  DUMMY-GROUP-1-OBJECT-B  PIC X.  00000118
 		"pic": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemDot, itemSpace, itemNumber},
 
