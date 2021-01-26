@@ -262,6 +262,10 @@ func Test_Parse(t *testing.T) {
 					}, {
 						Name: "DUMMY-GROUP-2",
 						Typ:  reflect.Struct,
+						// TODO: (pgmitche) should leave out length to trigger test failure.
+						// Shouldn't have persisted from redefined target, even though
+						// it won't impact the output of the templating (len not used for structs)
+						Length: 201,
 						Children: []*Record{{
 							Name:   "DUMMY-GROUP-2-OBJECT-A",
 							Typ:    reflect.String,
@@ -283,16 +287,8 @@ func Test_Parse(t *testing.T) {
 							Typ:    reflect.String,
 							Length: 7,
 						}, {
-							Name:   "DUMMY-GROUP-2-OBJECT-G",
-							Typ:    reflect.String,
-							Length: 2,
-						}, {
 							Name: "DUMMY-SUBGROUP-2",
 							Typ:  reflect.Struct,
-							// TODO: (pgmitche) leaving this out to trigger test failure.
-							// Shouldn't have persisted from redefined target, even though
-							// it won't impact the output of the templating (len not used for structs)
-							// Length: 201,
 							Children: []*Record{
 								{
 									Name:   "DUMMY-SUBGROUP-2-OBJECT-A",

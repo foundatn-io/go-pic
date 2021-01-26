@@ -62,7 +62,7 @@ test: ## Runs unit tests and generates a coverage file at coverage.out
 .PHONY: cover
 cover: test ## Runs unit tests and assesses output coverage file
 	@echo 'cover'
-	@go tool cover -func=$(COVERFILE) | $(CHECK_COVERAGE)
+	go tool cover -func=$(COVERFILE) | $(CHECK_COVERAGE)
 
 .PHONY: example
 example: install ## Builds & installs the gopic struct generation tool, regenerates example files

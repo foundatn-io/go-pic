@@ -43,7 +43,6 @@ func Test_Build(t *testing.T) {
 
 			var buf bytes.Buffer
 			require.NoError(t, c.WriteToStruct(&buf))
-
 			require.NotEmpty(t, buf)
 		})
 	}

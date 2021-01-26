@@ -1,4 +1,4 @@
-name: Linter Check
+name: Lint
 on:
   push:
     branches:
@@ -15,7 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: golangci/golangci-lint-action@v2
+        version: v1.32
         env:
           GOFLAGS: "-mod=readonly"
-        with:
-          golangci_lint_version: v1.32.X

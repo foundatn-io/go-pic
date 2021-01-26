@@ -66,6 +66,9 @@ func (c *Copybook) WriteToStruct(writer io.Writer) error {
 		return fmt.Errorf("failed to gofmt templated copybook data: %w", err)
 	}
 
-	_, err = writer.Write(bb)
-	return fmt.Errorf("failed to write templated copybook data: %w", err)
+	if _, err = writer.Write(bb); err != nil {
+		fmt.Errorf("failed to write templated copybook data: %w", err)
+	}
+
+	return nil
 }
