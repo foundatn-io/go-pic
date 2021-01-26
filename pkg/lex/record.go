@@ -1,7 +1,6 @@
 package lex
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 	"sync"
@@ -40,12 +39,7 @@ func (r *Record) fromCache(name string) (*Record, int) {
 	return r.Children[i], i
 }
 
-func (r *Record) redefine(target string, src *Record) *Record {
-	dst, i := r.fromCache(target)
-	if dst == nil {
-		log.Fatalln(fmt.Sprintf("redefinition target %s does not exist", target))
-	}
-
+func (r *Record) redefine(i int, dst, src *Record) *Record {
 	r.cache.Delete(dst.Name)
 	dst.Name = src.Name
 	dst.Length = src.Length

@@ -8,35 +8,35 @@ package main
 
 // Copybookexample contains a representation of your provided Copybook
 type root struct {
-	DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`
-	DUMMYGROUP3 DUMMYGROUP3 `pic:"201"`
+	DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`  // start:1 end:63
+	DUMMYGROUP3 DUMMYGROUP3 `pic:"201"` // start:190 end:390
 }
 
 type DUMMYSUBGROUP1 struct {
-	DUMMYGROUP1OBJECTA uint   `pic:"4"`  // start:1 end:4
-	DUMMYGROUP1OBJECTB string `pic:"1"`  // start:5 end:5
-	DUMMYGROUP1OBJECTC uint   `pic:"4"`  // start:6 end:9
-	DUMMYGROUP1OBJECTD string `pic:"40"` // start:10 end:49
-	DUMMYGROUP1OBJECTE string `pic:"8"`  // start:50 end:57
-	DUMMYGROUP1OBJECTG string `pic:"2"`  // start:58 end:59
-	DUMMYGROUP1OBJECTH uint   `pic:"4"`  // start:60 end:63
+	DUMMYGROUP1OBJECTA uint   `pic:"4"`  // start:127 end:130
+	DUMMYGROUP1OBJECTB string `pic:"1"`  // start:131 end:131
+	DUMMYGROUP1OBJECTC uint   `pic:"4"`  // start:132 end:135
+	DUMMYGROUP1OBJECTD string `pic:"40"` // start:136 end:175
+	DUMMYGROUP1OBJECTE string `pic:"8"`  // start:176 end:183
+	DUMMYGROUP1OBJECTG string `pic:"2"`  // start:184 end:185
+	DUMMYGROUP1OBJECTH uint   `pic:"4"`  // start:186 end:189
 }
 
 type DUMMYGROUP1 struct {
-	DUMMYSUBGROUP1 DUMMYSUBGROUP1 `pic:"63"`
+	DUMMYSUBGROUP1 DUMMYSUBGROUP1 `pic:"63"` // start:64 end:126
 }
 
 type DUMMYSUBGROUP2GETSDROPPED struct {
-	DUMMYSUBGROUP2OBJECTA []string `pic:"12,12"` // start:97 end:240
+	DUMMYSUBGROUP2OBJECTA []string `pic:"12,12"` // start:568 end:711
 }
 
 type DUMMYGROUP3 struct {
-	DUMMYGROUP2OBJECTA        string                    `pic:"14"` // start:64 end:77
-	DUMMYGROUP2OBJECTB        uint                      `pic:"7"`  // start:78 end:84
-	DUMMYGROUP2OBJECTC        string                    `pic:"4"`  // start:85 end:88
-	DUMMYGROUP2OBJECTD        string                    `pic:"1"`  // start:89 end:89
-	DUMMYGROUP2OBJECTF        string                    `pic:"7"`  // start:90 end:96
-	DUMMYSUBGROUP2GETSDROPPED DUMMYSUBGROUP2GETSDROPPED `pic:"144"`
-	DUMMYGROUP2OBJECTG        string                    `pic:"12"` // start:241 end:252
-	DUMMYGROUP2OBJECTH        string                    `pic:"12"` // start:253 end:264
+	DUMMYGROUP2OBJECTA        string                    `pic:"14"`  // start:391 end:404
+	DUMMYGROUP2OBJECTB        uint                      `pic:"7"`   // start:405 end:411
+	DUMMYGROUP2OBJECTC        string                    `pic:"4"`   // start:412 end:415
+	DUMMYGROUP2OBJECTD        string                    `pic:"1"`   // start:416 end:416
+	DUMMYGROUP2OBJECTF        string                    `pic:"7"`   // start:417 end:423
+	DUMMYSUBGROUP2GETSDROPPED DUMMYSUBGROUP2GETSDROPPED `pic:"144"` // start:424 end:567
+	DUMMYGROUP2OBJECTG        string                    `pic:"12"`  // start:712 end:723
+	DUMMYGROUP2OBJECTH        string                    `pic:"12"`  // start:724 end:735
 }

@@ -66,6 +66,14 @@ func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simpl
 	return lexInsideStatement(l)
 }
 
+// FIXME: PIC 9(11).9(2). is misinterpreted by the lexer and causes infinite
+// crashing loop
+//
+// FIXME: OCCURS that capture PICs, emit a PIC that has a trailing space
+// e.g. from lex_test.go
+// {typ: itemPIC, pos: 48, val: "PIC(10) ", line: 0}, 		---> "PIC(10)"
+// {typ: itemSpace, pos: 56, val: " ", line: 0},			---> "  "
+// {typ: itemOCCURS, pos: 57, val: "OCCURS 2.", line: 0},   ---> "OCCURS 2."
 func lexPIC(l *lexer) stateFn {
 	var r rune
 	for {

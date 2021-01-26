@@ -75,14 +75,17 @@ func Test_Parse(t *testing.T) {
 		{
 			name: "Simple",
 			want: &Record{
-				Name: "root",
-				Typ:  reflect.Struct,
+				Name:   "root",
+				Typ:    reflect.Struct,
+				Length: 3,
 				Children: []*Record{{
-					Name: "DUMMY-GROUP-1",
-					Typ:  reflect.Struct,
+					Name:   "DUMMY-GROUP-1",
+					Typ:    reflect.Struct,
+					Length: 3,
 					Children: []*Record{{
-						Name: "DUMMY-SUB-GROUP-1",
-						Typ:  reflect.Struct,
+						Name:   "DUMMY-SUB-GROUP-1",
+						Typ:    reflect.Struct,
+						Length: 3,
 						Children: []*Record{{
 							Name:   "DUMMY-GROUP-1-OBJECT-A",
 							Typ:    reflect.Uint,
@@ -110,11 +113,13 @@ func Test_Parse(t *testing.T) {
 		}, {
 			name: "RedefinesWithParentheses",
 			want: &Record{
-				Name: "root",
-				Typ:  reflect.Struct,
+				Name:   "root",
+				Typ:    reflect.Struct,
+				Length: 5,
 				Children: []*Record{{
-					Name: "DUMMY-SUB-GROUP-1",
-					Typ:  reflect.Struct,
+					Name:   "DUMMY-SUB-GROUP-1",
+					Typ:    reflect.Struct,
+					Length: 0,
 				}, {
 					Name:   "DUMMY-GROUP-2-OBJECT-D",
 					Typ:    reflect.String,
@@ -136,11 +141,13 @@ func Test_Parse(t *testing.T) {
 		}, {
 			name: "Redefines",
 			want: &Record{
-				Name: "root",
-				Typ:  reflect.Struct,
+				Name:   "root",
+				Typ:    reflect.Struct,
+				Length: 5,
 				Children: []*Record{{
-					Name: "DUMMY-SUB-GROUP-1",
-					Typ:  reflect.Struct,
+					Name:   "DUMMY-SUB-GROUP-1",
+					Typ:    reflect.Struct,
+					Length: 0,
 				}, {
 					Name:   "DUMMY-GROUP-2-OBJECT-D",
 					Typ:    reflect.String,
@@ -163,14 +170,17 @@ func Test_Parse(t *testing.T) {
 		{
 			name: "SimpleOccurs",
 			want: &Record{
-				Name: "root",
-				Typ:  reflect.Struct,
+				Name:   "root",
+				Typ:    reflect.Struct,
+				Length: 12,
 				Children: []*Record{{
-					Name: "DUMMY-GROUP-1",
-					Typ:  reflect.Struct,
+					Name:   "DUMMY-GROUP-1",
+					Typ:    reflect.Struct,
+					Length: 12,
 					Children: []*Record{{
-						Name: "DUMMY-SUB-GROUP-1",
-						Typ:  reflect.Struct,
+						Name:   "DUMMY-SUB-GROUP-1",
+						Typ:    reflect.Struct,
+						Length: 12,
 						Children: []*Record{
 							{
 								Name:   "DUMMY-GROUP-1-OBJECT-A",
@@ -191,14 +201,17 @@ func Test_Parse(t *testing.T) {
 		}, {
 			name: "MultilineOccurs",
 			want: &Record{
-				Name: "root",
-				Typ:  reflect.Struct,
+				Name:   "root",
+				Typ:    reflect.Struct,
+				Length: 12,
 				Children: []*Record{{
-					Name: "DUMMY-GROUP-1",
-					Typ:  reflect.Struct,
+					Name:   "DUMMY-GROUP-1",
+					Typ:    reflect.Struct,
+					Length: 12,
 					Children: []*Record{{
-						Name: "DUMMY-SUB-GROUP-1",
-						Typ:  reflect.Struct,
+						Name:   "DUMMY-SUB-GROUP-1",
+						Typ:    reflect.Struct,
+						Length: 12,
 						Children: []*Record{
 							{
 								Name:   "DUMMY-GROUP-1-OBJECT-A",
@@ -220,15 +233,18 @@ func Test_Parse(t *testing.T) {
 		}, {
 			name: "ExampleData",
 			want: &Record{
-				Name: "root",
-				Typ:  reflect.Struct,
+				Name:   "root",
+				Typ:    reflect.Struct,
+				Length: 240,
 				Children: []*Record{
 					{
-						Name: "DUMMY-GROUP-1",
-						Typ:  reflect.Struct,
+						Name:   "DUMMY-GROUP-1",
+						Typ:    reflect.Struct,
+						Length: 63,
 						Children: []*Record{{
-							Name: "DUMMY-SUB-GROUP-1",
-							Typ:  reflect.Struct,
+							Name:   "DUMMY-SUB-GROUP-1",
+							Typ:    reflect.Struct,
+							Length: 63,
 							Children: []*Record{{
 								Name:   "DUMMY-GROUP-1-OBJECT-A",
 								Typ:    reflect.Uint,
@@ -260,12 +276,9 @@ func Test_Parse(t *testing.T) {
 							},
 							}}},
 					}, {
-						Name: "DUMMY-GROUP-2",
-						Typ:  reflect.Struct,
-						// TODO: (pgmitche) should leave out length to trigger test failure.
-						// Shouldn't have persisted from redefined target, even though
-						// it won't impact the output of the templating (len not used for structs)
-						Length: 201,
+						Name:   "DUMMY-GROUP-2",
+						Typ:    reflect.Struct,
+						Length: 177,
 						Children: []*Record{{
 							Name:   "DUMMY-GROUP-2-OBJECT-A",
 							Typ:    reflect.String,
@@ -287,8 +300,9 @@ func Test_Parse(t *testing.T) {
 							Typ:    reflect.String,
 							Length: 7,
 						}, {
-							Name: "DUMMY-SUBGROUP-2",
-							Typ:  reflect.Struct,
+							Name:   "DUMMY-SUBGROUP-2",
+							Typ:    reflect.Struct,
+							Length: 144,
 							Children: []*Record{
 								{
 									Name:   "DUMMY-SUBGROUP-2-OBJECT-A",
@@ -343,12 +357,14 @@ func Test_Parse(t *testing.T) {
 000160     05  DUMMY-GROUP-1.                                           00000115
 `)),
 			want: &Record{
-				Name: "root",
-				Typ:  reflect.Struct,
+				Name:   "root",
+				Typ:    reflect.Struct,
+				Length: 0,
 				Children: []*Record{
 					{
-						Name: "DUMMY-GROUP-1",
-						Typ:  reflect.Struct,
+						Name:   "DUMMY-GROUP-1",
+						Typ:    reflect.Struct,
+						Length: 0,
 					},
 				},
 			},
@@ -377,8 +393,3 @@ func deepCompare(t *testing.T, want, got *Record) {
 		}
 	}
 }
-
-// TODO: PIC 9(11).9(2). is misinterpreted by the lexer
-// TODO: non-num-delimited PICs fail
-//     10  DUMMY-GROUP-2-OBJECT-G       PIC X(12).
-//     10  DUMMY-GROUP-2-OBJECT-H       PIC X(12).

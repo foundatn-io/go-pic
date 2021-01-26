@@ -81,13 +81,14 @@ func (t *Tree) parseLines(root *Record) {
 		switch t.line.typ {
 		case lineJunk:
 			continue
+
 		case lineStruct, lineRedefines, lineGroupRedefines, lineMultilineRedefines:
 			t.line.fn(t, t.line, root)
 
 		default:
 			rec := t.line.fn(t, t.line, root)
 			if rec == nil {
-				// TODO:
+				log.Fatalf("parser returned nil record for line: %+v", t.line)
 			}
 
 			parent, ok := root.depthMap[rec.depth]
@@ -96,6 +97,12 @@ func (t *Tree) parseLines(root *Record) {
 			}
 
 			idx := len(root.Children)
+			l := rec.Length
+			if rec.Occurs > 0 {
+				l *= rec.Occurs
+			}
+
+			root.Length += l
 			root.Children = append(root.Children, root.toCache(rec, idx))
 		}
 	}

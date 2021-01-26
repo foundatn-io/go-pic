@@ -47,7 +47,7 @@ package copygen
 type {{ .Root.Name }} struct {
 	{{- range $element := .Root.Children}}
 		{{- if isStruct $element }}
-			{{- sanitiseName $element.Name }} {{ goType $element }}
+			{{- sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}}{{ indexComment $element.Length $element.Occurs -}}
             {{- buildStruct $element }} 
 		{{ else }}
 			{{ sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}}{{ indexComment $element.Length $element.Occurs -}} 
@@ -93,7 +93,6 @@ func goType(l *lex.Record) string {
 	return tag
 }
 
-// TODO: (pgmitche) MUST add support for struct tags (sum of child length)
 func picTag(l int, i int) string {
 	if i > 0 {
 		return "`" + fmt.Sprintf("pic:\"%d,%d\"", l, i) + "`"
@@ -101,6 +100,15 @@ func picTag(l int, i int) string {
 	return "`" + fmt.Sprintf("pic:\"%d\"", l) + "`"
 }
 
+// FIXME: (pgmitche) index comments are being overcalculated now,
+// due to struct support.
+// e.g. DUMMYGROUP1's length of 63 is being calculated 3x to 1+189
+// so DUMMYGROUP3 now starts at 201, instead of 64
+//
+// type root struct {
+//	DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`  // start:1 end:63
+//	DUMMYGROUP3 DUMMYGROUP3 `pic:"201"` // start:190 end:390
+// }
 func indexComment(l int, i int) string {
 	size := l
 	if i > 0 {
@@ -125,7 +133,7 @@ func getStructs() []string {
 	return structs
 }
 
-// TODO: (pgmitche) if record is struct but has no children,
+// FIXME: (pgmitche) if record is struct but has no children,
 // it should probably be ignored entirely
 func getStructTemplate() *template.Template {
 	t, err := template.New("struct").
@@ -134,10 +142,10 @@ func getStructTemplate() *template.Template {
 type {{ sanitiseName .Name }} struct {
 	{{- range $element := .Children}}
 		{{- if isStruct $element }}
-			{{ sanitiseName $element.Name }} {{ goType $element -}}
+			{{ sanitiseName $element.Name }} {{ goType $element -}} {{ picTag $element.Length $element.Occurs}} {{ indexComment $element.Length $element.Occurs -}}
             {{ buildStruct $element -}} 
 		{{ else }}
-			{{ sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}}{{ indexComment $element.Length $element.Occurs -}}
+			{{ sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}} {{ indexComment $element.Length $element.Occurs -}}
 		{{- end }}
 	{{- end }}
 }`)
@@ -148,7 +156,7 @@ type {{ sanitiseName .Name }} struct {
 	return t
 }
 
-// TODO: (pgmitche) if record is struct but has no children,
+// FIXME: (pgmitche) if record is struct but has no children,
 // it should probably be ignored entirely
 func buildStruct(r *lex.Record) string {
 	b := bytes.Buffer{}
