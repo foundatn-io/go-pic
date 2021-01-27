@@ -38,13 +38,15 @@ var fileCmd = &cobra.Command{
 }
 
 var (
-	previewFlag = "preview"
+	displayFlag = "display"
 	outFlag     = "output"
 	inFlag      = "input"
+	pkgFlag     = "package"
 
-	previewHelp = "preview in terminal, the results of parsing (not templated)"
+	displayHelp = "display preview in terminal, the results of parsing (not templated)"
 	inputHelp   = "path to input file"
 	outputHelp  = "path to output file"
+	pkgHelp     = "output file package name"
 )
 
 // Execute executes the root command.
@@ -53,17 +55,23 @@ func Execute() error {
 }
 
 func init() { // nolint:gochecknoinits
-	dirCmd.Flags().BoolP(previewFlag, "p", false, previewHelp)
+	dirCmd.Flags().BoolP(displayFlag, "d", false, displayHelp)
 	dirCmd.Flags().StringP(outFlag, "o", "", outputHelp)
 	dirCmd.Flags().StringP(inFlag, "i", "", inputHelp)
-	fileCmd.Flags().BoolP(previewFlag, "p", false, previewHelp)
+	dirCmd.Flags().StringP(pkgFlag, "p", "", pkgHelp)
+
+	fileCmd.Flags().BoolP(displayFlag, "d", false, displayHelp)
 	fileCmd.Flags().StringP(outFlag, "o", "", outputHelp)
 	fileCmd.Flags().StringP(inFlag, "i", "", inputHelp)
+	fileCmd.Flags().StringP(pkgFlag, "p", "", pkgHelp)
 
 	_ = dirCmd.MarkFlagRequired(outFlag)
 	_ = dirCmd.MarkFlagRequired(inFlag)
+	_ = dirCmd.MarkFlagRequired(pkgFlag)
+
 	_ = fileCmd.MarkFlagRequired(outFlag)
 	_ = fileCmd.MarkFlagRequired(inFlag)
+	_ = fileCmd.MarkFlagRequired(pkgFlag)
 
 	rootCmd.AddCommand(dirCmd)
 	rootCmd.AddCommand(fileCmd)
@@ -80,7 +88,12 @@ func dirRun(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to extract value for flag %s: %w", inFlag, err)
 	}
 
-	p, _ := cmd.Flags().GetBool(previewFlag)
+	pkg, err := cmd.Flags().GetString(pkgFlag)
+	if err != nil {
+		return fmt.Errorf("failed to extract value for flag %s: %w", pkgFlag, err)
+	}
+
+	d, _ := cmd.Flags().GetBool(displayFlag)
 
 	fs, err := ioutil.ReadDir(in)
 	if err != nil {
@@ -106,7 +119,7 @@ func dirRun(cmd *cobra.Command, _ []string) error {
 			return fmt.Errorf("failed to open file %s: %w", ff.Name(), err)
 		}
 
-		if err := run(f, filepath.Join(out, ff.Name()), p); err != nil {
+		if err := run(f, filepath.Join(out, ff.Name()), pkg, d); err != nil {
 			return err
 		}
 	}
@@ -125,7 +138,12 @@ func fileRun(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to extract value for flag %s: %w", inFlag, err)
 	}
 
-	p, _ := cmd.Flags().GetBool(previewFlag)
+	pkg, err := cmd.Flags().GetString(pkgFlag)
+	if err != nil {
+		return fmt.Errorf("failed to extract value for flag %s: %w", pkgFlag, err)
+	}
+
+	d, _ := cmd.Flags().GetBool(displayFlag)
 
 	log.Printf("parsing copybook file %s", in)
 	f, err := os.Open(in) // nolint:gosec
@@ -133,14 +151,14 @@ func fileRun(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to open file %s: %w", in, err)
 	}
 
-	return run(f, out, p)
+	return run(f, out, pkg, d)
 }
 
-func run(r io.Reader, output string, preview bool) error {
+func run(r io.Reader, output, pkg string, preview bool) error {
 	name := strings.TrimSuffix(output, filepath.Ext(output))
 	n := name[strings.LastIndex(name, "/")+1:]
 
-	c := copybook.New(n, template.Copybook())
+	c := copybook.New(n, pkg, template.Copybook())
 
 	b, err := ioutil.ReadAll(r)
 	if err != nil {

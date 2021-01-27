@@ -4,14 +4,15 @@
 ////////////////////////////////
 
 // nolint
-package copygen
+package main
 
-// Copybookexample contains a representation of your provided Copybook
+// root contains a representation of your provided Copybook
 type root struct {
 	DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`
 	DUMMYGROUP3 DUMMYGROUP3 `pic:"201"`
 }
 
+// DUMMYSUBGROUP1 contains a representation of the nested group DUMMY-SUB-GROUP-1
 type DUMMYSUBGROUP1 struct {
 	DUMMYGROUP1OBJECTA uint   `pic:"4"`  // start:1 end:4
 	DUMMYGROUP1OBJECTB string `pic:"1"`  // start:5 end:5
@@ -22,14 +23,17 @@ type DUMMYSUBGROUP1 struct {
 	DUMMYGROUP1OBJECTH uint   `pic:"4"`  // start:60 end:63
 }
 
+// DUMMYGROUP1 contains a representation of the nested group DUMMY-GROUP-1
 type DUMMYGROUP1 struct {
 	DUMMYSUBGROUP1 DUMMYSUBGROUP1 `pic:"63"`
 }
 
+// DUMMYSUBGROUP2GETSDROPPED contains a representation of the nested group DUMMY-SUBGROUP-2-GETSDROPPED
 type DUMMYSUBGROUP2GETSDROPPED struct {
 	DUMMYSUBGROUP2OBJECTA []string `pic:"12,12"` // start:97 end:240
 }
 
+// DUMMYGROUP3 contains a representation of the nested group DUMMY-GROUP-3
 type DUMMYGROUP3 struct {
 	DUMMYGROUP2OBJECTA        string                    `pic:"14"` // start:64 end:77
 	DUMMYGROUP2OBJECTB        uint                      `pic:"7"`  // start:78 end:84

@@ -14,9 +14,10 @@ import (
 )
 
 type Copybook struct {
-	Name string
-	Root *lex.Record
-	t    *template.Template
+	Name    string
+	Root    *lex.Record
+	Package string
+	t       *template.Template
 }
 
 type Record struct {
@@ -28,10 +29,11 @@ type Record struct {
 	Occurs  int          // Occurs is required if present
 }
 
-func New(name string, t *template.Template) *Copybook {
+func New(name, pkg string, t *template.Template) *Copybook {
 	return &Copybook{
-		Name: name,
-		t:    t,
+		Name:    name,
+		Package: pkg,
+		t:       t,
 	}
 }
 

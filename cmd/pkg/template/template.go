@@ -41,9 +41,9 @@ func getTemplate() *template.Template {
 ////////////////////////////////
 
 // nolint
-package copygen
+package {{ .Package }}
 
-// Copybook{{.Name}} contains a representation of your provided Copybook
+// {{ .Root.Name }} contains a representation of your provided Copybook
 type {{ .Root.Name }} struct {
 	{{- range $element := .Root.Children}}
 		{{- if isStruct $element }}
@@ -139,6 +139,7 @@ func getStructTemplate() *template.Template {
 	t, err := template.New("struct").
 		Funcs(getTemplateFuncs()).
 		Parse(`
+// {{ sanitiseName .Name }} contains a representation of the nested group {{ .Name }}
 type {{ sanitiseName .Name }} struct {
 	{{- range $element := .Children}}
 		{{- if isStruct $element }}
