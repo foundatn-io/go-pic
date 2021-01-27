@@ -92,19 +92,19 @@ func TestUnmarshal(t *testing.T) {
 			val:      []byte("foo  nan  ddd  "),
 			target:   &basicTypes{},
 			expected: &basicTypes{},
-			err:      fmt.Errorf(""),
+			err:      fmt.Errorf("pic: cannot unmarshal foo  nan  ddd   into Go struct field basicTypes.Int of type int: failed string->int conversion: strconv.Atoi: parsing \"nan\": invalid syntax"),
 		}, {
 			name:     "Empty Line",
 			val:      []byte(""),
 			target:   &basicTypes{},
 			expected: &basicTypes{},
-			err:      fmt.Errorf(""),
+			err:      fmt.Errorf("EOF"),
 		}, {
 			name:     "Invalid Target",
 			val:      []byte("foo  123  1.2  "),
 			target:   basicTypes{},
 			expected: basicTypes{},
-			err:      fmt.Errorf(""),
+			err:      fmt.Errorf("decode: unmarshal target object is not a pointer, or is nil"),
 		}, {
 			name:   "offsetcheck",
 			val:    []byte("000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 00000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 "),

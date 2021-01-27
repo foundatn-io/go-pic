@@ -71,7 +71,7 @@ func Test_Build(t *testing.T) {
 	for _, test := range tests {
 		tt := test
 		t.Run(tt.name, func(t *testing.T) {
-			c := New(tt.name, template.Copybook())
+			c := New(tt.name, "main", template.Copybook())
 
 			b, err := ioutil.ReadAll(tt.input)
 			require.NoError(t, err)

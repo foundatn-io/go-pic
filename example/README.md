@@ -52,4 +52,6 @@ Example input is provided [here](ExampleCopybook.txt). It generates the struct l
 
 You can generate this yourself, and verify the behaviour with the following command: 
  
-`$ gopic file -o example/example.go -i example/ExampleCopybook.txt`
+```shel
+gopic file -d -p main -o example/example.go -i example/ExampleCopybook.txt
+```
