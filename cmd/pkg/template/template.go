@@ -47,7 +47,7 @@ package copygen
 type {{ .Root.Name }} struct {
 	{{- range $element := .Root.Children}}
 		{{- if isStruct $element }}
-			{{- sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}}{{ indexComment $element.Length $element.Occurs -}}
+			{{- sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}}
             {{- buildStruct $element }} 
 		{{ else }}
 			{{ sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}}{{ indexComment $element.Length $element.Occurs -}} 
@@ -142,7 +142,7 @@ func getStructTemplate() *template.Template {
 type {{ sanitiseName .Name }} struct {
 	{{- range $element := .Children}}
 		{{- if isStruct $element }}
-			{{ sanitiseName $element.Name }} {{ goType $element -}} {{ picTag $element.Length $element.Occurs}} {{ indexComment $element.Length $element.Occurs -}}
+			{{ sanitiseName $element.Name }} {{ goType $element -}} {{ picTag $element.Length $element.Occurs}} 
             {{ buildStruct $element -}} 
 		{{ else }}
 			{{ sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}} {{ indexComment $element.Length $element.Occurs -}}
