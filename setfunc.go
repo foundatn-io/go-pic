@@ -62,7 +62,7 @@ func uintSetFunc(v reflect.Value, s string) error {
 		return fmt.Errorf("failed string->int conversion: %w", err)
 	}
 
-	v.SetUint(uint64(i))
+	v.SetUint(i)
 	return nil
 }
 

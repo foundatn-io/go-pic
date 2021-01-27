@@ -77,7 +77,7 @@ func init() { // nolint:gochecknoinits
 	rootCmd.AddCommand(fileCmd)
 }
 
-func dirRun(cmd *cobra.Command, _ []string) error {
+func dirRun(cmd *cobra.Command, _ []string) error { // nolint:gocyclo
 	out, err := cmd.Flags().GetString(outFlag)
 	if err != nil {
 		return fmt.Errorf("failed to extract value for flag %s: %w", outFlag, err)
