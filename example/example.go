@@ -41,7 +41,6 @@ type DUMMYGROUP3 struct {
 	DUMMYGROUP2OBJECTD        string                    `pic:"1"`  // start:89 end:89
 	DUMMYGROUP2OBJECTF        string                    `pic:"7"`  // start:90 end:96
 	DUMMYSUBGROUP2GETSDROPPED DUMMYSUBGROUP2GETSDROPPED `pic:"144"`
-
-	DUMMYGROUP2OBJECTG string `pic:"12"` // start:241 end:252
-	DUMMYGROUP2OBJECTH string `pic:"12"` // start:253 end:264
+	DUMMYGROUP2OBJECTG        string                    `pic:"12"` // start:241 end:252
+	DUMMYGROUP2OBJECTH        string                    `pic:"12"` // start:253 end:264
 }
