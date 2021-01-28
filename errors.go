@@ -1,22 +1,11 @@
 package pic
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
-type InvalidUnmarshalError struct {
-	Type reflect.Type
-}
-
-func (e *InvalidUnmarshalError) Error() string {
-	if e.Type == nil {
-		return "pic: Unmarshal(nil)"
-	}
-
-	if e.Type.Kind() != reflect.Ptr {
-		return "pic: Unmarshal(non-pointer " + e.Type.String() + ")"
-	}
-	return "pic: Unmarshal(nil " + e.Type.String() + ")"
-}
-
+// UnmarshalTypeError represents an unmarshal malfunction
 type UnmarshalTypeError struct {
 	Value  string       // raw value
 	Type   reflect.Type // type of Go value it could not be assigned to
@@ -25,15 +14,18 @@ type UnmarshalTypeError struct {
 	Cause  error        // original error
 }
 
+// Error converts details of an UnmarshalTypeError into a meaningful string
 func (e *UnmarshalTypeError) Error() string {
-	var s string
+	var err error
 	if e.Struct != "" || e.Field != "" {
-		s = "pic: cannot unmarshal " + e.Value + " into Go struct field " + e.Struct + "." + e.Field + " of type " + e.Type.String()
+		err = fmt.Errorf("pic: cannot unmarshal %s into Go struct field %s.%s of type %s", e.Value, e.Struct, e.Field, e.Type.String())
 	} else {
-		s = "pic: cannot unmarshal " + e.Value + " into Go value of type " + e.Type.String()
+		err = fmt.Errorf("pic: cannot unmarshal %s into Go value of type %s", e.Value, e.Type.String())
 	}
+
 	if e.Cause != nil {
-		return s + ":" + e.Cause.Error()
+		return fmt.Sprintf("%s: %s", err.Error(), e.Cause.Error())
 	}
-	return s
+
+	return err.Error()
 }

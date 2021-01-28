@@ -153,6 +153,7 @@ linters:
     - gocritic
     - gocyclo
     - gofmt
+    - golint
     - goimports
     - gosec
     - gosimple
@@ -168,15 +169,20 @@ linters:
     - unconvert
     - unparam
     - unused
+    - whitespace
     - varcheck
+    - prealloc
+    - maligned
+    - wrapcheck
+    - gomnd
+    - errorlint
+    - nolintlint
+    - scopelint
 
   # don't enable:
   # - gochecknoglobals
   # - gocognit
-  # - godox
-  # - maligned
   # - prealloc
-  # - golint
   # - stylecheck (more pain than it's worth)
 
 issues:
@@ -209,4 +215,4 @@ issues:
   # e.g. new-from-patch: path/to/patch/file
 
 service:
-  golangci-lint-version: 1.26.x
+  golangci-lint-version: 1.32.X

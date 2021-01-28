@@ -1,10 +1,17 @@
 package pic
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
+)
+
+const (
+	// when a tag is split on ',' if there are 2 elements,
+	// the second indicates the occurs count
+	occursIndicator = 2
 )
 
 var fieldRepCache sync.Map // map[reflect.Type]structRepresentation
@@ -23,17 +30,17 @@ type fieldRepresentation struct {
 func parseTag(tag string, prev int) (int, int, int, int, error) {
 	var occursSize int
 	ss := strings.Split(tag, ",")
-	if len(ss) == 2 {
+	if len(ss) == occursIndicator {
 		o, err := strconv.Atoi(ss[1])
 		if err != nil {
-			return 0, 0, 0, 0, err
+			return 0, 0, 0, 0, fmt.Errorf("failed string->int conversion: %w", err)
 		}
 		occursSize = o
 	}
 
 	length, err := strconv.Atoi(ss[0])
 	if err != nil {
-		return 0, 0, 0, 0, err
+		return 0, 0, 0, 0, fmt.Errorf("failed string->int conversion: %w", err)
 	}
 
 	if occursSize > 0 {

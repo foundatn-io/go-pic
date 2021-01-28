@@ -1,4 +1,4 @@
-name: Linter Check
+name: Lint
 on:
   push:
     branches:
@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-contrib/golangci-lint@v1
+      - uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.32
         env:
           GOFLAGS: "-mod=readonly"
-        with:
-          golangci_lint_version: v1.26.0

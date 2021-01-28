@@ -20,22 +20,33 @@ import (
 // c := &Company{}
 // pic.Unmarshal([]byte(s)]), c);
 
+// Unmarshal accepts input data, and a destination object it will build a new
+// decoder and decode the input into the target object.
 func Unmarshal(data []byte, v interface{}) error {
 	return NewDecoder(bytes.NewReader(data)).Decode(v)
 }
 
-type Decoder struct {
+type decoder struct {
 	s    *bufio.Scanner
 	done bool
 }
 
-func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{
+// Decoder ...
+type Decoder interface {
+	Decode(interface{}) error
+}
+
+// NewDecoder builds a new decoder using a bufio.Scanner for the given input
+// io.Reader.
+func NewDecoder(r io.Reader) Decoder {
+	return &decoder{
 		s: bufio.NewScanner(r),
 	}
 }
 
-func (d *Decoder) Decode(v interface{}) error {
+// Decode scans through each line of the input data, attempting to unpack its
+// values into the provided destination struct.
+func (d *decoder) Decode(v interface{}) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return errors.New("decode: unmarshal target object is not a pointer, or is nil")
@@ -53,20 +64,19 @@ func (d *Decoder) Decode(v interface{}) error {
 	return err
 }
 
-func (d *Decoder) scanLine(v reflect.Value) (bool, error) {
+func (d *decoder) scanLine(v reflect.Value) (bool, error) {
 	if ok := d.s.Scan(); !ok {
 		d.done = true
 		return false, nil
 	}
 
-	l := string(d.s.Bytes())
 	t := v.Type()
 
 	set := newSetFunc(t, 0, 0)
-	return true, set(v, l)
+	return true, set(v, string(d.s.Bytes()))
 }
 
-func (d *Decoder) scanLines(v reflect.Value) (err error) {
+func (d *decoder) scanLines(v reflect.Value) (err error) {
 	ct := v.Type().Elem()
 	for {
 		nv := reflect.New(ct).Elem()
@@ -78,6 +88,7 @@ func (d *Decoder) scanLines(v reflect.Value) (err error) {
 		if ok {
 			v.Set(reflect.Append(v, nv))
 		}
+
 		if d.done {
 			break
 		}

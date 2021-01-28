@@ -2,6 +2,7 @@ package pic
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 )
@@ -14,10 +15,12 @@ func newSetFunc(t reflect.Type, picSize, occursSize int) setFunc {
 		return strSetFunc
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return intSetFunc
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return uintSetFunc
 	case reflect.Float32:
-		return floatSetFunc(32)
+		return floatSetFunc(32) // nolint:gomnd
 	case reflect.Float64:
-		return floatSetFunc(64)
+		return floatSetFunc(64) // nolint:gomnd
 	case reflect.Slice:
 		return arraySetFunc(picSize, occursSize)
 	case reflect.Ptr:
@@ -42,10 +45,24 @@ func intSetFunc(v reflect.Value, s string) error {
 
 	i, err := strconv.Atoi(s)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed string->int conversion: %w", err)
 	}
 
 	v.SetInt(int64(i))
+	return nil
+}
+
+func uintSetFunc(v reflect.Value, s string) error {
+	if len(s) < 1 {
+		return nil
+	}
+
+	i, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed string->int conversion: %w", err)
+	}
+
+	v.SetUint(i)
 	return nil
 }
 
@@ -57,7 +74,7 @@ func floatSetFunc(size int) setFunc {
 
 		f, err := strconv.ParseFloat(s, size)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed string->float64 conversion: %w", err)
 		}
 
 		v.SetFloat(f)
@@ -88,6 +105,7 @@ func arraySetFunc(l, count int) setFunc {
 			}
 			track = next
 		}
+
 		v.Set(many)
 
 		return nil

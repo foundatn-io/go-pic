@@ -1,4 +1,4 @@
-# go-pic
+# 📺  go-pic
 COBOL PIC (Picture) clause parsing library
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/pgmitche/go-pic)](https://goreportcard.com/report/github.com/pgmitche/go-pic)
@@ -7,11 +7,11 @@ COBOL PIC (Picture) clause parsing library
 [![Release](https://img.shields.io/github/release/pgmitche/go-pic.svg?style=flat-square)](https://github.com/pgmitche/go-pic/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/pgmitche/go-pic/blob/master/LICENSE)
 
-## What is go-pic
+## 🤷🏽‍ What is go-pic
 
 `gopic` is both a tool and package, it's purpose is to help you process COBOL copybook files with ease
 
-#### Unmarshaller
+#### 📤 Unmarshaller
 
 `gopic` can be used to enable simpler 1:1 mapping of PIC definitions to Go structs. 
 
@@ -35,11 +35,11 @@ copybook
     000180      15  PropertyA    PIC X(5).     00000117
     000190      15  PropertyB    PIC X(2).     00000118
     ```
-
+    You would tag your struct like so
     ```go
     type yourStruct struct {
-        PropertyA string `pic:5` 
-        PropertyB string `pic:2`
+        PropertyA string `pic:"5"` 
+        PropertyB string `pic:"2"`
     }
     ```
 
@@ -55,7 +55,7 @@ copybook
 
 </details>
 
-#### Struct generator
+#### 📥 Struct generator
 
 `gopic` can be used to generate simpler 1:1 mapping of PIC definitions to Go structs. 
 
@@ -73,16 +73,16 @@ copybook
     make install
     ```
    
-2. Generate structs from a copybook file
+2. Generate structs from a copybook file (long-form flags)
     
     ```shell script
-    gopic file -o shipping -i cobolstuff/copybook-shipping.txt
+    gopic file --package=shipping --output=shipping --input=cobolstuff/copybook-shipping.txt
     ```
     
-3. Generate many structs from a directory containing copybooks (only copybooks)
+3. Generate many structs from a directory containing only copybooks (short-form flags)
 
     ```shell script
-    gopic dir -o mystructsdir -i cobolstuff
+    gopic dir -p mystructsdir -o mystructsdir -i cobolstuff
     ```
 
 </details>
@@ -101,6 +101,11 @@ if generated with `gopic` becomes:
 ```go
 type Copybook struct{
     PropertyA uint      `pic:"9"`  // start:1 end:9
-    PropertyB string    `pic:"2"`  // start:10 end:12
+    PropertyB string    `pic:"2"`  // start:10 end:11
 }
 ```
+
+### 🚧 Alas, these are not yet supported
+ - PIC symbols [ `S`, `V`, `P` ]
+ - Level indicator 88 enums
+ - Level indicator 77 items which cannot be sub-divided

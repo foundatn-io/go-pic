@@ -1,8 +1,8 @@
-package decoder
+package lex
 
 import (
+	"fmt"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -86,7 +86,7 @@ func parsePICCount(s string) (int, error) {
 		end := right + 1
 		amount, err := strconv.Atoi(s[left+1 : right])
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed string->int conversion: %w", err)
 		}
 
 		size += amount
@@ -97,15 +97,10 @@ func parsePICCount(s string) (int, error) {
 	return size + len(c), nil
 }
 
-// parseOccursCount captures the numerical definition of n occurrences
-// e.g. definitions like "OCCURS 12." are passed in as "12." and return 12
-func parseOccursCount(in string) (int, error) {
-	return strconv.Atoi(strings.Trim(in, "."))
-}
-
-// trimExtraWhitespace flattens all whitespace down to a single space.
-func trimExtraWhitespace(in string) string {
-	return strings.Trim(
-		regexp.MustCompile(`\s+`).ReplaceAllString(in, " "),
-		" ")
+// parseOccursCount captures N where N is the OCCURS count
+// e.g. OCCURS 12. returns 12
+func parseOccursCount(i item) (int, error) {
+	s := strings.TrimPrefix(i.val, "OCCURS ")
+	n := strings.TrimSuffix(s, ".")
+	return strconv.Atoi(n)
 }
