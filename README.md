@@ -1,4 +1,4 @@
-# go-pic
+# 📺  go-pic
 COBOL PIC (Picture) clause parsing library
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/pgmitche/go-pic)](https://goreportcard.com/report/github.com/pgmitche/go-pic)
@@ -7,11 +7,11 @@ COBOL PIC (Picture) clause parsing library
 [![Release](https://img.shields.io/github/release/pgmitche/go-pic.svg?style=flat-square)](https://github.com/pgmitche/go-pic/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/pgmitche/go-pic/blob/master/LICENSE)
 
-## What is go-pic
+## 🤷🏽‍ What is go-pic
 
 `gopic` is both a tool and package, it's purpose is to help you process COBOL copybook files with ease
 
-#### Unmarshaller
+#### 📤 Unmarshaller
 
 `gopic` can be used to enable simpler 1:1 mapping of PIC definitions to Go structs. 
 
@@ -55,7 +55,7 @@ copybook
 
 </details>
 
-#### Struct generator
+#### 📥 Struct generator
 
 `gopic` can be used to generate simpler 1:1 mapping of PIC definitions to Go structs. 
 
@@ -104,3 +104,8 @@ type Copybook struct{
     PropertyB string    `pic:"2"`  // start:10 end:11
 }
 ```
+
+### 🚧 Alas, these are not yet supported
+ - PIC symbols [ `S`, `V`, `P` ]
+ - Level indicator 88 enums
+ - Level indicator 77 items which cannot be sub-divided
