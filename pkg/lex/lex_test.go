@@ -124,10 +124,6 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemSpace, pos: 55, val: "  ", line: 0},
 				{typ: itemOCCURS, pos: 57, val: "OCCURS 2", line: 0},
 				{typ: itemDot, pos: 65, val: ".", line: 0},
-				// FIXME: actual is shown as below, which is a bug:
-				// {typ: itemPIC, pos: 48, val: "PIC(10) ", line: 0},
-				// {typ: itemSpace, pos: 56, val: " ", line: 0},
-				// {typ: itemOCCURS, pos: 57, val: "OCCURS 2.", line: 0},
 				{typ: itemSpace, pos: 66, val: "  ", line: 0},
 				{typ: itemNumber, pos: 68, val: "00000167", line: 0},
 				{typ: itemEOL, pos: 76, val: "\n", line: 0},

@@ -45,13 +45,13 @@ var (
 		"multiRedefinesPart": {itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemDot, itemSpace, itemNumber},
 
 		// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12. 00000241
-		"occurs": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemOCCURS, itemSpace, itemNumber},
+		"occurs": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemOCCURS, itemDot, itemSpace, itemNumber},
 
 		// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12)  00000241
 		"multiOccurs": {itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber},
 
 		// 001300      OCCURS 12.                            00000242
-		"multiOccursPart": {itemNumber, itemSpace, itemOCCURS, itemSpace, itemNumber},
+		"multiOccursPart": {itemNumber, itemSpace, itemOCCURS, itemDot, itemSpace, itemNumber},
 	}
 )
 
