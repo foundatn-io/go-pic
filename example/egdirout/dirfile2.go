@@ -6,8 +6,8 @@
 // nolint
 package main
 
-// root contains a representation of your provided Copybook
-type root struct {
+// dirfile2 contains a representation of your provided Copybook
+type dirfile2 struct {
 	EXAMPLEGROUP1 EXAMPLEGROUP1 `pic:"63"`
 	EXAMPLEGROUP3 EXAMPLEGROUP3 `pic:"201"`
 }

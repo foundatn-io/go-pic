@@ -165,7 +165,7 @@ func run(r io.Reader, output, pkg string, preview bool) error {
 		return fmt.Errorf("failed to read input data: %w", err)
 	}
 
-	tree := lex.NewTree(lex.New("go-pic", string(b)))
+	tree := lex.NewTree(lex.New(n, string(b)))
 	time.Sleep(time.Millisecond)
 	c.Root = tree.Parse()
 	// TODO: (pgmitche) if record in tree is struct but has no children,
@@ -179,6 +179,7 @@ func run(r io.Reader, output, pkg string, preview bool) error {
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %w", name, err)
 	}
+	defer newFile.Close()
 
 	return c.WriteToStruct(newFile)
 }

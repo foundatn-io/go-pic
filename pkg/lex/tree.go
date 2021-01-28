@@ -18,7 +18,7 @@ type Tree struct {
 
 func NewTree(lxr Lexer) *Tree {
 	log.Println("building new tree")
-	root := &Record{Typ: reflect.Struct, Name: "root", depthMap: make(map[string]*Record)}
+	root := &Record{Typ: reflect.Struct, Name: lxr.getName(), depthMap: make(map[string]*Record)}
 	return &Tree{
 		lex:   lxr,
 		state: root,
