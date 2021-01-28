@@ -6,8 +6,8 @@
 // nolint
 package main
 
-// root contains a representation of your provided Copybook
-type root struct {
+// example contains a representation of your provided Copybook
+type example struct {
 	DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`
 	DUMMYGROUP3 DUMMYGROUP3 `pic:"201"`
 }

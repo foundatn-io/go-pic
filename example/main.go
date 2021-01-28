@@ -16,7 +16,7 @@ func main() {
 	}
 
 	d := pic.NewDecoder(f)
-	c := &root{}
+	c := &example{}
 	if err := d.Decode(c); err != nil {
 		log.Fatal(err)
 	}
