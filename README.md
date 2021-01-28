@@ -73,16 +73,16 @@ copybook
     make install
     ```
    
-2. Generate structs from a copybook file
+2. Generate structs from a copybook file (long-form flags)
     
     ```shell script
-    gopic file -o shipping -i cobolstuff/copybook-shipping.txt
+    gopic file --package=shipping --output=shipping --input=cobolstuff/copybook-shipping.txt
     ```
     
-3. Generate many structs from a directory containing copybooks (only copybooks)
+3. Generate many structs from a directory containing only copybooks (short-form flags)
 
     ```shell script
-    gopic dir -o mystructsdir -i cobolstuff
+    gopic dir -p mystructsdir -o mystructsdir -i cobolstuff
     ```
 
 </details>
