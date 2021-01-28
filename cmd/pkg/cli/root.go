@@ -179,7 +179,11 @@ func run(r io.Reader, output, pkg string, preview bool) error {
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %w", name, err)
 	}
-	defer newFile.Close()
+	defer func() {
+		if err := newFile.Close(); err != nil {
+			log.Fatalln(err)
+		}
+	}()
 
 	return c.WriteToStruct(newFile)
 }

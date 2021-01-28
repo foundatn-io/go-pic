@@ -24,6 +24,7 @@ type lexer struct {
 
 type Lexer interface {
 	nextItem() item
+	getName() string
 }
 
 // New creates a new scanner for the input string.
@@ -38,6 +39,10 @@ func New(name, input string) Lexer {
 	}
 	l.run()
 	return l
+}
+
+func (l *lexer) getName() string {
+	return l.name
 }
 
 // run runs the state machine for the lexer.

@@ -67,14 +67,15 @@ func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simpl
 	return lexInsideStatement(l)
 }
 
-// FIXME: PIC 9(11).9(2). is misinterpreted by the lexer and causes infinite
-// crashing loop
 func lexPIC(l *lexer) stateFn {
 	var r rune
 	for {
 		r = l.next()
 
 		if !isPICChar(r) {
+			// if after a pic character, we get a space it is likely
+			// there may be an OCCURS definition to follow, e.g.
+			// PIC X(10) OCCURS 12.
 			if isSpace(r) {
 				switch nx := l.peek(); {
 				case isPICChar(nx), isPICType(nx), nx == '.':
@@ -85,6 +86,13 @@ func lexPIC(l *lexer) stateFn {
 					l.emit(itemPIC)
 					return lexSpace(l)
 				}
+			}
+
+			// if we've just reached the terminator '.'
+			// let's peek and see if it's actually an explicit decimal point
+			// e.g. PIC 9(9).9(2) -> 123456789.50
+			if isPICChar(l.peek()) {
+				continue
 			}
 
 			if !l.atPICTerminator() {
@@ -100,7 +108,6 @@ func lexPIC(l *lexer) stateFn {
 		return l.errorf(e.Error())
 	}
 
-	// l.next() // don't! glob the PICterminator
 	l.emit(itemPIC)
 	return lexInsideStatement(l)
 }

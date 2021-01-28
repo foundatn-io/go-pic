@@ -64,6 +64,7 @@ type {{ .Root.Name }} struct {
 func Copybook() *template.Template {
 	startPos = 1
 	endPos = 1
+	structs = make([]string, 0)
 
 	return getTemplate()
 }

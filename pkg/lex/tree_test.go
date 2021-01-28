@@ -72,10 +72,10 @@ func Test_Parse(t *testing.T) {
 		in   *Tree
 		want *Record
 	}{
-		{
+		{ // nolint:dupl // test data
 			name: "Simple",
 			want: &Record{
-				Name:   "root",
+				Name:   "test",
 				Typ:    reflect.Struct,
 				Length: 3,
 				Children: []*Record{{
@@ -113,7 +113,7 @@ func Test_Parse(t *testing.T) {
 		}, {
 			name: "RedefinesWithParentheses",
 			want: &Record{
-				Name:   "root",
+				Name:   "test",
 				Typ:    reflect.Struct,
 				Length: 5,
 				Children: []*Record{{
@@ -141,7 +141,7 @@ func Test_Parse(t *testing.T) {
 		}, {
 			name: "Redefines",
 			want: &Record{
-				Name:   "root",
+				Name:   "test",
 				Typ:    reflect.Struct,
 				Length: 5,
 				Children: []*Record{{
@@ -170,7 +170,7 @@ func Test_Parse(t *testing.T) {
 		{
 			name: "SimpleOccurs",
 			want: &Record{
-				Name:   "root",
+				Name:   "test",
 				Typ:    reflect.Struct,
 				Length: 12,
 				Children: []*Record{{
@@ -201,7 +201,7 @@ func Test_Parse(t *testing.T) {
 		}, {
 			name: "MultilineOccurs",
 			want: &Record{
-				Name:   "root",
+				Name:   "test",
 				Typ:    reflect.Struct,
 				Length: 12,
 				Children: []*Record{{
@@ -233,7 +233,7 @@ func Test_Parse(t *testing.T) {
 		}, {
 			name: "ExampleData",
 			want: &Record{
-				Name:   "root",
+				Name:   "exampledata",
 				Typ:    reflect.Struct,
 				Length: 240,
 				Children: []*Record{
@@ -357,7 +357,7 @@ func Test_Parse(t *testing.T) {
 000160     05  DUMMY-GROUP-1.                                           00000115
 `)),
 			want: &Record{
-				Name:   "root",
+				Name:   "JunkHeader",
 				Typ:    reflect.Struct,
 				Length: 0,
 				Children: []*Record{
@@ -368,6 +368,44 @@ func Test_Parse(t *testing.T) {
 					},
 				},
 			},
+		}, { // nolint:dupl // test data
+			name: "Simple_WithExplicitDecimalPICs",
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 22,
+				Children: []*Record{{
+					Name:   "DUMMY-GROUP-1",
+					Typ:    reflect.Struct,
+					Length: 22,
+					Children: []*Record{{
+						Name:   "DUMMY-SUB-GROUP-1",
+						Typ:    reflect.Struct,
+						Length: 22,
+						Children: []*Record{{
+							Name:   "DUMMY-GROUP-1-OBJECT-A",
+							Typ:    reflect.Float64,
+							Length: 12,
+						}, {
+							Name:   "DUMMY-GROUP-1-OBJECT-B",
+							Typ:    reflect.String,
+							Length: 1,
+						}, {
+							Name:   "DUMMY-GROUP-1-OBJECT-C",
+							Typ:    reflect.Float64,
+							Length: 9,
+						}},
+					}},
+				}},
+			},
+			in: NewTree(
+				New("test",
+					`000160     05  DUMMY-GROUP-1.                                           00000115
+000170         10  DUMMY-SUB-GROUP-1.                                00000116
+000180             15  DUMMY-GROUP-1-OBJECT-A   PIC 9(9).9(2).       00000117
+000190             15  DUMMY-GROUP-1-OBJECT-B   PIC X.               00000118
+000200             15  DUMMY-GROUP-1-OBJECT-C   PIC 9(4).9(4).       00000119
+		`)),
 		},
 	}
 

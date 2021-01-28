@@ -58,7 +58,7 @@ func treePrint(node *lex.Record, nest int) {
 }
 
 func (c *Copybook) WriteToStruct(writer io.Writer) error {
-	b := bytes.Buffer{}
+	var b bytes.Buffer
 	if err := c.t.Execute(&b, c); err != nil {
 		return fmt.Errorf("failed template copybook data: %w", err)
 	}
@@ -71,6 +71,8 @@ func (c *Copybook) WriteToStruct(writer io.Writer) error {
 	if _, err = writer.Write(bb); err != nil {
 		return fmt.Errorf("failed to write templated copybook data: %w", err)
 	}
+
+	b.Reset()
 
 	return nil
 }
