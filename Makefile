@@ -65,8 +65,12 @@ cover: test ## Runs unit tests and assesses output coverage file
 	@go tool cover -func=$(COVERFILE) | $(CHECK_COVERAGE)
 
 .PHONY: example
-example: install ## Builds & installs the gopic struct generation tool, regenerates example files
-	gopic file -o example/example.go -i example/ExampleCopybook.txt
+eg: install ## Builds & installs the gopic struct generation tool, regenerates example files
+	gopic file -d -p main -o example/example.go -i example/ExampleCopybook.txt
+
+.PHONY: example
+eg-dir: install ## Builds & installs the gopic struct generation tool, regenerates example files
+	gopic dir -d -p main -o example/egdirout -i example/egdirin
 
 define CHECK_COVERAGE
 awk \
