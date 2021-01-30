@@ -123,12 +123,72 @@ func parseOccurs(_ *Tree, l line, _ *Record) *Record {
 	}
 }
 
+// TODO: (pgmitche) tweak godoc here
+// isMultilineRedefinition is a fingerprinting function that validates whether a
+// line is an indicator for, and sibling of a multi-line redefinition
+//
+// it first checks the fingerprint of the line against the first fingerprint of
+// a multi-line REDEFINES definition
+// then uses nx() to get the next line, and validate that against the second
+// fingerprint of a multi-line REDEFINES definition
+//
+// when this is successful, the parseRedefines parserfn is returned, along with
+// a new, single, line object built from the two fingerprinted line objects.
+func parseRedefinesMulti(t *Tree, l line, _ *Record) *Record {
+	if err := t.nextLine(); err != nil {
+		panic(err)
+	}
+
+	_, i, ok := basicParserGet(t.line.items)
+	if !ok || !equalFingerprints(getFingerprint(i), multiRedefinesPartFp) {
+		log.Fatalln("parser indicated multi-line redefinition, but failed to verify next line")
+	}
+
+	l.items = lineFromMultiRedefines(l.items, i)
+	nl := l
+
+	return parseRedefines(nil, nl, nil)
+}
+
+// TODO: (pgmitche) tweak godoc here
+// isMultilineOccurrence is a fingerprinting function that validates whether a
+// line is an indicator for, and sibling of a multi-line occurrence definition
+//
+// it first checks the fingerprint of the line against the first fingerprint of
+// a multi-line OCCURS definition
+// then uses nx() to get the next line, and validate that against the second
+// fingerprint of a multi-line OCCURS definition
+//
+// when this is successful, the parseOccurs parserfn is returned, along with a
+// new, single, line object built from the two fingerprinted line objects.
+func parseOccursMulti(t *Tree, l line, _ *Record) *Record {
+	if err := t.nextLine(); err != nil {
+		panic(err)
+	}
+
+	_, i, ok := basicParserGet(t.line.items)
+	if !ok || !equalFingerprints(getFingerprint(i), multiOccursPartFp) {
+		log.Fatalln()
+	}
+
+	l.items = lineFromMultiOccurs(l.items, i)
+	nl := l
+
+	return parseOccurs(nil, nl, nil)
+}
+
 // parseNumDelimitedStruct is a parser wrapper used to build records
 // for lines that are determined to be new group definitions that are built with
 // number delimiter tokens at the start and end of the source line
 //
 // It will call parseStruct to handle logic for new groups
 func parseNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
+	// if the level number is 01, ignore this object.
+	// refer to README.md Level Number section
+	if l.items[2].val == recordDescriptionIndicator {
+		return noOp(t, l, root)
+	}
+
 	return parseStruct(t, l, root, 4, 2)
 }
 
@@ -138,6 +198,12 @@ func parseNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 //
 // It will call parseStruct to handle logic for new groups
 func parseNonNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
+	// if the level number is 01, ignore this object.
+	// refer to README.md Level Number section
+	if l.items[1].val == recordDescriptionIndicator {
+		return noOp(t, l, root)
+	}
+
 	return parseStruct(t, l, root, 3, 1)
 }
 

@@ -24,15 +24,13 @@ type line struct {
 	fn    parser
 }
 
-func buildLine(nx func() []item, items []item) *line {
-	for typ, fingerPrinter := range readers {
-		p, i, ok := fingerPrinter(nx, items)
-		if ok {
-			return &line{
-				items: i,
-				typ:   typ,
-				fn:    p,
-			}
+func buildLine(items []item) *line {
+	d := parsers.Search(getFingerprint(items))
+	if d != nil {
+		return &line{
+			items: items,
+			typ:   d.typ,
+			fn:    d.fn,
 		}
 	}
 
@@ -49,9 +47,9 @@ func buildLine(nx func() []item, items []item) *line {
 //
 // res 	= 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2   PIC X(7).  00000195
 func lineFromMultiRedefines(a, b []item) []item {
-	res := joinLines(len(fingerprints["redefines"]), a, b)
+	res := joinLines(len(redefinesFp), a, b)
 
-	if !equalFingerprints(getFingerprint(res), fingerprints["redefines"]) {
+	if !equalFingerprints(getFingerprint(res), redefinesFp) {
 		panic("multiline redefinition builder failed to build a redefinition with the correct fingerprint")
 	}
 
@@ -63,9 +61,9 @@ func lineFromMultiRedefines(a, b []item) []item {
 //
 // res  = 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
 func lineFromMultiOccurs(a, b []item) []item {
-	res := joinLines(len(fingerprints["occurs"]), a, b)
+	res := joinLines(len(occursFp), a, b)
 
-	if !equalFingerprints(getFingerprint(res), fingerprints["occurs"]) {
+	if !equalFingerprints(getFingerprint(res), occursFp) {
 		panic("multiline redefinition builder failed to build an occurrence with the correct fingerprint")
 	}
 
