@@ -67,7 +67,7 @@ func (t *Tree) scanLine() []item {
 
 // next returns the next token.
 func (t *Tree) next() item {
-	return t.lex.nextItem()
+	return t.lex.getNext()
 }
 
 // parseLines generates the text for the line

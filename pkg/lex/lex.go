@@ -23,7 +23,7 @@ type lexer struct {
 }
 
 type Lexer interface {
-	nextItem() item
+	getNext() item
 	getName() string
 }
 
@@ -131,7 +131,7 @@ func (l *lexer) acceptRun(valid string) {
 }
 
 // errorf returns an error token and terminates the scan by passing
-// back a nil pointer that will be the next state, terminating l.nextItem.
+// back a nil pointer that will be the next state, terminating l.getNext.
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 	l.items = append(l.items, item{
 		typ:  itemError,
@@ -144,7 +144,7 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 
 // nextItem returns the next item from the input.
 // Called by the parser, not in the lexing goroutine.
-func (l *lexer) nextItem() item {
+func (l *lexer) getNext() item {
 	var next item
 	if len(l.items) == 0 {
 		log.Println("no lexed items left in stack")

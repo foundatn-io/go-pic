@@ -6,7 +6,7 @@ import (
 
 type fingerprint []itemType
 
-type datum struct {
+type entry struct {
 	fp  fingerprint
 	fn  parser
 	typ lineType
@@ -48,7 +48,7 @@ var (
 	// 000160  05  DUMMY-GROUP-1.  00000115
 	numDelimitedStructFp = fingerprint{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber}
 
-	fingerprints = map[string]datum{
+	fingerprints = map[string]entry{
 		"numDelimitedStruct": {
 			typ: lineStruct,
 			fn:  parseNumDelimitedStruct,

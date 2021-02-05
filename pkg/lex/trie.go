@@ -4,15 +4,20 @@ const (
 	itemTypeSize = 13
 )
 
-// Trie ...
+// Trie is the structure in which clause/line type patterns are stored
 type Trie struct {
 	root *Node
 }
 
-// Node ...
+// Node is a child in the trie, which may indicate whether it is the final
+// token in a clause/line type pattern, returning the associated parser, finger-
+// print and lineType with that pattern.
+// Otherwise, the Node contains links to children, itself, to illustrate whether
+// it is part of, but not the final token of, a pattern that has been entered in
+// the trie.
 type Node struct {
 	children [itemTypeSize]*Node
-	isEnd    *datum
+	isEnd    *entry
 }
 
 // NewTrie ...
@@ -33,7 +38,7 @@ func (t *Trie) Insert(word fingerprint, p parser, typ lineType) {
 		// node (or existing node of the previous character)
 		cur = cur.children[word[i]]
 	}
-	cur.isEnd = &datum{
+	cur.isEnd = &entry{
 		fp:  word,
 		fn:  p,
 		typ: typ,
@@ -41,7 +46,7 @@ func (t *Trie) Insert(word fingerprint, p parser, typ lineType) {
 }
 
 // Search will search for the given word
-func (t *Trie) Search(word fingerprint) *datum { // nolint:golint
+func (t *Trie) Search(word fingerprint) *entry { // nolint:golint
 	cur := t.root
 	for i := 0; i < len(word); i++ {
 		// if the itemType is not in the children...
