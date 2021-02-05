@@ -123,12 +123,60 @@ func parseOccurs(_ *Tree, l line, _ *Record) *Record {
 	}
 }
 
+// parseRedefinesMulti validates that the next line in the tree returns an
+// expected multiline redefines part from the trie, and matches that fingerprint.
+// After which, it concatenates the origin line items, and the items from the
+// subsequent line, to make a valid, single-line REDEFINES definition, that is
+// then parsed.
+func parseRedefinesMulti(t *Tree, l line, root *Record) *Record {
+	if err := t.nextLine(); err != nil {
+		panic(err)
+	}
+
+	_, i, ok := basicParserGet(t.line.items)
+	if !ok || !equalFingerprints(getFingerprint(i), multiRedefinesPartFp) {
+		log.Fatalln("parser indicated multi-line redefinition, but failed to verify next line")
+	}
+
+	l.items = lineFromMultiRedefines(l.items, i)
+	nl := l
+
+	return parseRedefines(nil, nl, root)
+}
+
+// parseOccursMulti validates that the next line in the tree returns an expected
+// multiline occurs part from the trie, and matches that fingerprint.
+// After which, it concatenates the origin line items, and the items from the
+// subsequent line, to make a valid, single-line OCCURS definition, that is then
+// parsed.
+func parseOccursMulti(t *Tree, l line, _ *Record) *Record {
+	if err := t.nextLine(); err != nil {
+		panic(err)
+	}
+
+	_, i, ok := basicParserGet(t.line.items)
+	if !ok || !equalFingerprints(getFingerprint(i), multiOccursPartFp) {
+		log.Fatalln()
+	}
+
+	l.items = lineFromMultiOccurs(l.items, i)
+	nl := l
+
+	return parseOccurs(nil, nl, nil)
+}
+
 // parseNumDelimitedStruct is a parser wrapper used to build records
 // for lines that are determined to be new group definitions that are built with
 // number delimiter tokens at the start and end of the source line
 //
 // It will call parseStruct to handle logic for new groups
 func parseNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
+	// if the level number is 01, ignore this object.
+	// refer to README.md Level Number section
+	if l.items[2].val == recordDescriptionIndicator {
+		return noOp(t, l, root)
+	}
+
 	return parseStruct(t, l, root, 4, 2)
 }
 
@@ -138,6 +186,12 @@ func parseNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 //
 // It will call parseStruct to handle logic for new groups
 func parseNonNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
+	// if the level number is 01, ignore this object.
+	// refer to README.md Level Number section
+	if l.items[1].val == recordDescriptionIndicator {
+		return noOp(t, l, root)
+	}
+
 	return parseStruct(t, l, root, 3, 1)
 }
 
