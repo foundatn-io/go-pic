@@ -123,18 +123,12 @@ func parseOccurs(_ *Tree, l line, _ *Record) *Record {
 	}
 }
 
-// TODO: (pgmitche) tweak godoc here
-// isMultilineRedefinition is a fingerprinting function that validates whether a
-// line is an indicator for, and sibling of a multi-line redefinition
-//
-// it first checks the fingerprint of the line against the first fingerprint of
-// a multi-line REDEFINES definition
-// then uses nx() to get the next line, and validate that against the second
-// fingerprint of a multi-line REDEFINES definition
-//
-// when this is successful, the parseRedefines parserfn is returned, along with
-// a new, single, line object built from the two fingerprinted line objects.
-func parseRedefinesMulti(t *Tree, l line, _ *Record) *Record {
+// parseRedefinesMulti validates that the next line in the tree returns an
+// expected multiline redefines part from the trie, and matches that fingerprint.
+// After which, it concatenates the origin line items, and the items from the
+// subsequent line, to make a valid, single-line REDEFINES definition, that is
+// then parsed.
+func parseRedefinesMulti(t *Tree, l line, root *Record) *Record {
 	if err := t.nextLine(); err != nil {
 		panic(err)
 	}
@@ -147,20 +141,14 @@ func parseRedefinesMulti(t *Tree, l line, _ *Record) *Record {
 	l.items = lineFromMultiRedefines(l.items, i)
 	nl := l
 
-	return parseRedefines(nil, nl, nil)
+	return parseRedefines(nil, nl, root)
 }
 
-// TODO: (pgmitche) tweak godoc here
-// isMultilineOccurrence is a fingerprinting function that validates whether a
-// line is an indicator for, and sibling of a multi-line occurrence definition
-//
-// it first checks the fingerprint of the line against the first fingerprint of
-// a multi-line OCCURS definition
-// then uses nx() to get the next line, and validate that against the second
-// fingerprint of a multi-line OCCURS definition
-//
-// when this is successful, the parseOccurs parserfn is returned, along with a
-// new, single, line object built from the two fingerprinted line objects.
+// parseOccursMulti validates that the next line in the tree returns an expected
+// multiline occurs part from the trie, and matches that fingerprint.
+// After which, it concatenates the origin line items, and the items from the
+// subsequent line, to make a valid, single-line OCCURS definition, that is then
+// parsed.
 func parseOccursMulti(t *Tree, l line, _ *Record) *Record {
 	if err := t.nextLine(); err != nil {
 		panic(err)
