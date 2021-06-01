@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pgmitche/go-pic/cmd/pkg/cli"
+	"github.com/foundatn-io/go-pic/cmd/pkg/cli"
 )
 
 func main() {

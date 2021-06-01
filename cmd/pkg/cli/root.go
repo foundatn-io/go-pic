@@ -12,9 +12,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/pgmitche/go-pic/cmd/pkg/copybook"
-	"github.com/pgmitche/go-pic/cmd/pkg/template"
-	"github.com/pgmitche/go-pic/pkg/lex"
+	"github.com/foundatn-io/go-pic/cmd/pkg/copybook"
+	"github.com/foundatn-io/go-pic/cmd/pkg/template"
+	"github.com/foundatn-io/go-pic/pkg/lex"
 )
 
 var rootCmd = &cobra.Command{
