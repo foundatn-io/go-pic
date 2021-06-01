@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pgmitche/go-pic"
+	"github.com/foundatn-io/go-pic"
 )
 
 func main() {

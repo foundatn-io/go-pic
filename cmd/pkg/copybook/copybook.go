@@ -10,7 +10,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/pgmitche/go-pic/pkg/lex"
+	"github.com/foundatn-io/go-pic/pkg/lex"
 )
 
 type Copybook struct {
