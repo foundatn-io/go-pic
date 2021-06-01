@@ -1,11 +1,11 @@
 # 📺  go-pic
 COBOL PIC (Picture) clause parsing library
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/pgmitche/go-pic)](https://goreportcard.com/report/github.com/pgmitche/go-pic)
-[![GoDoc](https://pkg.go.dev/badge/github.com/pgmitche/go-pic?status.svg)](https://pkg.go.dev/github.com/pgmitche/go-pic?tab=doc)
-[![Sourcegraph](https://sourcegraph.com/github.com/pgmitche/go-pic/-/badge.svg)](https://sourcegraph.com/github.com/pgmitche/go-pic?badge)
-[![Release](https://img.shields.io/github/release/pgmitche/go-pic.svg?style=flat-square)](https://github.com/pgmitche/go-pic/releases)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/pgmitche/go-pic/blob/master/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/foundatn-io/go-pic)](https://goreportcard.com/report/github.com/foundatn-io/go-pic)
+[![GoDoc](https://pkg.go.dev/badge/github.com/foundatn-io/go-pic?status.svg)](https://pkg.go.dev/github.com/foundatn-io/go-pic?tab=doc)
+[![Sourcegraph](https://sourcegraph.com/github.com/foundatn-io/go-pic/-/badge.svg)](https://sourcegraph.com/github.com/foundatn-io/go-pic?badge)
+[![Release](https://img.shields.io/github/release/foundatn-io/go-pic.svg?style=flat-square)](https://github.com/foundatn-io/go-pic/releases)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/foundatn-io/go-pic/blob/master/LICENSE)
 
 ## 🤷🏽‍ What is go-pic
 
@@ -24,7 +24,7 @@ copybook
 
     ```go
     import (
-        pic "github.com/pgmitche/go-pic"
+        pic "github.com/foundatn-io/go-pic"
     )
     ```
 
@@ -68,7 +68,7 @@ copybook
     Get started using `gopic` by for struct generation by running:
 
     ```shell script
-    git clone github.com/pgmitche/go-pic
+    git clone github.com/foundatn-io/go-pic
     cd go-pic
     make install
     ```

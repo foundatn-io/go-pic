@@ -1,4 +1,4 @@
-module github.com/pgmitche/go-pic
+module github.com/foundatn-io/go-pic
 
 go 1.14
 
