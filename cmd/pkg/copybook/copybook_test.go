@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/pgmitche/go-pic/cmd/pkg/template"
-	"github.com/pgmitche/go-pic/pkg/lex"
+	"github.com/foundatn-io/go-pic/cmd/pkg/template"
+	"github.com/foundatn-io/go-pic/pkg/lex"
 )
 
 func Test_Build(t *testing.T) {
