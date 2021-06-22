@@ -406,6 +406,31 @@ func Test_Parse(t *testing.T) {
 000190             15  DUMMY-GROUP-1-OBJECT-B   PIC X.               00000118
 000200             15  DUMMY-GROUP-1-OBJECT-C   PIC 9(4).9(4).       00000119
 		`)),
+		}, {
+			name: "Skip88Enums",
+			in: NewTree(
+				New("test",
+					`001890         10  REGULAR-OBJECT       PIC 9(11).              00000375
+001900         10  EXAMPLE-BOOL-ENUM    PIC X.                  00000376
+001910             88  ENUM-FALSE    VALUE 'N'.              00000377
+001920             88  ENUM-TRUE    VALUE 'Y'.              00000378
+`)),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 12,
+				Children: []*Record{
+					{
+						Name:   "REGULAR-OBJECT",
+						Typ:    reflect.Uint,
+						Length: 11,
+					}, {
+						Name:   "EXAMPLE-BOOL-ENUM",
+						Typ:    reflect.String,
+						Length: 1,
+					},
+				},
+			},
 		},
 	}
 
