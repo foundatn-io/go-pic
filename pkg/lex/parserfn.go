@@ -236,6 +236,10 @@ func delve(t *Tree, root *Record, newRecord *Record) *Record {
 		return parent
 	}
 
+	if root.depthMap == nil {
+		root.depthMap = make(map[string]*Record)
+	}
+
 	root.depthMap[newRecord.depth] = root
 	copyDepthMap(root, newRecord)
 
