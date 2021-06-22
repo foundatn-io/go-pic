@@ -107,5 +107,5 @@ type Copybook struct{
 
 ### 🚧 Alas, these are not yet supported
  - PIC symbols [ `S`, `V`, `P` ]
- - Level indicator 88 enums
+ - Level indicator 88 enums are skipped
  - Level indicator 77 items which cannot be sub-divided
