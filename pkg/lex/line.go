@@ -1,11 +1,25 @@
 package lex
 
-import (
-	"log"
-)
-
 // lineType identifies the type of a full line
 type lineType int
+
+var (
+	lineTypeStrings = map[lineType]string{
+		lineStruct:             "lineType: struct",
+		linePIC:                "lineType: PIC",
+		lineJunk:               "lineType: Junk",
+		lineRedefines:          "lineType: Redefines",
+		lineGroupRedefines:     "lineType: GroupRedefines",
+		lineMultilineRedefines: "lineType: multiline Redefines",
+		lineOccurs:             "lineType: Occurrence",
+		lineMultilineOccurs:    "lineType: multiline Occurrence",
+		lineEnum:               "lineType: enum",
+	}
+)
+
+func (l lineType) String() string {
+	return lineTypeStrings[l]
+}
 
 const (
 	lineStruct             lineType = iota // is a new struct line
@@ -16,6 +30,7 @@ const (
 	lineMultilineRedefines                 // is a line containing a redefinition without a target
 	lineOccurs                             // is a line containing a PIC occurrence
 	lineMultilineOccurs                    // is a line containing an incomplete PIC occurrence
+	lineEnum                               // is a line containing an enum example value
 )
 
 type line struct {
@@ -25,7 +40,7 @@ type line struct {
 }
 
 func buildLine(items []item) *line {
-	d := parsers.Search(getFingerprint(items))
+	d := parsers.Search(getWord(items))
 	if d != nil {
 		return &line{
 			items: items,
@@ -34,7 +49,6 @@ func buildLine(items []item) *line {
 		}
 	}
 
-	log.Println("no parser determined, returning junk noOp line")
 	return &line{
 		items: items,
 		typ:   lineJunk,
@@ -47,10 +61,10 @@ func buildLine(items []item) *line {
 //
 // res 	= 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2   PIC X(7).  00000195
 func lineFromMultiRedefines(a, b []item) []item {
-	res := joinLines(len(redefinesFp), a, b)
+	res := joinLines(len(redefinesWord), a, b)
 
-	if !equalFingerprints(getFingerprint(res), redefinesFp) {
-		panic("multiline redefinition builder failed to build a redefinition with the correct fingerprint")
+	if !equalWord(getWord(res), redefinesWord) {
+		panic("multiline redefinition builder failed to build a redefinition with the correct word")
 	}
 
 	return res
@@ -61,10 +75,10 @@ func lineFromMultiRedefines(a, b []item) []item {
 //
 // res  = 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
 func lineFromMultiOccurs(a, b []item) []item {
-	res := joinLines(len(occursFp), a, b)
+	res := joinLines(len(occursWord), a, b)
 
-	if !equalFingerprints(getFingerprint(res), occursFp) {
-		panic("multiline redefinition builder failed to build an occurrence with the correct fingerprint")
+	if !equalWord(getWord(res), occursWord) {
+		panic("multiline redefinition builder failed to build an occurrence with the correct word")
 	}
 
 	return res

@@ -1,7 +1,7 @@
 package lex
 
 const (
-	itemTypeSize = 13
+	itemTypeSize = 14
 )
 
 // Trie is the structure in which clause/line type patterns are stored
@@ -10,8 +10,8 @@ type Trie struct {
 }
 
 // Node is a child in the trie, which may indicate whether it is the final
-// token in a clause/line type pattern, returning the associated parser, finger-
-// print and lineType with that pattern.
+// token in a clause/line type pattern, returning the associated parser, word
+// and lineType with that pattern.
 // Otherwise, the Node contains links to children, itself, to illustrate whether
 // it is part of, but not the final token of, a pattern that has been entered in
 // the trie.
@@ -26,7 +26,7 @@ func NewTrie() *Trie {
 }
 
 // Insert will take a word and add it to the trie
-func (t *Trie) Insert(word fingerprint, p parser, typ lineType) {
+func (t *Trie) Insert(word word, p parser, typ lineType) {
 	cur := t.root
 	for i := 0; i < len(word); i++ {
 		// if the itemType is not in the children...
@@ -39,14 +39,14 @@ func (t *Trie) Insert(word fingerprint, p parser, typ lineType) {
 		cur = cur.children[word[i]]
 	}
 	cur.isEnd = &entry{
-		fp:  word,
+		w:   word,
 		fn:  p,
 		typ: typ,
 	}
 }
 
 // Search will search for the given word
-func (t *Trie) Search(word fingerprint) *entry { // nolint:golint
+func (t *Trie) Search(word word) *entry { // nolint:golint
 	cur := t.root
 	for i := 0; i < len(word); i++ {
 		// if the itemType is not in the children...

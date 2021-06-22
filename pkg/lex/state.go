@@ -8,6 +8,9 @@ import (
 
 const (
 	substituteHex = '\U0000001A'
+	singleQuote   = rune(39) // nolint:gomnd // rune of '
+
+	alphaNumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 )
 
 func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simplifying this
@@ -50,6 +53,9 @@ func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simpl
 
 	case r == '.':
 		l.emit(itemDot)
+
+	case r == singleQuote:
+		return lexEnum
 
 	case r <= unicode.MaxASCII && unicode.IsPrint(r):
 		l.emit(itemChar)
@@ -196,6 +202,27 @@ Loop:
 	return lexInsideStatement(l)
 }
 
+// lexEnum scans an apostrophe-wrapped alphanumeric value.
+func lexEnum(l *lexer) stateFn {
+	for {
+		switch r := l.peek(); {
+		case isAlphaNumeric(r):
+			// absorb
+			l.acceptRun(alphaNumeric)
+		default:
+			if !l.atEnumTerminator() {
+				e := fmt.Errorf("bad character %#U", r)
+				log.Println(e)
+				return l.errorf(e.Error())
+			}
+
+			l.next()
+			l.emit(itemEnum)
+			return lexInsideStatement(l)
+		}
+	}
+}
+
 // lexNumber scans a number: decimal, octal, hex, float, or imaginary. This
 // isn't a perfect number scanner - for instance it accepts "." and "0x0.2"
 // and "089" - but when it's wrong the input is invalid and the parser (via
@@ -267,16 +294,13 @@ func (l *lexer) scanNumber() bool { // nolint:gocyclo // good luck simplifying t
 // We have not consumed the first space, which is known to be present.
 // Take care if there is a trim-marked right delimiter, which starts with a space.
 func lexSpace(l *lexer) stateFn {
-	var r rune
-	var numSpaces int
 	for {
-		r = l.peek()
+		r := l.peek()
 		if !isSpace(r) {
 			break
 		}
 
 		l.next()
-		numSpaces++
 	}
 
 	l.emit(itemSpace)
@@ -297,6 +321,11 @@ func (l *lexer) atTerminator() bool {
 	}
 
 	return false
+}
+
+func (l *lexer) atEnumTerminator() bool {
+	r := l.peek()
+	return r == singleQuote
 }
 
 // isSpace reports whether r is a space character.

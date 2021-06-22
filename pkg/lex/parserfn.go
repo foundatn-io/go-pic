@@ -13,7 +13,8 @@ const (
 
 type parser func(t *Tree, l line, root *Record) *Record
 
-func noOp(_ *Tree, _ line, _ *Record) *Record {
+func noOp(t *Tree, l line, _ *Record) *Record {
+	log.Printf("%s on copybook line %d resulted in no-op", l.typ, t.lIdx)
 	return nil
 }
 
@@ -124,7 +125,7 @@ func parseOccurs(_ *Tree, l line, _ *Record) *Record {
 }
 
 // parseRedefinesMulti validates that the next line in the tree returns an
-// expected multiline redefines part from the trie, and matches that fingerprint.
+// expected multiline redefines part from the trie, and matches that word.
 // After which, it concatenates the origin line items, and the items from the
 // subsequent line, to make a valid, single-line REDEFINES definition, that is
 // then parsed.
@@ -134,7 +135,7 @@ func parseRedefinesMulti(t *Tree, l line, root *Record) *Record {
 	}
 
 	_, i, ok := basicParserGet(t.line.items)
-	if !ok || !equalFingerprints(getFingerprint(i), multiRedefinesPartFp) {
+	if !ok || !equalWord(getWord(i), multiRedefinesPartWord) {
 		log.Fatalln("parser indicated multi-line redefinition, but failed to verify next line")
 	}
 
@@ -145,7 +146,7 @@ func parseRedefinesMulti(t *Tree, l line, root *Record) *Record {
 }
 
 // parseOccursMulti validates that the next line in the tree returns an expected
-// multiline occurs part from the trie, and matches that fingerprint.
+// multiline occurs part from the trie, and matches that word.
 // After which, it concatenates the origin line items, and the items from the
 // subsequent line, to make a valid, single-line OCCURS definition, that is then
 // parsed.
@@ -155,7 +156,7 @@ func parseOccursMulti(t *Tree, l line, _ *Record) *Record {
 	}
 
 	_, i, ok := basicParserGet(t.line.items)
-	if !ok || !equalFingerprints(getFingerprint(i), multiOccursPartFp) {
+	if !ok || !equalWord(getWord(i), multiOccursPartWord) {
 		log.Fatalln()
 	}
 
@@ -234,6 +235,10 @@ func delve(t *Tree, root *Record, newRecord *Record) *Record {
 		parent.Length += l
 		// then the parent is the target for continued addition of children
 		return parent
+	}
+
+	if root.depthMap == nil {
+		root.depthMap = make(map[string]*Record)
 	}
 
 	root.depthMap[newRecord.depth] = root
