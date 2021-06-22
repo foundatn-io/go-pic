@@ -150,6 +150,46 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemEOL, pos: 89, val: "\n", line: 0},
 				{typ: itemEOF, pos: 90, val: "", line: 1},
 			},
+		}, {
+			name: "88EnumNonDelimitedSkipped",
+			l: &lexer{
+				name:  "lexer",
+				input: "   88   EXAMPLE-ENUM-VALUE   'N'. \n",
+				items: make([]item, 0),
+			},
+			want: []item{
+				{typ: itemSpace, pos: 0, val: "   ", line: 0},
+				{typ: itemNumber, pos: 3, val: "88", line: 0},
+				{typ: itemSpace, pos: 5, val: "   ", line: 0},
+				{typ: itemIdentifier, pos: 8, val: "EXAMPLE-ENUM-VALUE", line: 0},
+				{typ: itemSpace, pos: 26, val: "   ", line: 0},
+				{typ: itemEnum, pos: 29, val: "'N'", line: 0},
+				{typ: itemDot, pos: 32, val: ".", line: 0},
+				{typ: itemSpace, pos: 33, val: " ", line: 0},
+				{typ: itemEOL, pos: 34, val: "\n", line: 0},
+				{typ: itemEOF, pos: 35, val: "", line: 1},
+			},
+		}, {
+			name: "88EnumDelimitedSkipped",
+			l: &lexer{
+				name:  "lexer",
+				input: "000600   88   EXAMPLE-ENUM-VALUE   'N'. 00000600\n",
+				items: make([]item, 0),
+			},
+			want: []item{
+				{typ: itemNumber, pos: 0, val: "000600", line: 0},
+				{typ: itemSpace, pos: 6, val: "   ", line: 0},
+				{typ: itemNumber, pos: 9, val: "88", line: 0},
+				{typ: itemSpace, pos: 11, val: "   ", line: 0},
+				{typ: itemIdentifier, pos: 14, val: "EXAMPLE-ENUM-VALUE", line: 0},
+				{typ: itemSpace, pos: 32, val: "   ", line: 0},
+				{typ: itemEnum, pos: 35, val: "'N'", line: 0},
+				{typ: itemDot, pos: 38, val: ".", line: 0},
+				{typ: itemSpace, pos: 39, val: " ", line: 0},
+				{typ: itemNumber, pos: 40, val: "00000600", line: 0},
+				{typ: itemEOL, pos: 48, val: "\n", line: 0},
+				{typ: itemEOF, pos: 49, val: "", line: 1},
+			},
 		},
 	}
 	for _, tt := range tests {

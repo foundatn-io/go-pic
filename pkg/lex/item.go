@@ -41,6 +41,7 @@ const (
 	itemOCCURS                     // OCCURS keyword
 	itemPIC                        // PIC keyword
 	itemREDEFINES                  // REDEFINES keyword
+	itemEnum                       // enum example: 'Y' 'N' 'T' 'F'
 )
 
 const (
