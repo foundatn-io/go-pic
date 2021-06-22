@@ -202,6 +202,7 @@ Loop:
 	return lexInsideStatement(l)
 }
 
+// lexEnum scans an apostrophe-wrapped alphanumeric value.
 func lexEnum(l *lexer) stateFn {
 	for {
 		switch r := l.peek(); {
