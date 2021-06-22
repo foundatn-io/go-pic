@@ -6,32 +6,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_equalFingerprints(t *testing.T) {
+func Test_equalWord(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		a, b fingerprint
+		a, b word
 		want bool
 	}{
 		{
 			name: "Equal",
-			a:    numDelimitedStructFp,
-			b:    numDelimitedStructFp,
+			a:    numDelimitedStructWord,
+			b:    numDelimitedStructWord,
 			want: true,
 		}, {
 			name: "NotEqual",
-			a:    numDelimitedStructFp,
-			b:    nonNumDelimitedStructFp,
+			a:    numDelimitedStructWord,
+			b:    nonNumDelimitedStructWord,
 			want: false,
 		}, {
 			name: "NotPrebuilt-Equal",
-			a:    fingerprint{itemNumber, itemSpace, itemIdentifier, itemSpace, itemNumber},
-			b:    fingerprint{itemNumber, itemSpace, itemIdentifier, itemSpace, itemNumber},
+			a:    word{itemNumber, itemSpace, itemIdentifier, itemSpace, itemNumber},
+			b:    word{itemNumber, itemSpace, itemIdentifier, itemSpace, itemNumber},
 			want: true,
 		}, {
 			name: "NotPrebuilt-NotEqual",
-			a:    fingerprint{itemNumber, itemSpace, itemIdentifier, itemSpace, itemNumber},
-			b:    fingerprint{itemNumber, itemSpace, itemPIC, itemSpace, itemNumber},
+			a:    word{itemNumber, itemSpace, itemIdentifier, itemSpace, itemNumber},
+			b:    word{itemNumber, itemSpace, itemPIC, itemSpace, itemNumber},
 			want: false,
 		},
 	}
@@ -39,17 +39,17 @@ func Test_equalFingerprints(t *testing.T) {
 		tt := test
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.want, equalFingerprints(tt.a, tt.b))
+			require.Equal(t, tt.want, equalWord(tt.a, tt.b))
 		})
 	}
 }
 
-func Test_getFingerprint(t *testing.T) {
+func Test_getWord(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
 		in   []item
-		want fingerprint
+		want word
 	}{
 		{
 			name: "Returns-NumDelimited",
@@ -87,7 +87,7 @@ func Test_getFingerprint(t *testing.T) {
 					val: "000123",
 				},
 			},
-			want: numDelimitedStructFp,
+			want: numDelimitedStructWord,
 		}, {
 			name: "Returns-NumDelimited",
 			in: []item{
@@ -111,14 +111,14 @@ func Test_getFingerprint(t *testing.T) {
 					val: "  ",
 				},
 			},
-			want: nonNumDelimitedStructFp,
+			want: nonNumDelimitedStructWord,
 		},
 	}
 	for _, test := range tests {
 		tt := test
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.want, getFingerprint(tt.in))
+			require.Equal(t, tt.want, getWord(tt.in))
 		})
 	}
 }

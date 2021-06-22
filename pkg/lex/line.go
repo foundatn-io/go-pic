@@ -25,7 +25,7 @@ type line struct {
 }
 
 func buildLine(items []item) *line {
-	d := parsers.Search(getFingerprint(items))
+	d := parsers.Search(getWord(items))
 	if d != nil {
 		return &line{
 			items: items,
@@ -47,10 +47,10 @@ func buildLine(items []item) *line {
 //
 // res 	= 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2   PIC X(7).  00000195
 func lineFromMultiRedefines(a, b []item) []item {
-	res := joinLines(len(redefinesFp), a, b)
+	res := joinLines(len(redefinesWord), a, b)
 
-	if !equalFingerprints(getFingerprint(res), redefinesFp) {
-		panic("multiline redefinition builder failed to build a redefinition with the correct fingerprint")
+	if !equalWord(getWord(res), redefinesWord) {
+		panic("multiline redefinition builder failed to build a redefinition with the correct word")
 	}
 
 	return res
@@ -61,10 +61,10 @@ func lineFromMultiRedefines(a, b []item) []item {
 //
 // res  = 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
 func lineFromMultiOccurs(a, b []item) []item {
-	res := joinLines(len(occursFp), a, b)
+	res := joinLines(len(occursWord), a, b)
 
-	if !equalFingerprints(getFingerprint(res), occursFp) {
-		panic("multiline redefinition builder failed to build an occurrence with the correct fingerprint")
+	if !equalWord(getWord(res), occursWord) {
+		panic("multiline redefinition builder failed to build an occurrence with the correct word")
 	}
 
 	return res
