@@ -84,8 +84,21 @@ func (t *Tree) parseLines(root *Record) {
 			log.Printf("%s on copybook line %d resulted in no-op", t.line.typ, t.lIdx)
 			continue
 
-		case lineStruct, lineRedefines, lineGroupRedefines, lineMultilineRedefines:
+		case lineRedefines, lineMultilineRedefines, lineGroupRedefines:
 			t.line.fn(t, t.line, root)
+
+		case lineStruct:
+			rec := t.line.fn(t, t.line, root)
+			if rec == nil {
+				continue
+			}
+
+			parent, ok := root.depthMap[rec.depth]
+			if ok {
+				root = parent
+			}
+
+			delve(t, root, rec)
 
 		default:
 			rec := t.line.fn(t, t.line, root)

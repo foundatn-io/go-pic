@@ -28,10 +28,11 @@ func parsePIC(_ *Tree, l line, _ *Record) *Record {
 	}
 
 	return &Record{
-		Name:   l.items[4].val,
-		Length: length,
-		depth:  l.items[2].val,
-		Typ:    parsePICType(picNumDef),
+		depthMap: map[string]*Record{},
+		Name:     l.items[4].val,
+		Length:   length,
+		depth:    l.items[2].val,
+		Typ:      parsePICType(picNumDef),
 	}
 }
 
@@ -48,9 +49,10 @@ func parseRedefines(_ *Tree, l line, root *Record) *Record {
 	}
 
 	r := &Record{
-		Name:   l.items[4].val,
-		Length: length,
-		Typ:    parsePICType(picNumDef),
+		depthMap: map[string]*Record{},
+		Name:     l.items[4].val,
+		Length:   length,
+		Typ:      parsePICType(picNumDef),
 	}
 
 	target := l.items[8].val
@@ -75,7 +77,7 @@ func parseGroupRedefines(t *Tree, l line, root *Record) *Record {
 		log.Fatalln(fmt.Sprintf("redefinition target %s does not exist", target))
 	}
 
-	if dst.depthMap == nil {
+	if dst.depthMap == nil || len(dst.depthMap) == 0 {
 		// then check whether a node has children at this depth
 		parent, seenGroup := root.depthMap[dst.depth]
 		if seenGroup {
@@ -116,11 +118,12 @@ func parseOccurs(_ *Tree, l line, _ *Record) *Record {
 	}
 
 	return &Record{
-		Name:   l.items[4].val,
-		Length: length,
-		Occurs: n,
-		depth:  l.items[2].val,
-		Typ:    parsePICType(picNumDef),
+		Name:     l.items[4].val,
+		Length:   length,
+		Occurs:   n,
+		depth:    l.items[2].val,
+		depthMap: map[string]*Record{},
+		Typ:      parsePICType(picNumDef),
 	}
 }
 
@@ -214,18 +217,22 @@ func parseNonNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 //  |	|-picA
 func parseStruct(t *Tree, l line, root *Record, nameIdx, groupIdx int) *Record {
 	newNode := &Record{
-		Name:  l.items[nameIdx].val,
-		Typ:   reflect.Struct,
-		depth: l.items[groupIdx].val,
+		Name:     l.items[nameIdx].val,
+		Typ:      reflect.Struct,
+		depth:    l.items[groupIdx].val,
+		depthMap: map[string]*Record{},
 	}
 
-	return delve(t, root, newNode)
+	return newNode
 }
 
 func delve(t *Tree, root *Record, newRecord *Record) *Record {
 	parent, seenGroup := root.depthMap[newRecord.depth]
 	if seenGroup {
 		parent.Children = append(parent.Children, newRecord)
+		if newRecord.depthMap == nil || len(newRecord.depthMap) == 0 {
+			copyDepthMap(parent, newRecord)
+		}
 		t.parseLines(newRecord)
 		l := newRecord.Length
 		if newRecord.Occurs > 0 {
@@ -237,7 +244,7 @@ func delve(t *Tree, root *Record, newRecord *Record) *Record {
 		return parent
 	}
 
-	if root.depthMap == nil {
+	if root.depthMap == nil || len(root.depthMap) == 0 {
 		root.depthMap = make(map[string]*Record)
 	}
 
@@ -258,7 +265,7 @@ func delve(t *Tree, root *Record, newRecord *Record) *Record {
 }
 
 func copyDepthMap(src, dst *Record) {
-	if dst.depthMap == nil {
+	if dst.depthMap == nil || len(dst.depthMap) == 0 {
 		dst.depthMap = make(map[string]*Record)
 	}
 
