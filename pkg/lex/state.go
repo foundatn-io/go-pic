@@ -8,7 +8,7 @@ import (
 
 const (
 	substituteHex = '\U0000001A'
-	singleQuote   = rune(39)
+	singleQuote   = rune(39) // nolint:gomnd // rune of '
 
 	alphaNumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 )
