@@ -36,6 +36,7 @@ func (t *Tree) Parse() *Record {
 		}
 
 		l := buildLine(li)
+
 		if l == nil {
 			continue
 		}
@@ -79,7 +80,8 @@ func (t *Tree) parseLines(root *Record) {
 		}
 
 		switch t.line.typ {
-		case lineJunk:
+		case lineJunk, lineEnum:
+			log.Printf("%s on copybook line %d resulted in no-op", t.line.typ, t.lIdx)
 			continue
 
 		case lineStruct, lineRedefines, lineGroupRedefines, lineMultilineRedefines:

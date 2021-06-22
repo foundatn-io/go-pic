@@ -13,7 +13,8 @@ const (
 
 type parser func(t *Tree, l line, root *Record) *Record
 
-func noOp(_ *Tree, _ line, _ *Record) *Record {
+func noOp(t *Tree, l line, _ *Record) *Record {
+	log.Printf("%s on copybook line %d resulted in no-op", l.typ, t.lIdx)
 	return nil
 }
 

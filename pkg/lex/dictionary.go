@@ -49,6 +49,12 @@ var (
 	// 000160  05  DUMMY-GROUP-1.  00000115
 	numDelimitedStructWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber}
 
+	// 000600   88   EXAMPLE-ENUM VALUE   'N'. 00000600
+	numDelimitedEnumWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemIdentifier, itemSpace, itemEnum, itemDot, itemSpace, itemNumber}
+
+	//    88   EXAMPLE-ENUM-VALUE   'N'.
+	nonNumDelimitedEnumWord = word{itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemIdentifier, itemSpace, itemEnum, itemDot, itemSpace}
+
 	dictionary = map[string]entry{
 		"numDelimitedStruct": {
 			typ: lineStruct,
@@ -59,6 +65,16 @@ var (
 			typ: lineStruct,
 			fn:  parseNonNumDelimitedStruct,
 			w:   nonNumDelimitedStructWord},
+
+		"numDelimitedEnum": {
+			typ: lineEnum,
+			fn:  noOp,
+			w:   numDelimitedEnumWord},
+
+		"nonNumDelimitedEnum": {
+			typ: lineEnum,
+			fn:  noOp,
+			w:   nonNumDelimitedEnumWord},
 
 		"pic": {
 			typ: linePIC,

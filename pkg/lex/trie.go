@@ -1,7 +1,7 @@
 package lex
 
 const (
-	itemTypeSize = 13
+	itemTypeSize = 14
 )
 
 // Trie is the structure in which clause/line type patterns are stored

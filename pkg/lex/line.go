@@ -1,11 +1,25 @@
 package lex
 
-import (
-	"log"
-)
-
 // lineType identifies the type of a full line
 type lineType int
+
+var (
+	lineTypeStrings = map[lineType]string{
+		lineStruct:             "lineType: struct",
+		linePIC:                "lineType: PIC",
+		lineJunk:               "lineType: Junk",
+		lineRedefines:          "lineType: Redefines",
+		lineGroupRedefines:     "lineType: GroupRedefines",
+		lineMultilineRedefines: "lineType: multiline Redefines",
+		lineOccurs:             "lineType: Occurrence",
+		lineMultilineOccurs:    "lineType: multiline Occurrence",
+		lineEnum:               "lineType: enum",
+	}
+)
+
+func (l lineType) String() string {
+	return lineTypeStrings[l]
+}
 
 const (
 	lineStruct             lineType = iota // is a new struct line
@@ -16,6 +30,7 @@ const (
 	lineMultilineRedefines                 // is a line containing a redefinition without a target
 	lineOccurs                             // is a line containing a PIC occurrence
 	lineMultilineOccurs                    // is a line containing an incomplete PIC occurrence
+	lineEnum                               // is a line containing an enum example value
 )
 
 type line struct {
@@ -34,7 +49,6 @@ func buildLine(items []item) *line {
 		}
 	}
 
-	log.Println("no parser determined, returning junk noOp line")
 	return &line{
 		items: items,
 		typ:   lineJunk,
