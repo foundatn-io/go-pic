@@ -215,7 +215,7 @@ func parseNonNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 //  |   |-picA
 //  |-group2
 //  |	|-picA
-func parseStruct(t *Tree, l line, root *Record, nameIdx, groupIdx int) *Record {
+func parseStruct(_ *Tree, l line, _ *Record, nameIdx, groupIdx int) *Record {
 	newNode := &Record{
 		Name:     l.items[nameIdx].val,
 		Typ:      reflect.Struct,

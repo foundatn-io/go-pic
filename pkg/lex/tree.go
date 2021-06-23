@@ -73,7 +73,7 @@ func (t *Tree) next() item {
 
 // parseLines generates the text for the line
 // and adds it to the tree data
-func (t *Tree) parseLines(root *Record) {
+func (t *Tree) parseLines(root *Record) { //nolint:gocyclo // TODO: refine
 	for {
 		if errors.Is(t.nextLine(), io.EOF) {
 			break
