@@ -431,6 +431,54 @@ func Test_Parse(t *testing.T) {
 					},
 				},
 			},
+		}, {
+			name: "ValidateGrouping",
+			in: NewTree(
+				New("test",
+					`000160     05  DUMMY-GROUP-1.                                           00000115
+000170         10  DUMMY-SUB-GROUP-1.                                00000116
+000180             15  DUMMY-GROUP-1-OBJECT-A   PIC 9(9).9(2).       00000117
+000190             15  DUMMY-GROUP-1-OBJECT-B   PIC X.               00000118
+000200             15  DUMMY-GROUP-1-OBJECT-C   PIC 9(4).9(4).       00000119
+000210         10  DUMMY-OBJECT-A               PIC X.               00000120
+`)),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 23,
+				Children: []*Record{
+					{
+						Name:   "DUMMY-GROUP-1",
+						Typ:    reflect.Struct,
+						Length: 23,
+						Children: []*Record{
+							{
+								Name:   "DUMMY-SUB-GROUP-1",
+								Typ:    reflect.Struct,
+								Length: 22,
+								Children: []*Record{{
+									Name:   "DUMMY-GROUP-1-OBJECT-A",
+									Typ:    reflect.Float64,
+									Length: 12,
+								}, {
+									Name:   "DUMMY-GROUP-1-OBJECT-B",
+									Typ:    reflect.String,
+									Length: 1,
+								}, {
+									Name:   "DUMMY-GROUP-1-OBJECT-C",
+									Typ:    reflect.Float64,
+									Length: 9,
+								},
+								},
+							}, {
+								Name:   "DUMMY-OBJECT-A",
+								Length: 1,
+								Typ:    reflect.String,
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
