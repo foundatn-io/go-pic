@@ -11,18 +11,19 @@ import (
 )
 
 var (
-	newStart = 1
-	newEnd   = 1
-	structs  = make([]string, 0)
-
-	special = regexp.MustCompile("[^a-zA-Z0-9]+")
-
-	cursor = 1
-)
-
-var (
+	// TODO: investigate https://github.com/masterminds/sprig for better
+	// templating?
+	//
+	// Global state for funcMap reference when templating
+	newStart   = 1
+	newEnd     = 1
 	savedStart = 1
 	savedEnd   = 1
+	cursor     = 1
+
+	structs = make([]string, 0)
+
+	special = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
 
 func getTemplateFuncs() template.FuncMap {
