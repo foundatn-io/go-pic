@@ -3,6 +3,7 @@ package pic
 import (
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 )
@@ -31,6 +32,11 @@ func newSetFunc(t reflect.Type, picSize, occursSize int) setFunc {
 		return structSetFunc(t)
 	}
 	return failSetFunc
+}
+
+func skipSetFunc(_ reflect.Value, _ string) error {
+	log.Println("skipping value")
+	return nil
 }
 
 func strSetFunc(v reflect.Value, s string) error {
@@ -139,7 +145,11 @@ func structSetFunc(t reflect.Type) setFunc {
 				continue
 			}
 
-			val := newValFromLine(s, ff.start, ff.end)
+			var val string
+			if !ff.tag.skip {
+				val = newValFromLine(s, ff.tag.start, ff.tag.end)
+			}
+
 			err := ff.setFunc(v.Field(i), val)
 			if err != nil {
 				sf := t.Field(i)

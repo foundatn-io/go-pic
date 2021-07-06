@@ -7,6 +7,40 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewUnmarshal(t *testing.T) {
+	type stuff struct {
+		String string  `pic:"1,5"`
+		Int    int     `pic:"6,10"`
+		Float  float64 `pic:"11,15"`
+	}
+
+	in := &stuff{}
+	err := Unmarshal([]byte("foo  123  1.2  "), in)
+	require.NoError(t, err)
+	require.Equal(t, &stuff{
+		String: "foo",
+		Int:    123,
+		Float:  1.2,
+	}, in)
+}
+
+func TestNewUnmarshalOmit(t *testing.T) {
+	type stuff struct {
+		String string  `pic:"1,5"`
+		Int    int     `pic:"-"`
+		Float  float64 `pic:"11,15"`
+	}
+
+	in := &stuff{}
+	err := Unmarshal([]byte("foo  123  1.2  "), in)
+	require.NoError(t, err)
+	require.Equal(t, &stuff{
+		String: "foo",
+		Int:    0,
+		Float:  1.2,
+	}, in)
+}
+
 func TestUnmarshal(t *testing.T) {
 	type basicTypes struct {
 		String string  `pic:"5"`
