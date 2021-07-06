@@ -43,11 +43,11 @@ func TestUnmarshal_OmitArray(t *testing.T) {
 
 func TestUnmarshal_OmitStruct(t *testing.T) {
 	type abcde struct {
-		A int
-		B int
-		C int
-		D int
-		E int
+		A int `pic:"1,1"`
+		B int `pic:"2,2"`
+		C int `pic:"3,3"`
+		D int `pic:"4,4"`
+		E int `pic:"5,5"`
 	}
 
 	type stuff struct {
