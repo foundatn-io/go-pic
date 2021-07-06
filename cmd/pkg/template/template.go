@@ -11,17 +11,24 @@ import (
 )
 
 var (
-	startPos = 1
-	endPos   = 1
+	newStart = 1
+	newEnd   = 1
 	structs  = make([]string, 0)
 
 	special = regexp.MustCompile("[^a-zA-Z0-9]+")
+
+	cursor = 1
+)
+
+var (
+	savedStart = 1
+	savedEnd   = 1
 )
 
 func getTemplateFuncs() template.FuncMap {
 	return template.FuncMap{
 		"goType":       goType,
-		"picTag":       picTag,
+		"picTag":       newPicTag,
 		"sanitiseName": sanitiseName,
 		"indexComment": indexComment,
 		"isStruct":     isStruct,
@@ -62,8 +69,8 @@ type {{ .Root.Name }} struct {
 }
 
 func Copybook() *template.Template {
-	startPos = 1
-	endPos = 1
+	newStart = 1
+	newEnd = 1
 	structs = make([]string, 0)
 
 	return getTemplate()
@@ -94,14 +101,26 @@ func goType(l *lex.Record) string {
 	return tag
 }
 
-func picTag(l int, i int) string {
-	if i > 0 {
-		return "`" + fmt.Sprintf("pic:\"%d,%d\"", l, i) + "`"
+func newPicTag(length int, elemCount int) string {
+	// tag values
+	start := newStart
+	size := length
+	if elemCount > 0 {
+		size *= elemCount
 	}
-	return "`" + fmt.Sprintf("pic:\"%d\"", l) + "`"
+	end := start + (size - 1)
+
+	// manipulate global state :(
+	newEnd = end
+	newStart = newEnd + 1
+	if elemCount > 0 {
+		return "`" + fmt.Sprintf("pic:\"%d,%d,%d\"", start, end, elemCount) + "`"
+	}
+
+	return "`" + fmt.Sprintf("pic:\"%d,%d\"", start, end) + "`"
 }
 
-// FIXME: (pgmitche) index comments are being overcalculated now,
+// FIXME: (pgmitche) index comments are being over-calculated now,
 // due to struct support.
 // e.g. DUMMYGROUP1's length of 63 is being calculated 3x to 1+189
 // so DUMMYGROUP3 now starts at 201, instead of 64
@@ -110,16 +129,16 @@ func picTag(l int, i int) string {
 //	DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`  // start:1 end:63
 //	DUMMYGROUP3 DUMMYGROUP3 `pic:"201"` // start:190 end:390
 // }
-func indexComment(l int, i int) string {
-	size := l
-	if i > 0 {
-		size *= i
+func indexComment(length int, elemCount int) string {
+	size := length
+	if elemCount > 0 {
+		size *= elemCount
 	}
 
-	s := startPos
-	endPos += size
-	startPos = endPos
-	return fmt.Sprintf(" // start:%d end:%d", s, endPos-1)
+	s := cursor
+	e := s + size
+	cursor = e
+	return fmt.Sprintf(" // start:%d end:%d", s, e-1)
 }
 
 func sanitiseName(s string) string {
@@ -137,6 +156,8 @@ func getStructs() []string {
 // FIXME: (pgmitche) if record is struct but has no children,
 // it should probably be ignored entirely
 func getStructTemplate() *template.Template {
+	newStart = 1
+	newEnd = 1
 	t, err := template.New("struct").
 		Funcs(getTemplateFuncs()).
 		Parse(`
@@ -161,11 +182,15 @@ type {{ sanitiseName .Name }} struct {
 // FIXME: (pgmitche) if record is struct but has no children,
 // it should probably be ignored entirely
 func buildStruct(r *lex.Record) string {
+	savedStart = newStart
+	savedEnd = newEnd
 	b := bytes.Buffer{}
 	if err := getStructTemplate().Execute(&b, r); err != nil {
 		panic(err)
 	}
 
 	structs = append(structs, b.String())
+	newStart = savedStart
+	newEnd = savedEnd
 	return ""
 }

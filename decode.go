@@ -70,15 +70,13 @@ func (d *decoder) Decode(v interface{}) error {
 // given value v, and unpacks a string representation of the bytes associated
 // with that line, into the object v using the identified setter function, set.
 func (d *decoder) decodeLine(v reflect.Value) (bool, error) {
-	// scan next line
 	if ok := d.s.Scan(); !ok {
-		d.done = true // reached EOF
+		d.done = true
 		return false, nil
 	}
 
-	// detect type to unpack line into
 	set := newSetFunc(v.Type(), 0, 0)
-	return true, set(v, string(d.s.Bytes())) // unpa
+	return true, set(v, string(d.s.Bytes()))
 }
 
 // decodeLines iterates through each line of the scanner, builds an instance of
