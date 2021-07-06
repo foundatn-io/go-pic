@@ -41,6 +41,31 @@ func TestUnmarshal_OmitArray(t *testing.T) {
 	}, in)
 }
 
+func TestUnmarshal_OmitStruct(t *testing.T) {
+	type abcde struct {
+		A int
+		B int
+		C int
+		D int
+		E int
+	}
+
+	type stuff struct {
+		String string  `pic:"1,5"`
+		Int    abcde   `pic:"-"`
+		Float  float64 `pic:"11,15"`
+	}
+
+	in := &stuff{}
+	err := Unmarshal([]byte("foo  123  1.2  "), in)
+	require.NoError(t, err)
+	require.Equal(t, &stuff{
+		String: "foo",
+		Int:    abcde{},
+		Float:  1.2,
+	}, in)
+}
+
 func TestUnmarshal_Other(t *testing.T) {
 	t.Run("Field Length 1", func(t *testing.T) {
 		var st = struct {
