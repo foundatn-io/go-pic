@@ -12,9 +12,9 @@ import (
 // Example
 //
 // type Company struct {
-// 	Name                       string `pic:"30"` //30 chars, 0-30
-// 	Employees                  int    `pic:"9"`  //9 chars, 31-39
-// 	BusinessRegistrationNumber string `pic:"12"` //12 chars 40-51
+// 	Name                       string `pic:"1,30"`  // 30 chars, 1-30
+// 	Employees                  int    `pic:"31,39"` // 9 chars, 31-39
+// 	BusinessRegistrationNumber string `pic:"40,51"` // 12 chars 40-51
 // }
 // s := `HERARE30CHARS    OFCOMPANYNAME999999999RegistrtnNum`
 // c := &Company{}

@@ -8,8 +8,16 @@ import (
 	"strconv"
 )
 
+const (
+	float32Size = 32
+	float64Size = 64
+)
+
 type setFunc func(v reflect.Value, s string) error
 
+// newSetFunc evaluates the Type of the value t and returns a relevant setFunc
+// predetermined for that type. Params picSize & occursSize are passed through
+// for arraySetFunc alone
 func newSetFunc(t reflect.Type, picSize, occursSize int) setFunc {
 	switch t.Kind() {
 	case reflect.String:
@@ -19,9 +27,9 @@ func newSetFunc(t reflect.Type, picSize, occursSize int) setFunc {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return uintSetFunc
 	case reflect.Float32:
-		return floatSetFunc(32) // nolint:gomnd
+		return floatSetFunc(float32Size)
 	case reflect.Float64:
-		return floatSetFunc(64) // nolint:gomnd
+		return floatSetFunc(float64Size)
 	case reflect.Slice:
 		return arraySetFunc(picSize, occursSize)
 	case reflect.Ptr:
@@ -34,8 +42,21 @@ func newSetFunc(t reflect.Type, picSize, occursSize int) setFunc {
 	return failSetFunc
 }
 
+// skipSetFunc is provided as a setFunc for use when a field is tagged with the
+// omit value "-"
 func skipSetFunc(_ reflect.Value, _ string) error {
 	log.Println("skipping value")
+	return nil
+}
+
+// failSetFunc is provided as a setFunc for use when a fields type is not
+// identified as valid, and will always return an error.
+func failSetFunc(_ reflect.Value, _ string) error {
+	return errors.New("pic: unknown type")
+}
+
+func nilSetFunc(v reflect.Value, _ string) error {
+	v.Set(reflect.Zero(v.Type()))
 	return nil
 }
 
@@ -88,6 +109,9 @@ func floatSetFunc(size int) setFunc {
 	}
 }
 
+// arraySetFunc is provided as a setFunc for use when reflection identifies the
+// field as an array/slice. l represents total length of the array, count is the
+// specified element count
 func arraySetFunc(l, count int) setFunc {
 	return func(v reflect.Value, s string) error {
 		size := l / count
@@ -106,9 +130,11 @@ func arraySetFunc(l, count int) setFunc {
 		for i := 0; i < count; i++ {
 			next := track + size
 			val := newValFromLine(s, track, next-1)
+
 			if err := sf(newSlice.Index(i), val); err != nil {
 				return errors.New("failed to set array data" + val + " " + s)
 			}
+
 			track = next
 		}
 
@@ -157,13 +183,4 @@ func structSetFunc(t reflect.Type) setFunc {
 		}
 		return nil
 	}
-}
-
-func failSetFunc(_ reflect.Value, _ string) error {
-	return errors.New("pic: unknown type")
-}
-
-func nilSetFunc(v reflect.Value, _ string) error {
-	v.Set(reflect.Zero(v.Type()))
-	return nil
 }

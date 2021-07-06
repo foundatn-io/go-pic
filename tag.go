@@ -13,7 +13,6 @@ const (
 	// `pic:"-"` // ignore this field
 	// `pic:"1,2"` // start:1, end:2 (length 2)
 	// `pic:"1,2,2"` // start:1, end:2 (size 1x2)
-
 	tag          = "pic"
 	tagSeparator = ","
 	ignoreTag    = "-"
@@ -30,12 +29,17 @@ type structRepresentation struct {
 	fields []fieldRepresentation
 }
 
+// fieldRepresentation is a collection of a field/property's tag values,
+// relevant determined setFunc and any error collected when building the
+// representation
 type fieldRepresentation struct {
 	setFunc setFunc
 	tag     tagRepresentation
 	err     error
 }
 
+// tagRepresentation is a collection of all tag values associated with a field/
+// property
 type tagRepresentation struct {
 	start  int
 	end    int
@@ -79,6 +83,7 @@ func parseTag(tag string) (*tagRepresentation, error) {
 	return tagVals, nil
 }
 
+// getSpread returns the start, end, and length of an evaluated tag's values
 func getSpread(ss []string) (int, int, int, error) {
 	start, err := strconv.Atoi(ss[0])
 	if err != nil {
@@ -111,7 +116,7 @@ func makeStructRepresentation(t reflect.Type) structRepresentation {
 		}
 
 		if sr.fields[i].tag.end > sr.len {
-			sr.len = sr.fields[i].tag.end // TODO: validate implications when omit
+			sr.len = sr.fields[i].tag.end
 		}
 		sr.fields[i].err = err
 	}
@@ -119,7 +124,8 @@ func makeStructRepresentation(t reflect.Type) structRepresentation {
 	return sr
 }
 
-// cachedStructRepresentation is like makeStructRepresentation but cached to prevent duplicate work.
+// cachedStructRepresentation is like makeStructRepresentation but cached to
+// prevent duplicate work.
 func cachedStructRepresentation(t reflect.Type) structRepresentation {
 	if f, ok := fieldRepCache.Load(t); ok {
 		return f.(structRepresentation)
