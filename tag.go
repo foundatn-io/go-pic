@@ -46,7 +46,7 @@ type tagRepresentation struct {
 
 // parseTag accepts the values associated with the `pic` tag keyword, splits the
 // values based on the accepted comma separator, and unpacks accepted tag formats
-// into valid behaviours
+// into valid behaviors
 func parseTag(tag string) (*tagRepresentation, error) {
 	tagVals := &tagRepresentation{}
 	ss := strings.Split(tag, tagSeparator)
@@ -70,13 +70,9 @@ func parseTag(tag string) (*tagRepresentation, error) {
 		}
 		tagVals.occurs = o
 
-		tagVals.start, tagVals.end, tagVals.end, err = getSpread(ss)
+		tagVals.start, tagVals.end, tagVals.length, err = getSpread(ss)
 		if err != nil {
 			return nil, err
-		}
-
-		if tagVals.occurs > 0 {
-			tagVals.length *= tagVals.occurs
 		}
 	}
 

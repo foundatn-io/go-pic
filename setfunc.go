@@ -99,21 +99,20 @@ func arraySetFunc(l, count int) setFunc {
 			v.Set(reflect.MakeSlice(v.Type(), 0, 0))
 		}
 
-		many := reflect.MakeSlice(v.Type(), count, count)
+		newSlice := reflect.MakeSlice(v.Type(), count, count)
 		sf := newSetFunc(v.Type().Elem(), 0, 0)
 		track := 1
 
 		for i := 0; i < count; i++ {
 			next := track + size
 			val := newValFromLine(s, track, next-1)
-			if err := sf(many.Index(i), val); err != nil {
+			if err := sf(newSlice.Index(i), val); err != nil {
 				return errors.New("failed to set array data" + val + " " + s)
 			}
 			track = next
 		}
 
-		v.Set(many)
-
+		v.Set(newSlice)
 		return nil
 	}
 }
