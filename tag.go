@@ -9,9 +9,7 @@ import (
 )
 
 const (
-	// when a tag is split on ',' if there are 2 elements,
-	// the second indicates the occurs count
-	// Tag values are now accepted in the following format
+	// Tag values are accepted in the following format:
 	// `pic:"-"` // ignore this field
 	// `pic:"1,2"` // start:1, end:2 (length 2)
 	// `pic:"1,2,2"` // start:1, end:2 (size 1x2)
