@@ -26,6 +26,14 @@ var (
 	special = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
 
+func resetCounters() {
+	newStart = 1
+	newEnd = 1
+	savedStart = 1
+	savedEnd = 1
+	cursor = 1
+}
+
 func getTemplateFuncs() template.FuncMap {
 	return template.FuncMap{
 		"goType":       goType,
@@ -70,8 +78,7 @@ type {{ .Root.Name }} struct {
 }
 
 func Copybook() *template.Template {
-	newStart = 1
-	newEnd = 1
+	resetCounters()
 	structs = make([]string, 0)
 
 	return getTemplate()
