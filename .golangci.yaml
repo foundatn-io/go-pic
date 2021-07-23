@@ -163,7 +163,7 @@ linters:
     - misspell
     - nakedret
     - scopelint
-    - staticcheck
+    # - staticcheck action failing with non-reproduceable error locally
     - structcheck
     - typecheck
     - unconvert

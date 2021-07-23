@@ -1,0 +1,29 @@
+name: Test
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**.go'
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - '**.go'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.3.4
+
+        # Fetch all refs and full history for pull request analysis and blame information, respectively
+      - run: git fetch --prune --unshallow
+
+      - name: "Run test coverage"
+        uses: "docker://golang:1.16.5-stretch"
+        env:
+          GO111MODULE: "on"
+        with:
+          entrypoint: make
+          args: test
