@@ -3,7 +3,6 @@ package pic
 import (
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 )
@@ -45,7 +44,6 @@ func newSetFunc(t reflect.Type, picSize, occursSize int) setFunc {
 // skipSetFunc is provided as a setFunc for use when a field is tagged with the
 // omit value "-"
 func skipSetFunc(_ reflect.Value, _ string) error {
-	log.Println("skipping value")
 	return nil
 }
 
