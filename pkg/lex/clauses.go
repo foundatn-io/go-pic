@@ -99,7 +99,7 @@ func parsePICCount(s string) (int, error) {
 
 // parseOccursCount captures N where N is the OCCURS count
 // e.g. OCCURS 12. returns 12
-func parseOccursCount(i item) (int, error) {
+func parseOccursCount(i token) (int, error) {
 	s := strings.TrimPrefix(i.val, "OCCURS ")
 	n := strings.TrimSuffix(s, ".")
 	return strconv.Atoi(n)

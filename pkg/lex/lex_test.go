@@ -10,16 +10,16 @@ func Test_lexer_run(t *testing.T) {
 	tests := []struct {
 		name string
 		l    *lexer
-		want []item
+		want []token
 	}{
 		{ // nolint:dupl
 			name: "Simple",
 			l: &lexer{
-				name:  "lexer",
-				input: "000600         10  X710203-STATEMENT-TYPE       PIC X.                  00000167\n",
-				items: make([]item, 0),
+				name:   "lexer",
+				input:  "000600         10  X710203-STATEMENT-TYPE       PIC X.                  00000167\n",
+				tokens: make([]token, 0),
 			},
-			want: []item{
+			want: []token{
 				{typ: itemNumber, pos: 0, val: "000600", line: 0},
 				{typ: itemSpace, pos: 6, val: "         ", line: 0},
 				{typ: itemNumber, pos: 15, val: "10", line: 0},
@@ -36,11 +36,11 @@ func Test_lexer_run(t *testing.T) {
 		}, { // nolint:dupl
 			name: "SimpleIdentifierWithNameStartingWith_RorP",
 			l: &lexer{
-				name:  "lexer",
-				input: "000600         10  P-OBJECT       PIC X.                  00000167\n",
-				items: make([]item, 0),
+				name:   "lexer",
+				input:  "000600         10  P-OBJECT       PIC X.                  00000167\n",
+				tokens: make([]token, 0),
 			},
-			want: []item{
+			want: []token{
 				{typ: itemNumber, pos: 0, val: "000600", line: 0},
 				{typ: itemSpace, pos: 6, val: "         ", line: 0},
 				{typ: itemNumber, pos: 15, val: "10", line: 0},
@@ -57,11 +57,11 @@ func Test_lexer_run(t *testing.T) {
 		}, { // nolint:dupl
 			name: "SimplePICWithParentheses",
 			l: &lexer{
-				name:  "lexer",
-				input: "000600         10  X710203-STATEMENT-TYPE       PIC X(10).                  00000167\n",
-				items: make([]item, 0),
+				name:   "lexer",
+				input:  "000600         10  X710203-STATEMENT-TYPE       PIC X(10).                  00000167\n",
+				tokens: make([]token, 0),
 			},
-			want: []item{
+			want: []token{
 				{typ: itemNumber, pos: 0, val: "000600", line: 0},
 				{typ: itemSpace, pos: 6, val: "         ", line: 0},
 				{typ: itemNumber, pos: 15, val: "10", line: 0},
@@ -79,11 +79,11 @@ func Test_lexer_run(t *testing.T) {
 		{
 			name: "SimpleWithREDEFINES",
 			l: &lexer{
-				name:  "lexer",
-				input: "000420             15  X710203-SORT-CNTRY-CD    REDEFINES               00000142\n000420                 X710203-DOCUMENT-ID-TIE  PIC XX.                 00000143\n",
-				items: make([]item, 0),
+				name:   "lexer",
+				input:  "000420             15  X710203-SORT-CNTRY-CD    REDEFINES               00000142\n000420                 X710203-DOCUMENT-ID-TIE  PIC XX.                 00000143\n",
+				tokens: make([]token, 0),
 			},
-			want: []item{
+			want: []token{
 				{typ: itemNumber, val: "000420"},
 				{typ: itemSpace, pos: 6, val: "             "},
 				{typ: itemNumber, pos: 19, val: "15"},
@@ -109,11 +109,11 @@ func Test_lexer_run(t *testing.T) {
 		{ // nolint:dupl
 			name: "SimplePICWithParentheses_OCCURS",
 			l: &lexer{
-				name:  "lexer",
-				input: "000600         10  X710203-STATEMENT-TYPE       PIC X(10)  OCCURS 2.  00000167\n",
-				items: make([]item, 0),
+				name:   "lexer",
+				input:  "000600         10  X710203-STATEMENT-TYPE       PIC X(10)  OCCURS 2.  00000167\n",
+				tokens: make([]token, 0),
 			},
-			want: []item{
+			want: []token{
 				{typ: itemNumber, pos: 0, val: "000600", line: 0},
 				{typ: itemSpace, pos: 6, val: "         ", line: 0},
 				{typ: itemNumber, pos: 15, val: "10", line: 0},
@@ -132,11 +132,11 @@ func Test_lexer_run(t *testing.T) {
 		}, { // nolint:dupl // test data
 			name: "SimplePICWithParentheses_FloatExplicitDecimalPoint",
 			l: &lexer{
-				name:  "lexer",
-				input: "000600         10  X710203-STATEMENT-TYPE       PIC 9(10).9(3).                  00000167\n",
-				items: make([]item, 0),
+				name:   "lexer",
+				input:  "000600         10  X710203-STATEMENT-TYPE       PIC 9(10).9(3).                  00000167\n",
+				tokens: make([]token, 0),
 			},
-			want: []item{
+			want: []token{
 				{typ: itemNumber, pos: 0, val: "000600", line: 0},
 				{typ: itemSpace, pos: 6, val: "         ", line: 0},
 				{typ: itemNumber, pos: 15, val: "10", line: 0},
@@ -153,11 +153,11 @@ func Test_lexer_run(t *testing.T) {
 		}, { // nolint:dupl
 			name: "88EnumNonDelimitedSkipped",
 			l: &lexer{
-				name:  "lexer",
-				input: "   88   EXAMPLE-ENUM  VALUE  'N'. \n",
-				items: make([]item, 0),
+				name:   "lexer",
+				input:  "   88   EXAMPLE-ENUM  VALUE  'N'. \n",
+				tokens: make([]token, 0),
 			},
-			want: []item{
+			want: []token{
 				{typ: itemSpace, pos: 0, val: "   ", line: 0},
 				{typ: itemNumber, pos: 3, val: "88", line: 0},
 				{typ: itemSpace, pos: 5, val: "   ", line: 0},
@@ -174,11 +174,11 @@ func Test_lexer_run(t *testing.T) {
 		}, { // nolint:dupl
 			name: "88EnumDelimitedSkipped",
 			l: &lexer{
-				name:  "lexer",
-				input: "000600   88   EXAMPLE-ENUM  VALUE  'N'. 00000600\n",
-				items: make([]item, 0),
+				name:   "lexer",
+				input:  "000600   88   EXAMPLE-ENUM  VALUE  'N'. 00000600\n",
+				tokens: make([]token, 0),
 			},
-			want: []item{
+			want: []token{
 				{typ: itemNumber, pos: 0, val: "000600", line: 0},
 				{typ: itemSpace, pos: 6, val: "   ", line: 0},
 				{typ: itemNumber, pos: 9, val: "88", line: 0},
@@ -200,7 +200,7 @@ func Test_lexer_run(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.l.run()
-			require.ElementsMatch(t, tt.want, tt.l.items)
+			require.ElementsMatch(t, tt.want, tt.l.tokens)
 		})
 	}
 }

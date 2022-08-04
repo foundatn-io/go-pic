@@ -20,7 +20,7 @@ type Node struct {
 	isEnd    *entry
 }
 
-// NewTrie ...
+// NewTrie initialises a new empty Trie
 func NewTrie() *Trie {
 	return &Trie{root: &Node{}}
 }
@@ -45,8 +45,8 @@ func (t *Trie) Insert(word word, p parser, typ lineType) {
 	}
 }
 
-// Search will search for the given word
-func (t *Trie) Search(word word) *entry { // nolint:golint
+// Lookup will search for the given word
+func (t *Trie) Lookup(word word) *entry { // nolint:golint
 	cur := t.root
 	for i := 0; i < len(word); i++ {
 		// if the itemType is not in the children...

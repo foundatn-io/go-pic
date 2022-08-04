@@ -12,12 +12,12 @@ import (
 func Test_parseLines(t *testing.T) {
 	root := &Record{Typ: reflect.Struct, Name: "root", depthMap: make(map[string]*Record)}
 	tree := &Tree{
-		lIdx: -1,
+		lineIndex: -1,
 		lines: []line{
 			{
 				typ: lineStruct,
 				fn:  parseNumDelimitedStruct,
-				items: []item{
+				tokens: []token{
 					{typ: itemNumber, pos: 0, val: "000160", line: 0},
 					{typ: itemSpace, pos: 6, val: "         ", line: 0},
 					{typ: itemNumber, pos: 15, val: "05", line: 0},
@@ -31,7 +31,7 @@ func Test_parseLines(t *testing.T) {
 			}, {
 				typ: linePIC,
 				fn:  parsePIC,
-				items: []item{
+				tokens: []token{
 					{typ: itemNumber, pos: 0, val: "000600", line: 1},
 					{typ: itemSpace, pos: 6, val: "         ", line: 1},
 					{typ: itemNumber, pos: 15, val: "10", line: 1},
@@ -46,7 +46,7 @@ func Test_parseLines(t *testing.T) {
 			}, {
 				typ: lineStruct,
 				fn:  parseNonNumDelimitedStruct,
-				items: []item{
+				tokens: []token{
 					{typ: itemSpace, pos: 6, val: "         ", line: 2},
 					{typ: itemNumber, pos: 15, val: "05", line: 2},
 					{typ: itemSpace, pos: 17, val: "  ", line: 2},

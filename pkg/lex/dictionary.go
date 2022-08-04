@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	parsers = NewTrie()
+	trie *Trie
 
 	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12. 00000241
 	occursWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemOCCURS, itemDot, itemSpace, itemNumber}
@@ -119,15 +119,16 @@ var (
 )
 
 func init() { // nolint:gochecknoinits
+	trie = NewTrie()
 	for _, v := range dictionary {
-		parsers.Insert(v.w, v.fn, v.typ)
+		trie.Insert(v.w, v.fn, v.typ)
 	}
 
 	log.Println("trie preloaded")
 }
 
-// getWord constructs a word for a slice of items
-func getWord(items []item) word {
+// getWord constructs a word for a slice of tokens
+func getWord(items []token) word {
 	w := make(word, len(items))
 	for i, l := range items {
 		w[i] = l.typ
@@ -136,13 +137,20 @@ func getWord(items []item) word {
 	return w
 }
 
-func basicParserGet(items []item) (parser, []item, bool) { // nolint:unparam // param is used...
-	d := parsers.Search(getWord(items))
+// basicParserGet ...
+//
+// FIXME: this and its use cases are hard to follow, and can be simplified
+//		  this function likely does not need to exist in this state. It actually
+// 	      seems to be only being used as a validator to check that the tokens
+//		  exist as a word, and that the word is equal to some expected result.
+//		  this name and how it is used do not match
+func basicParserGet(tokens []token) (parser, []token, bool) {
+	d := trie.Lookup(getWord(tokens))
 	if d == nil {
 		return nil, nil, false
 	}
 
-	return d.fn, items, true
+	return d.fn, tokens, true
 }
 
 // equalWord tells whether a and b contain the same elements.

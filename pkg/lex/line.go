@@ -34,33 +34,46 @@ const (
 )
 
 type line struct {
-	items []item
-	typ   lineType
-	fn    parser
+	tokens []token
+	typ    lineType
+	fn     parser
 }
 
-func buildLine(items []item) *line {
-	d := parsers.Search(getWord(items))
-	if d != nil {
+// buildLine takes a group of tokens expected to represent a valid word that is
+// stored within the trie. If the word is located in the trie, a line object is
+// built that holds the tokens, the type of the word, and the appropriate parser
+// to use for that word. If the word is not located in the trie, a line object
+// is built that treats the tokens as junk and worthy of no op.
+func buildLine(tokens []token) *line {
+	w := trie.Lookup(getWord(tokens))
+	if w != nil {
 		return &line{
-			items: items,
-			typ:   d.typ,
-			fn:    d.fn,
+			tokens: tokens,
+			typ:    w.typ,
+			fn:     w.fn,
 		}
 	}
 
 	return &line{
-		items: items,
-		typ:   lineJunk,
-		fn:    noOp,
+		tokens: tokens,
+		typ:    lineJunk,
+		fn:     noOp,
 	}
 }
 
+// lineFromMultiRedefines accepts multiple (two) lines from a copybook
+// joins their content in such a way that the PIC would read as if it was
+// defined on a single line (view example below) and checks the trie to see if
+// the line that is built matches a stored word.
+//
 // a 	= 000830  05  DUMMY-OBJECT-3  REDEFINES   00000195
 // b 	= 001150  DUMMY-OBJECT-2   PIC X(7).  00000227
 //
 // res 	= 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2   PIC X(7).  00000195
-func lineFromMultiRedefines(a, b []item) []item {
+//
+// FIXME: lineFromMultiRedefines & lineFromMultiOccurs should be compounded into
+//		  a single function that accepts an expected word parameter.
+func lineFromMultiRedefines(a, b []token) []token {
 	res := joinLines(len(redefinesWord), a, b)
 
 	if !equalWord(getWord(res), redefinesWord) {
@@ -70,11 +83,19 @@ func lineFromMultiRedefines(a, b []item) []item {
 	return res
 }
 
+// lineFromMultiOccurs accepts multiple (two) lines from a copybook
+// joins their content in such a way that the PIC would read as if it was
+// defined on a single line (view example below) and checks the trie to see if
+// the line that is built matches a stored word.
+//
 // a 	= 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12)  00000241
 // b 	= 001300      OCCURS 12.                            00000242
 //
 // res  = 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
-func lineFromMultiOccurs(a, b []item) []item {
+//
+// FIXME: lineFromMultiRedefines & lineFromMultiOccurs should be compounded into
+//		  a single function that accepts an expected word parameter.
+func lineFromMultiOccurs(a, b []token) []token {
 	res := joinLines(len(occursWord), a, b)
 
 	if !equalWord(getWord(res), occursWord) {
@@ -84,8 +105,13 @@ func lineFromMultiOccurs(a, b []item) []item {
 	return res
 }
 
-func joinLines(size int, a, b []item) []item {
-	res := make([]item, size)
+// joinLines joins two sets of tokens to read as if the two tokens were
+// defined on a single line in the copybook. This if for use with PICs that are
+// defined over multiple lines.
+//
+// Refer to lineFromMultiRedefines & lineFromMultiOccurs
+func joinLines(size int, a, b []token) []token {
+	res := make([]token, size)
 	// copy all but the num delimiter at the end of a
 	i := 0
 	for i < len(a)-1 {

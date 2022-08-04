@@ -4,27 +4,27 @@ import (
 	"fmt"
 )
 
-// item represents a token or text string returned from the scanner.
-type item struct {
-	typ  itemType // The type of this item.
-	pos  Pos      // The starting position, in bytes, of this item in the input string.
-	val  string   // The value of this item.
-	line int      // The line number at the start of this item.
+// token represents a token or text string returned from the scanner.
+type token struct {
+	typ  itemType // The type of this token.
+	pos  Pos      // The starting position, in bytes, of this token in the input string.
+	val  string   // The value of this token.
+	line int      // The line number at the start of this token.
 }
 
-func (i item) String() string {
+func (t token) String() string {
 	switch {
-	case i.typ == itemEOF:
+	case t.typ == itemEOF:
 		return "EOF"
 
-	case i.typ == itemError:
-		return i.val
+	case t.typ == itemError:
+		return t.val
 	}
 
-	return fmt.Sprintf("%q", i.val)
+	return fmt.Sprintf("%q", t.val)
 }
 
-// itemType identifies the type of lex items.
+// itemType identifies the type of lex tokens.
 type itemType int
 
 const (

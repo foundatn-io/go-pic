@@ -11,17 +11,20 @@ const (
 	picPrefix = "PIC "
 )
 
+// parser is any function that accepts a working Tree, a given line, the current
+// (root) record, parses the line and manipulates the new Record with respect to
+// the root Record i.e. new child record, redefinition of an existing record, etc
 type parser func(t *Tree, l line, root *Record) *Record
 
 func noOp(t *Tree, l line, _ *Record) *Record {
-	log.Printf("%s on copybook line %d resulted in no-op", l.typ, t.lIdx)
+	log.Printf("%s on copybook line %d resulted in no-op", l.typ, t.lineIndex)
 	return nil
 }
 
 // parsePIC is a parser that is used to build records
 // for lines that are determined to be PIC definitions
 func parsePIC(_ *Tree, l line, _ *Record) *Record {
-	picNumDef := strings.TrimPrefix(l.items[6].val, picPrefix)
+	picNumDef := strings.TrimPrefix(l.tokens[6].val, picPrefix)
 	length, err := parsePICCount(picNumDef)
 	if err != nil {
 		log.Fatalln(err)
@@ -29,9 +32,9 @@ func parsePIC(_ *Tree, l line, _ *Record) *Record {
 
 	return &Record{
 		depthMap: map[string]*Record{},
-		Name:     l.items[4].val,
+		Name:     l.tokens[4].val,
 		Length:   length,
-		depth:    l.items[2].val,
+		depth:    l.tokens[2].val,
 		Typ:      parsePICType(picNumDef),
 	}
 }
@@ -39,10 +42,9 @@ func parsePIC(_ *Tree, l line, _ *Record) *Record {
 // parseRedefines is a parser that is used to build records
 // for lines that are determined to be REDEFINES definitions
 //
-// It will build the new Record and replace the the redefinition
-// target
+// It will build the new Record and replace the redefinition target
 func parseRedefines(_ *Tree, l line, root *Record) *Record {
-	picNumDef := strings.TrimPrefix(l.items[10].val, picPrefix)
+	picNumDef := strings.TrimPrefix(l.tokens[10].val, picPrefix)
 	length, err := parsePICCount(picNumDef)
 	if err != nil {
 		log.Fatalln(err)
@@ -50,12 +52,12 @@ func parseRedefines(_ *Tree, l line, root *Record) *Record {
 
 	r := &Record{
 		depthMap: map[string]*Record{},
-		Name:     l.items[4].val,
+		Name:     l.tokens[4].val,
 		Length:   length,
 		Typ:      parsePICType(picNumDef),
 	}
 
-	target := l.items[8].val
+	target := l.tokens[8].val
 	dst, i := root.fromCache(target)
 	if dst == nil {
 		log.Fatalln(fmt.Sprintf("redefinition target %s does not exist", target))
@@ -68,10 +70,9 @@ func parseRedefines(_ *Tree, l line, root *Record) *Record {
 // for lines that are determined to be REDEFINES definitions
 // for groups, instead of PICs
 //
-// It will build the new Record and replace the the redefinition
-// target
+// It will build the new Record and replace the redefinition target
 func parseGroupRedefines(t *Tree, l line, root *Record) *Record {
-	target := strings.TrimSuffix(l.items[8].val, ".")
+	target := strings.TrimSuffix(l.tokens[8].val, ".")
 	dst, _ := root.fromCache(target)
 	if dst == nil {
 		log.Fatalln(fmt.Sprintf("redefinition target %s does not exist", target))
@@ -87,9 +88,9 @@ func parseGroupRedefines(t *Tree, l line, root *Record) *Record {
 	}
 
 	r := &Record{
-		Name:     l.items[4].val,
+		Name:     l.tokens[4].val,
 		Typ:      reflect.Struct,
-		depth:    l.items[2].val,
+		depth:    l.tokens[2].val,
 		depthMap: dst.depthMap,
 	}
 
@@ -106,22 +107,22 @@ func parseGroupRedefines(t *Tree, l line, root *Record) *Record {
 }
 
 func parseOccurs(_ *Tree, l line, _ *Record) *Record {
-	picNumDef := strings.TrimPrefix(strings.TrimSpace(l.items[6].val), picPrefix)
+	picNumDef := strings.TrimPrefix(strings.TrimSpace(l.tokens[6].val), picPrefix)
 	length, err := parsePICCount(picNumDef)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	n, err := parseOccursCount(l.items[8])
+	n, err := parseOccursCount(l.tokens[8])
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	return &Record{
-		Name:     l.items[4].val,
+		Name:     l.tokens[4].val,
 		Length:   length,
 		Occurs:   n,
-		depth:    l.items[2].val,
+		depth:    l.tokens[2].val,
 		depthMap: map[string]*Record{},
 		Typ:      parsePICType(picNumDef),
 	}
@@ -129,7 +130,7 @@ func parseOccurs(_ *Tree, l line, _ *Record) *Record {
 
 // parseRedefinesMulti validates that the next line in the tree returns an
 // expected multiline redefines part from the trie, and matches that word.
-// After which, it concatenates the origin line items, and the items from the
+// After which, it concatenates the origin line tokens, and the tokens from the
 // subsequent line, to make a valid, single-line REDEFINES definition, that is
 // then parsed.
 func parseRedefinesMulti(t *Tree, l line, root *Record) *Record {
@@ -137,12 +138,12 @@ func parseRedefinesMulti(t *Tree, l line, root *Record) *Record {
 		panic(err)
 	}
 
-	_, i, ok := basicParserGet(t.line.items)
+	_, i, ok := basicParserGet(t.line.tokens)
 	if !ok || !equalWord(getWord(i), multiRedefinesPartWord) {
 		log.Fatalln("parser indicated multi-line redefinition, but failed to verify next line")
 	}
 
-	l.items = lineFromMultiRedefines(l.items, i)
+	l.tokens = lineFromMultiRedefines(l.tokens, i)
 	nl := l
 
 	return parseRedefines(nil, nl, root)
@@ -150,7 +151,7 @@ func parseRedefinesMulti(t *Tree, l line, root *Record) *Record {
 
 // parseOccursMulti validates that the next line in the tree returns an expected
 // multiline occurs part from the trie, and matches that word.
-// After which, it concatenates the origin line items, and the items from the
+// After which, it concatenates the origin line tokens, and the tokens from the
 // subsequent line, to make a valid, single-line OCCURS definition, that is then
 // parsed.
 func parseOccursMulti(t *Tree, l line, _ *Record) *Record {
@@ -158,12 +159,12 @@ func parseOccursMulti(t *Tree, l line, _ *Record) *Record {
 		panic(err)
 	}
 
-	_, i, ok := basicParserGet(t.line.items)
+	_, i, ok := basicParserGet(t.line.tokens)
 	if !ok || !equalWord(getWord(i), multiOccursPartWord) {
 		log.Fatalln()
 	}
 
-	l.items = lineFromMultiOccurs(l.items, i)
+	l.tokens = lineFromMultiOccurs(l.tokens, i)
 	nl := l
 
 	return parseOccurs(nil, nl, nil)
@@ -171,13 +172,13 @@ func parseOccursMulti(t *Tree, l line, _ *Record) *Record {
 
 // parseNumDelimitedStruct is a parser wrapper used to build records
 // for lines that are determined to be new group definitions that are built with
-// number delimiter tokens at the start and end of the source line
+// number delimiter token at the start and end of the source line
 //
 // It will call parseStruct to handle logic for new groups
 func parseNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 	// if the level number is 01, ignore this object.
 	// refer to README.md Level Number section
-	if l.items[2].val == recordDescriptionIndicator {
+	if l.tokens[2].val == recordDescriptionIndicator {
 		return noOp(t, l, root)
 	}
 
@@ -186,13 +187,13 @@ func parseNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 
 // parseNonNumDelimitedStruct is a parser wrapper used to build records
 // for lines that are determined to be new group definitions that are built
-// without number delimiter tokens at the start and end of the source line
+// without number delimiter token at the start and end of the source line
 //
 // It will call parseStruct to handle logic for new groups
 func parseNonNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 	// if the level number is 01, ignore this object.
 	// refer to README.md Level Number section
-	if l.items[1].val == recordDescriptionIndicator {
+	if l.tokens[1].val == recordDescriptionIndicator {
 		return noOp(t, l, root)
 	}
 
@@ -217,9 +218,9 @@ func parseNonNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 //  |	|-picA
 func parseStruct(_ *Tree, l line, _ *Record, nameIdx, groupIdx int) *Record {
 	newNode := &Record{
-		Name:     l.items[nameIdx].val,
+		Name:     l.tokens[nameIdx].val,
 		Typ:      reflect.Struct,
-		depth:    l.items[groupIdx].val,
+		depth:    l.tokens[groupIdx].val,
 		depthMap: map[string]*Record{},
 	}
 

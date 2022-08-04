@@ -48,12 +48,12 @@ func Test_getWord(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		in   []item
+		in   []token
 		want word
 	}{
 		{
 			name: "Returns-NumDelimited",
-			in: []item{
+			in: []token{
 				{
 					typ: itemNumber,
 					val: "000123",
@@ -90,7 +90,7 @@ func Test_getWord(t *testing.T) {
 			want: numDelimitedStructWord,
 		}, {
 			name: "Returns-NumDelimited",
-			in: []item{
+			in: []token{
 				{
 					typ: itemSpace,
 					val: "  ",

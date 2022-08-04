@@ -8,26 +8,26 @@ import (
 )
 
 type Tree struct {
-	lex   Lexer
-	token item
-	lines []line
-	state *Record
-	line  line
-	lIdx  int
+	lexr      Lexer
+	token     token
+	lines     []line
+	state     *Record
+	line      line
+	lineIndex int
 }
 
-func NewTree(lxr Lexer) *Tree {
+func NewTree(lexr Lexer) *Tree {
 	log.Println("building new tree")
-	root := &Record{Typ: reflect.Struct, Name: lxr.getName(), depthMap: make(map[string]*Record)}
+	root := &Record{Typ: reflect.Struct, Name: lexr.getName(), depthMap: make(map[string]*Record)}
 	return &Tree{
-		lex:   lxr,
-		state: root,
-		lIdx:  -1,
+		lexr:      lexr,
+		state:     root,
+		lineIndex: -1,
 	}
 }
 
 func (t *Tree) Parse() *Record {
-	log.Println("parsing lexer tokens")
+	log.Println("parsing lexer token")
 	for {
 		li := t.scanLine()
 		if t.token.typ == itemEOF {
@@ -48,11 +48,11 @@ func (t *Tree) Parse() *Record {
 	return t.state
 }
 
-func (t *Tree) scanLine() []item {
-	var lineItems []item
+func (t *Tree) scanLine() []token {
+	var lineItems []token
 	for {
 		t.token = t.next()
-		if t.token == (item{}) || t.token.typ == itemError {
+		if t.token == (token{}) || t.token.typ == itemError {
 			break
 		}
 
@@ -67,8 +67,8 @@ func (t *Tree) scanLine() []item {
 }
 
 // next returns the next token.
-func (t *Tree) next() item {
-	return t.lex.getNext()
+func (t *Tree) next() token {
+	return t.lexr.getNext()
 }
 
 // parseLines generates the text for the line
@@ -81,7 +81,7 @@ func (t *Tree) parseLines(root *Record) { //nolint:gocyclo // TODO: refine
 
 		switch t.line.typ {
 		case lineJunk, lineEnum:
-			log.Printf("%s on copybook line %d resulted in no-op", t.line.typ, t.lIdx)
+			log.Printf("%s on copybook line %d resulted in no-op", t.line.typ, t.lineIndex)
 			continue
 
 		case lineRedefines, lineMultilineRedefines, lineGroupRedefines:
@@ -124,11 +124,11 @@ func (t *Tree) parseLines(root *Record) { //nolint:gocyclo // TODO: refine
 }
 
 func (t *Tree) nextLine() error {
-	if t.lIdx == len(t.lines)-1 {
+	if t.lineIndex == len(t.lines)-1 {
 		return io.EOF
 	}
 
-	t.lIdx++
-	t.line = t.lines[t.lIdx]
+	t.lineIndex++
+	t.line = t.lines[t.lineIndex]
 	return nil
 }

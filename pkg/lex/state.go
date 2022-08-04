@@ -15,51 +15,78 @@ const (
 
 func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simplifying this
 	switch r := l.next(); {
+	// is the current rune at the end of a line?
+	// emit an EOL itemType
 	case isEOL(r):
 		l.emit(itemEOL)
-
+	// is the current token at the end of the file?
+	// emit an EOF itemType
 	case r == eof:
 		l.emit(itemEOF)
 		return nil
-
-	case isSpace(r):
+	// is the current token a space or tab?
+	// continue lexing with the lexSpace stateFn until otherwise
+	case isSpaceOrTab(r):
 		l.backup()
 		return lexSpace
 
+	// could the current rune be the start of a PIC clause ('P')
 	case r == picLeft:
 		// special look-ahead for "PIC" so we don't break l.backup().
 		if l.pos < Pos(len(l.input)) {
-			// Look for PIC
+			// Look for PIC clause
 			if (r < '0' || '9' < r) && l.peek() == 'I' && l.lookAhead(2) == 'C' { // nolint:gomnd // obvious meaning
 				return lexPIC
 			}
 
+			// otherwise treat the rune as the beginning of a record identifier
+			// e.g. PAYMENT-AMOUNT
 			return lexIdentifier
 		}
 
+	// if the rune is the beginning of an OCCURS statement?
+	// continue lexing from this rune as an OCCURS until otherwise
 	case r == 'O':
 		return lexOCCURS(l)
 
+	// if the rune is the beginning of a REDEFINES statement?
+	// continue lexing from this rune as REDEFINES until otherwise
 	case r == 'R':
 		return lexREDEFINES(l)
 
+	// if the rune is the beginning of a number statement
+	// continue lexing from this rune as a number until otherwise
+	//
+	// FIXME: actually +/- don't really make sense in valid
+	// 		  copybook definitions
 	case r == '+' || r == '-' || ('0' <= r && r <= '9'):
 		l.backup()
 		return lexNumber
 
+	// if the rune is any non-keyword alphanumeric (OCCURS/PIC/REDEFINES)
+	// continue lexing from this rune as a record identifier until otherwise
 	case isAlphaNumeric(r):
 		l.backup()
 		return lexIdentifier
 
+	// if the rune is a dot
+	// emit a dot token directly
 	case r == '.':
 		l.emit(itemDot)
 
+	// if the rune is a single quote
+	// continue lexing from this rune as an enum until otherwise
 	case r == singleQuote:
 		return lexEnum
 
+	// if the rune is a valid ASCII & Go-printable character
+	// emit a character token directly
 	case r <= unicode.MaxASCII && unicode.IsPrint(r):
 		l.emit(itemChar)
 
+	// if the rune is an odd, particular SUB character, this is sometimes found
+	// at the end of a copybook file.
+	// emit an EOF token
 	case r == substituteHex:
 		log.Printf("found SUBSTITUTE rune")
 		l.emit(itemEOF)
@@ -70,9 +97,13 @@ func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simpl
 		return l.errorf(e.Error())
 	}
 
+	// if the rune is any of the cases that do not provide their own stateFn
+	// to continue lexing a specific expected sequence of runes, then recurse
+	// with this default stateFn, moving to the next rune
 	return lexInsideStatement(l)
 }
 
+// lexPIC ...
 func lexPIC(l *lexer) stateFn {
 	var r rune
 	for {
@@ -82,7 +113,7 @@ func lexPIC(l *lexer) stateFn {
 			// if after a pic character, we get a space it is likely
 			// there may be an OCCURS definition to follow, e.g.
 			// PIC X(10) OCCURS 12.
-			if isSpace(r) {
+			if isSpaceOrTab(r) {
 				switch nx := l.peek(); {
 				case isPICChar(nx), isPICType(nx), nx == '.':
 					continue
@@ -135,8 +166,8 @@ func lexOCCURS(l *lexer) stateFn {
 }
 
 func (l *lexer) scanRedefines() bool {
-	l.acceptRun("REDEFINES")
-	if !isSpace(l.peek()) {
+	l.acceptSequence("REDEFINES")
+	if !isSpaceOrTab(l.peek()) {
 		l.next()
 		return false
 	}
@@ -145,15 +176,15 @@ func (l *lexer) scanRedefines() bool {
 }
 
 func (l *lexer) scanOccurs() bool {
-	l.acceptRun("OCCURS")
-	if !isSpace(l.peek()) {
+	l.acceptSequence("OCCURS")
+	if !isSpaceOrTab(l.peek()) {
 		l.next()
 		return false
 	}
 
 	for {
 		r := l.next()
-		if !isPICChar(r) && !isSpace(r) {
+		if !isPICChar(r) && !isSpaceOrTab(r) {
 			if l.atTerminator() {
 				l.backup()
 				break
@@ -208,7 +239,7 @@ func lexEnum(l *lexer) stateFn {
 		switch r := l.peek(); {
 		case isAlphaNumeric(r):
 			// absorb
-			l.acceptRun(alphaNumeric)
+			l.acceptSequence(alphaNumeric)
 		default:
 			if !l.atEnumTerminator() {
 				e := fmt.Errorf("bad character %#U", r)
@@ -265,19 +296,19 @@ func (l *lexer) scanNumber() bool { // nolint:gocyclo // good luck simplifying t
 		}
 	}
 
-	l.acceptRun(digits)
+	l.acceptSequence(digits)
 	if l.accept(".") {
-		l.acceptRun(digits)
+		l.acceptSequence(digits)
 	}
 
 	if len(digits) == 10+1 && l.accept("eE") {
 		l.accept("+-")
-		l.acceptRun("0123456789_")
+		l.acceptSequence("0123456789_")
 	}
 
 	if len(digits) == 16+6+1 && l.accept("pP") {
 		l.accept("+-")
-		l.acceptRun("0123456789_")
+		l.acceptSequence("0123456789_")
 	}
 
 	// Is it imaginary?
@@ -287,16 +318,17 @@ func (l *lexer) scanNumber() bool { // nolint:gocyclo // good luck simplifying t
 		l.next()
 		return false
 	}
+
 	return true
 }
 
-// lexSpace scans a run of space characters.
+// lexSpace scans a sequence of space characters.
 // We have not consumed the first space, which is known to be present.
 // Take care if there is a trim-marked right delimiter, which starts with a space.
 func lexSpace(l *lexer) stateFn {
 	for {
 		r := l.peek()
-		if !isSpace(r) {
+		if !isSpaceOrTab(r) {
 			break
 		}
 
@@ -311,7 +343,7 @@ func lexSpace(l *lexer) stateFn {
 // appear after an identifier.
 func (l *lexer) atTerminator() bool {
 	r := l.peek()
-	if isSpace(r) || isEOL(r) {
+	if isSpaceOrTab(r) || isEOL(r) {
 		return true
 	}
 
@@ -328,8 +360,8 @@ func (l *lexer) atEnumTerminator() bool {
 	return r == singleQuote
 }
 
-// isSpace reports whether r is a space character.
-func isSpace(r rune) bool {
+// isSpaceOrTab reports whether r is a space character.
+func isSpaceOrTab(r rune) bool {
 	return r == ' ' || r == '\t'
 }
 
@@ -338,7 +370,7 @@ func isEOL(r rune) bool {
 	return r == '\r' || r == '\n'
 }
 
-// isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
+// isAlphaNumeric reports whether r is alphabetic, digit, or underscore.
 func isAlphaNumeric(r rune) bool {
 	return r == '_' || r == '-' || unicode.IsLetter(r) || unicode.IsDigit(r)
 }

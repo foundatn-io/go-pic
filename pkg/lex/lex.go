@@ -12,18 +12,18 @@ type stateFn func(*lexer) stateFn
 
 // lexer holds the state of the scanner.
 type lexer struct {
-	name      string // the name of the input; used only for error reports
-	input     string // the string being scanned
-	pos       Pos    // current position in the input
-	start     Pos    // start position of this item
-	width     Pos    // width of last rune read from input
-	items     []item // channel of scanned items
-	line      int    // 1+number of newlines seen
-	startLine int    // start line of this item
+	name        string  // the name of the input; used only for error reports
+	input       string  // the string being scanned
+	pos         Pos     // current position in the input
+	start       Pos     // start position of this token
+	width       Pos     // width of last rune read from input
+	tokens      []token // list of scanned tokens
+	currentLine int     // 1+number of newlines seen
+	startLine   int     // starting line of this token
 }
 
 type Lexer interface {
-	getNext() item
+	getNext() token
 	getName() string
 }
 
@@ -31,11 +31,11 @@ type Lexer interface {
 func New(name, input string) Lexer {
 	log.Println("building new lexer")
 	l := &lexer{
-		name:      name,
-		input:     input,
-		items:     make([]item, 0),
-		line:      1,
-		startLine: 1,
+		name:        name,
+		input:       input,
+		tokens:      make([]token, 0),
+		currentLine: 1,
+		startLine:   1,
 	}
 	l.run()
 	return l
@@ -45,7 +45,7 @@ func (l *lexer) getName() string {
 	return l.name
 }
 
-// run runs the state machine for the lexer.
+// run begins lexing
 func (l *lexer) run() {
 	for state := lexInsideStatement(l); state != nil; {
 		state = state(l)
@@ -63,7 +63,7 @@ func (l *lexer) next() rune {
 	l.pos += l.width
 
 	if r == '\n' {
-		l.line++
+		l.currentLine++
 	}
 
 	return r
@@ -76,7 +76,9 @@ func (l *lexer) peek() rune {
 	return r
 }
 
-// bit of a hack tbh
+// lookAhead ...
+//
+// FIXME: a bit hacky, revisit to improve
 func (l *lexer) lookAhead(i int) rune {
 	if int(l.pos) >= len(l.input) {
 		l.width = 0
@@ -88,7 +90,7 @@ func (l *lexer) lookAhead(i int) rune {
 	l.pos += l.width
 
 	if r == '\n' {
-		l.line++
+		l.currentLine++
 	}
 
 	l.backup()
@@ -101,15 +103,16 @@ func (l *lexer) backup() {
 
 	// Correct newline count.
 	if l.width == 1 && l.input[l.pos] == '\n' {
-		l.line--
+		l.currentLine--
 	}
 }
 
-// emit passes an item back to the client.
+// emit passes a token adds a new token of the provided type t, with the current
+// position information to the recorded tokens
 func (l *lexer) emit(t itemType) {
-	l.items = append(l.items, item{t, l.start, l.input[l.start:l.pos], l.startLine})
+	l.tokens = append(l.tokens, token{t, l.start, l.input[l.start:l.pos], l.startLine})
 	l.start = l.pos
-	l.startLine = l.line
+	l.startLine = l.currentLine
 }
 
 // accept consumes the next rune if it's from the valid set.
@@ -122,8 +125,8 @@ func (l *lexer) accept(valid string) bool {
 	return false
 }
 
-// acceptRun consumes a run of runes from the valid set.
-func (l *lexer) acceptRun(valid string) {
+// acceptSequence consumes a sequence of runes from the valid set.
+func (l *lexer) acceptSequence(valid string) {
 	for strings.ContainsRune(valid, l.next()) {
 	}
 
@@ -133,7 +136,7 @@ func (l *lexer) acceptRun(valid string) {
 // errorf returns an error token and terminates the scan by passing
 // back a nil pointer that will be the next state, terminating l.getNext.
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	l.items = append(l.items, item{
+	l.tokens = append(l.tokens, token{
 		typ:  itemError,
 		pos:  l.start,
 		val:  fmt.Sprintf(format, args...),
@@ -142,15 +145,15 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 	return nil
 }
 
-// nextItem returns the next item from the input.
+// getNext returns the next token from the input.
 // Called by the parser, not in the lexing goroutine.
-func (l *lexer) getNext() item {
-	var next item
-	if len(l.items) == 0 {
-		log.Println("no lexed items left in stack")
-		return item{}
+func (l *lexer) getNext() token {
+	var next token
+	if len(l.tokens) == 0 {
+		log.Println("no lexed tokens left in stack")
+		return token{}
 	}
 
-	next, l.items = l.items[0], l.items[1:]
+	next, l.tokens = l.tokens[0], l.tokens[1:]
 	return next
 }
