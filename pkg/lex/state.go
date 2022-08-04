@@ -15,22 +15,24 @@ const (
 
 func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simplifying this
 	switch r := l.next(); {
-	// is the current rune at the end of a line?
+	// if the current rune is at the end of a line
 	// emit an EOL itemType
 	case isEOL(r):
 		l.emit(itemEOL)
-	// is the current token at the end of the file?
+
+	// if the current token is at the end of the file
 	// emit an EOF itemType
 	case r == eof:
 		l.emit(itemEOF)
 		return nil
-	// is the current token a space or tab?
+
+	// if the current token is a space or tab
 	// continue lexing with the lexSpace stateFn until otherwise
 	case isSpaceOrTab(r):
 		l.backup()
 		return lexSpace
 
-	// could the current rune be the start of a PIC clause ('P')
+	// if the current rune may be the start of a PIC clause ('P')
 	case r == picLeft:
 		// special look-ahead for "PIC" so we don't break l.backup().
 		if l.pos < Pos(len(l.input)) {
@@ -44,12 +46,12 @@ func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simpl
 			return lexIdentifier
 		}
 
-	// if the rune is the beginning of an OCCURS statement?
+	// if the rune is the beginning of an OCCURS statement
 	// continue lexing from this rune as an OCCURS until otherwise
 	case r == 'O':
 		return lexOCCURS(l)
 
-	// if the rune is the beginning of a REDEFINES statement?
+	// if the rune is the beginning of a REDEFINES statement
 	// continue lexing from this rune as REDEFINES until otherwise
 	case r == 'R':
 		return lexREDEFINES(l)
