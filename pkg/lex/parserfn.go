@@ -1,7 +1,6 @@
 package lex
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -9,6 +8,18 @@ import (
 
 const (
 	picPrefix = "PIC "
+	// TODO: provide example of line tokens to illustrate index mapping
+	picTokenNameIndex  = 4
+	picTokenDepthIndex = 2
+	picTokenPICIndex   = 6
+
+	redefinesTokenNameIndex   = 4
+	redefinesTokenPICIndex    = 10
+	redefinesTokenTargetIndex = 8
+
+	groupRedefinesTokenDepthIndex  = 2
+	groupRedefinesTokenNameIndex   = 4
+	groupRedefinesTokenTargetIndex = 8
 )
 
 // parser is any function that accepts a working Tree, a given line, the current
@@ -24,7 +35,7 @@ func noOp(t *Tree, l line, _ *Record) *Record {
 // parsePIC is a parser that is used to build records
 // for lines that are determined to be PIC definitions
 func parsePIC(_ *Tree, l line, _ *Record) *Record {
-	picNumDef := strings.TrimPrefix(l.tokens[6].val, picPrefix)
+	picNumDef := strings.TrimPrefix(l.tokens[picTokenPICIndex].val, picPrefix)
 	length, err := parsePICCount(picNumDef)
 	if err != nil {
 		log.Fatalln(err)
@@ -32,9 +43,9 @@ func parsePIC(_ *Tree, l line, _ *Record) *Record {
 
 	return &Record{
 		depthMap: map[string]*Record{},
-		Name:     l.tokens[4].val,
+		Name:     l.tokens[picTokenNameIndex].val,
 		Length:   length,
-		depth:    l.tokens[2].val,
+		depth:    l.tokens[picTokenDepthIndex].val,
 		Typ:      parsePICType(picNumDef),
 	}
 }
@@ -44,7 +55,7 @@ func parsePIC(_ *Tree, l line, _ *Record) *Record {
 //
 // It will build the new Record and replace the redefinition target
 func parseRedefines(_ *Tree, l line, root *Record) *Record {
-	picNumDef := strings.TrimPrefix(l.tokens[10].val, picPrefix)
+	picNumDef := strings.TrimPrefix(l.tokens[redefinesTokenPICIndex].val, picPrefix)
 	length, err := parsePICCount(picNumDef)
 	if err != nil {
 		log.Fatalln(err)
@@ -52,15 +63,15 @@ func parseRedefines(_ *Tree, l line, root *Record) *Record {
 
 	r := &Record{
 		depthMap: map[string]*Record{},
-		Name:     l.tokens[4].val,
+		Name:     l.tokens[redefinesTokenNameIndex].val,
 		Length:   length,
 		Typ:      parsePICType(picNumDef),
 	}
 
-	target := l.tokens[8].val
+	target := l.tokens[redefinesTokenTargetIndex].val
 	dst, i := root.fromCache(target)
 	if dst == nil {
-		log.Fatalln(fmt.Sprintf("redefinition target %s does not exist", target))
+		log.Fatalf("redefinition target %s does not exist", target)
 	}
 
 	return root.redefine(i, dst, r)
@@ -72,10 +83,10 @@ func parseRedefines(_ *Tree, l line, root *Record) *Record {
 //
 // It will build the new Record and replace the redefinition target
 func parseGroupRedefines(t *Tree, l line, root *Record) *Record {
-	target := strings.TrimSuffix(l.tokens[8].val, ".")
+	target := strings.TrimSuffix(l.tokens[groupRedefinesTokenTargetIndex].val, ".")
 	dst, _ := root.fromCache(target)
 	if dst == nil {
-		log.Fatalln(fmt.Sprintf("redefinition target %s does not exist", target))
+		log.Fatalf("redefinition target %s does not exist", target)
 	}
 
 	if dst.depthMap == nil || len(dst.depthMap) == 0 {
@@ -88,15 +99,15 @@ func parseGroupRedefines(t *Tree, l line, root *Record) *Record {
 	}
 
 	r := &Record{
-		Name:     l.tokens[4].val,
+		Name:     l.tokens[groupRedefinesTokenNameIndex].val,
 		Typ:      reflect.Struct,
-		depth:    l.tokens[2].val,
+		depth:    l.tokens[groupRedefinesTokenDepthIndex].val,
 		depthMap: dst.depthMap,
 	}
 
 	dst, i := root.fromCache(target)
 	if dst == nil {
-		log.Fatalln(fmt.Sprintf("redefinition target %s does not exist", target))
+		log.Fatalf("redefinition target %s does not exist", target)
 	}
 	root.Length -= dst.Length
 
@@ -212,10 +223,11 @@ func parseNonNumDelimitedStruct(t *Tree, l line, root *Record) *Record {
 //
 // In this way we may build a tree like
 // root
-//  |-group1
-//  |   |-picA
-//  |-group2
-//  |	|-picA
+//
+//	|-group1
+//	|   |-picA
+//	|-group2
+//	|	|-picA
 func parseStruct(_ *Tree, l line, _ *Record, nameIdx, groupIdx int) *Record {
 	newNode := &Record{
 		Name:     l.tokens[nameIdx].val,

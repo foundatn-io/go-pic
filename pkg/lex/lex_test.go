@@ -12,7 +12,7 @@ func Test_lexer_run(t *testing.T) {
 		l    *lexer
 		want []token
 	}{
-		{ // nolint:dupl
+		{ //nolint:dupl
 			name: "Simple",
 			l: &lexer{
 				name:   "lexer",
@@ -33,7 +33,7 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemEOL, pos: 80, val: "\n", line: 0},
 				{typ: itemEOF, pos: 81, val: "", line: 1},
 			},
-		}, { // nolint:dupl
+		}, { //nolint:dupl
 			name: "SimpleIdentifierWithNameStartingWith_RorP",
 			l: &lexer{
 				name:   "lexer",
@@ -54,7 +54,7 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemEOL, pos: 66, val: "\n", line: 0},
 				{typ: itemEOF, pos: 67, val: "", line: 1},
 			},
-		}, { // nolint:dupl
+		}, { //nolint:dupl
 			name: "SimplePICWithParentheses",
 			l: &lexer{
 				name:   "lexer",
@@ -106,7 +106,7 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemEOF, pos: 162, val: "", line: 2},
 			},
 		},
-		{ // nolint:dupl
+		{ //nolint:dupl
 			name: "SimplePICWithParentheses_OCCURS",
 			l: &lexer{
 				name:   "lexer",
@@ -129,7 +129,7 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemEOL, pos: 78, val: "\n", line: 0},
 				{typ: itemEOF, pos: 79, val: "", line: 1},
 			},
-		}, { // nolint:dupl // test data
+		}, { //nolint:dupl // test data
 			name: "SimplePICWithParentheses_FloatExplicitDecimalPoint",
 			l: &lexer{
 				name:   "lexer",
@@ -150,7 +150,7 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemEOL, pos: 89, val: "\n", line: 0},
 				{typ: itemEOF, pos: 90, val: "", line: 1},
 			},
-		}, { // nolint:dupl
+		}, { //nolint:dupl
 			name: "88EnumNonDelimitedSkipped",
 			l: &lexer{
 				name:   "lexer",
@@ -171,7 +171,7 @@ func Test_lexer_run(t *testing.T) {
 				{typ: itemEOL, pos: 34, val: "\n", line: 0},
 				{typ: itemEOF, pos: 35, val: "", line: 1},
 			},
-		}, { // nolint:dupl
+		}, { //nolint:dupl
 			name: "88EnumDelimitedSkipped",
 			l: &lexer{
 				name:   "lexer",

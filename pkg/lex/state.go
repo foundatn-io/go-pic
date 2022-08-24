@@ -8,12 +8,12 @@ import (
 
 const (
 	substituteHex = '\U0000001A'
-	singleQuote   = rune(39) // nolint:gomnd // rune of '
+	singleQuote   = rune(39) //nolint:gomnd // rune of '
 
 	alphaNumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 )
 
-func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simplifying this
+func lexInsideStatement(l *lexer) stateFn { //nolint:gocyclo // good luck simplifying this
 	switch r := l.next(); {
 	// if the current rune is at the end of a line
 	// emit an EOL itemType
@@ -37,7 +37,7 @@ func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simpl
 		// special look-ahead for "PIC" so we don't break l.backup().
 		if l.pos < Pos(len(l.input)) {
 			// Look for PIC clause
-			if (r < '0' || '9' < r) && l.peek() == 'I' && l.lookAhead(2) == 'C' { // nolint:gomnd // obvious meaning
+			if (r < '0' || '9' < r) && l.peek() == 'I' && l.lookAhead(2) == 'C' { //nolint:gomnd // obvious meaning
 				return lexPIC
 			}
 
@@ -279,7 +279,7 @@ func lexNumber(l *lexer) stateFn {
 	return lexInsideStatement(l)
 }
 
-func (l *lexer) scanNumber() bool { // nolint:gocyclo // good luck simplifying this
+func (l *lexer) scanNumber() bool { //nolint:gocyclo // good luck simplifying this
 	// Optional leading sign.
 	l.accept("+-")
 	// Is it hex?

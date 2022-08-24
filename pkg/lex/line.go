@@ -72,7 +72,8 @@ func buildLine(tokens []token) *line {
 // res 	= 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2   PIC X(7).  00000195
 //
 // FIXME: lineFromMultiRedefines & lineFromMultiOccurs should be compounded into
-//		  a single function that accepts an expected word parameter.
+//
+//	a single function that accepts an expected word parameter.
 func lineFromMultiRedefines(a, b []token) []token {
 	res := joinLines(len(redefinesWord), a, b)
 
@@ -94,7 +95,8 @@ func lineFromMultiRedefines(a, b []token) []token {
 // res  = 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12 00000241
 //
 // FIXME: lineFromMultiRedefines & lineFromMultiOccurs should be compounded into
-//		  a single function that accepts an expected word parameter.
+//
+//	a single function that accepts an expected word parameter.
 func lineFromMultiOccurs(a, b []token) []token {
 	res := joinLines(len(occursWord), a, b)
 

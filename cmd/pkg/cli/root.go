@@ -54,7 +54,7 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
-func init() { // nolint:gochecknoinits
+func init() { //nolint:gochecknoinits
 	dirCmd.Flags().BoolP(displayFlag, "d", false, displayHelp)
 	dirCmd.Flags().StringP(outFlag, "o", "", outputHelp)
 	dirCmd.Flags().StringP(inFlag, "i", "", inputHelp)
@@ -77,7 +77,7 @@ func init() { // nolint:gochecknoinits
 	rootCmd.AddCommand(fileCmd)
 }
 
-func dirRun(cmd *cobra.Command, _ []string) error { // nolint:gocyclo
+func dirRun(cmd *cobra.Command, _ []string) error { //nolint:gocyclo
 	out, err := cmd.Flags().GetString(outFlag)
 	if err != nil {
 		return fmt.Errorf("failed to extract value for flag %s: %w", outFlag, err)
@@ -114,7 +114,7 @@ func dirRun(cmd *cobra.Command, _ []string) error { // nolint:gocyclo
 		}
 
 		log.Printf("parsing copybook file %s", ff.Name())
-		f, err := os.Open(filepath.Join(in, ff.Name())) // nolint:gosec
+		f, err := os.Open(filepath.Join(in, ff.Name())) //nolint:gosec
 		if err != nil {
 			return fmt.Errorf("failed to open file %s: %w", ff.Name(), err)
 		}
@@ -146,7 +146,7 @@ func fileRun(cmd *cobra.Command, _ []string) error {
 	d, _ := cmd.Flags().GetBool(displayFlag)
 
 	log.Printf("parsing copybook file %s", in)
-	f, err := os.Open(in) // nolint:gosec
+	f, err := os.Open(in) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", in, err)
 	}

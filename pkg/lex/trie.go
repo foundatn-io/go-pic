@@ -46,7 +46,7 @@ func (t *Trie) Insert(word word, p parser, typ lineType) {
 }
 
 // Lookup will search for the given word
-func (t *Trie) Lookup(word word) *entry { // nolint:golint
+func (t *Trie) Lookup(word word) *entry { //nolint:golint
 	cur := t.root
 	for i := 0; i < len(word); i++ {
 		// if the itemType is not in the children...

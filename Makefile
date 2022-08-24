@@ -53,6 +53,7 @@ tidy: ## Reorders imports
 
 .PHONY: lint
 lint: ## Runs the golangci-lint checker
+	go fmt ./...
 	golangci-lint run -v
 
 .PHONY: test

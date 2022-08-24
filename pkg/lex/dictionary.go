@@ -118,7 +118,7 @@ var (
 	}
 )
 
-func init() { // nolint:gochecknoinits
+func init() { //nolint:gochecknoinits
 	trie = NewTrie()
 	for _, v := range dictionary {
 		trie.Insert(v.w, v.fn, v.typ)
@@ -140,8 +140,9 @@ func getWord(items []token) word {
 // basicParserGet ...
 //
 // FIXME: this and its use cases are hard to follow, and can be simplified
+//
 //		  this function likely does not need to exist in this state. It actually
-// 	      seems to be only being used as a validator to check that the tokens
+//	      seems to be only being used as a validator to check that the tokens
 //		  exist as a word, and that the word is equal to some expected result.
 //		  this name and how it is used do not match
 func basicParserGet(tokens []token) (parser, []token, bool) {

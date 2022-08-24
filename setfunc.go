@@ -10,6 +10,8 @@ import (
 const (
 	float32Size = 32
 	float64Size = 64
+	base10      = 10
+	bit64       = 64
 )
 
 type setFunc func(v reflect.Value, s string) error
@@ -82,9 +84,9 @@ func uintSetFunc(v reflect.Value, s string) error {
 		return nil
 	}
 
-	i, err := strconv.ParseUint(s, 10, 64)
+	i, err := strconv.ParseUint(s, base10, bit64)
 	if err != nil {
-		return fmt.Errorf("failed string->int conversion: %w", err)
+		return fmt.Errorf("failed string->uint conversion: %w", err)
 	}
 
 	v.SetUint(i)

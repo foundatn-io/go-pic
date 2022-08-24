@@ -72,7 +72,7 @@ func Test_Parse(t *testing.T) {
 		in   *Tree
 		want *Record
 	}{
-		{ // nolint:dupl // test data
+		{ //nolint:dupl // test data
 			name: "Simple",
 			want: &Record{
 				Name:   "test",
@@ -368,7 +368,7 @@ func Test_Parse(t *testing.T) {
 					},
 				},
 			},
-		}, { // nolint:dupl // test data
+		}, { //nolint:dupl // test data
 			name: "Simple_WithExplicitDecimalPICs",
 			want: &Record{
 				Name:   "test",

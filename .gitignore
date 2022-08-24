@@ -19,3 +19,5 @@ dummy/
 dummyout/
 .idea/
 dist/
+oryxBuildBinary
+.vscode/settings.json
