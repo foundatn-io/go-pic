@@ -8,38 +8,34 @@ import (
 	"sync"
 )
 
+// Constants for tag parsing.
 const (
-	// Tag values are accepted in the following format:
-	// `pic:"-"` // ignore this field
-	// `pic:"1,2"` // start:1, end:2 (length 2)
-	// `pic:"1,2,2"` // start:1, end:2 (size 1x2)
-	tag          = "pic"
-	tagSeparator = ","
-	ignoreTag    = "-"
+	tagKey         = "pic"
+	tagSeparator   = ","
+	ignoreTagValue = "-"
 
 	omitIndicator   = 1
 	simpleIndicator = 2
 	occursIndicator = 3
 )
 
-var fieldRepCache sync.Map // map[reflect.Type]structRepresentation
+// structFieldCache is a cache for struct field representations.
+var structFieldCache sync.Map // map[reflect.Type]structRepresentation
 
+// structRepresentation represents the structure of a struct, including its length and fields.
 type structRepresentation struct {
-	len    int
-	fields []fieldRepresentation
+	totalLength int
+	fields      []fieldRepresentation
 }
 
-// fieldRepresentation is a collection of a field/property's tag values,
-// relevant determined setFunc and any error collected when building the
-// representation
+// fieldRepresentation represents a field in a struct, including its set function, tag, and any errors.
 type fieldRepresentation struct {
-	setFunc setFunc
+	setFunc setValueFunc
 	tag     tagRepresentation
 	err     error
 }
 
-// tagRepresentation is a collection of all tag values associated with a field/
-// property
+// tagRepresentation represents a tag in a struct field, including its start, end, occurs, length, and skip values.
 type tagRepresentation struct {
 	start  int
 	end    int
@@ -48,89 +44,81 @@ type tagRepresentation struct {
 	skip   bool
 }
 
-// parseTag accepts the values associated with the `pic` tag keyword, splits the
-// values based on the accepted comma separator, and unpacks accepted tag formats
-// into valid behaviors
+// parseTag parses a tag string and returns a tagRepresentation and any error.
+// The tag string should be in the format `pic:"-"` to ignore the field, or `pic:"1,2"` or `pic:"1,2,2"` to specify the start, end, and optionally occurs values.
 func parseTag(tag string) (*tagRepresentation, error) {
-	tagVals := &tagRepresentation{}
-	ss := strings.Split(tag, tagSeparator)
-	switch elemCount := len(ss); elemCount {
-	case omitIndicator:
-		if ss[0] != ignoreTag {
-			return nil, fmt.Errorf("single pic tag value provided, expected %s", ignoreTag)
+	tagValues := &tagRepresentation{}
+	splitTag := strings.Split(tag, tagSeparator)
+	tagElements := len(splitTag)
+	if tagElements == omitIndicator {
+		if splitTag[0] != ignoreTagValue {
+			return nil, fmt.Errorf("single pic tag value provided, expected %s", ignoreTagValue)
 		}
-		tagVals.skip = true
-	case simpleIndicator:
-		var err error
-		tagVals.start, tagVals.end, tagVals.length, err = getSpread(ss)
-		if err != nil {
-			return nil, err
-		}
-
-	case occursIndicator:
-		o, err := strconv.Atoi(ss[2])
+		tagValues.skip = true
+		return tagValues, nil
+	}
+	if tagElements == occursIndicator {
+		occurrences, err := strconv.Atoi(splitTag[2])
 		if err != nil {
 			return nil, fmt.Errorf("failed string->int conversion: %w", err)
 		}
-		tagVals.occurs = o
-
-		tagVals.start, tagVals.end, tagVals.length, err = getSpread(ss)
-		if err != nil {
-			return nil, err
-		}
+		tagValues.occurs = occurrences
 	}
-
-	return tagVals, nil
+	var err error
+	tagValues.start, tagValues.end, tagValues.length, err = getSpread(splitTag)
+	if err != nil {
+		return nil, err
+	}
+	return tagValues, nil
 }
 
-// getSpread returns the start, end, and length of an evaluated tag's values
-func getSpread(ss []string) (int, int, int, error) {
-	start, err := strconv.Atoi(ss[0])
+// getSpread returns the start, end, and length of a tag's values.
+func getSpread(splitTag []string) (int, int, int, error) {
+	start, err := strconv.Atoi(splitTag[0])
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("failed string->int conversion: %w", err)
 	}
-
-	end, err := strconv.Atoi(ss[1])
+	end, err := strconv.Atoi(splitTag[1])
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("failed string->int conversion: %w", err)
 	}
-
 	length := end - (start - 1)
 	return start, end, length, nil
 }
 
-func makeStructRepresentation(t reflect.Type) structRepresentation {
-	sr := structRepresentation{
-		fields: make([]fieldRepresentation, t.NumField()),
+// makeStructRepresentation creates a structRepresentation for a given reflect.Type.
+func makeStructRepresentation(structType reflect.Type) structRepresentation {
+	structRep := structRepresentation{
+		fields: make([]fieldRepresentation, structType.NumField()),
 	}
 
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		tagVals, err := parseTag(f.Tag.Get(tag))
-		sr.fields[i].tag = *tagVals
+	for fieldIndex := 0; fieldIndex < structType.NumField(); fieldIndex++ {
+		field := structType.Field(fieldIndex)
+		tagValues, err := parseTag(field.Tag.Get(tagKey))
+		if err != nil {
+			structRep.fields[fieldIndex].err = err
+			continue
+		}
+		structRep.fields[fieldIndex].tag = *tagValues
 
-		if tagVals.skip {
-			sr.fields[i].setFunc = skipSetFunc
+		if tagValues.skip {
+			structRep.fields[fieldIndex].setFunc = skipSetValueFunc
 		} else {
-			sr.fields[i].setFunc = newSetFunc(f.Type, tagVals.length, tagVals.occurs)
+			structRep.fields[fieldIndex].setFunc = newSetValueFunc(field.Type, tagValues.length, tagValues.occurs)
 		}
-
-		if sr.fields[i].tag.end > sr.len {
-			sr.len = sr.fields[i].tag.end
+		if structRep.fields[fieldIndex].tag.end > structRep.totalLength {
+			structRep.totalLength = structRep.fields[fieldIndex].tag.end
 		}
-		sr.fields[i].err = err
 	}
-
-	return sr
+	return structRep
 }
 
-// cachedStructRepresentation is like makeStructRepresentation but cached to
-// prevent duplicate work.
-func cachedStructRepresentation(t reflect.Type) structRepresentation {
-	if f, ok := fieldRepCache.Load(t); ok {
-		return f.(structRepresentation)
+// cachedStructRepresentation creates a structRepresentation for a given reflect.Type and caches it to prevent duplicate work.
+func cachedStructRepresentation(structType reflect.Type) structRepresentation {
+	if fieldRep, ok := structFieldCache.Load(structType); ok {
+		return fieldRep.(structRepresentation)
 	}
-
-	f, _ := fieldRepCache.LoadOrStore(t, makeStructRepresentation(t))
-	return f.(structRepresentation)
+	fieldRep := makeStructRepresentation(structType)
+	structFieldCache.Store(structType, fieldRep)
+	return fieldRep
 }

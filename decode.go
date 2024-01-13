@@ -9,6 +9,22 @@ import (
 	"strings"
 )
 
+// ErrNotAPointer is returned when the target object is not a pointer.
+var ErrNotAPointer = errors.New("decode: unmarshal target object is not a pointer")
+
+// ErrNilPointer is returned when the target object is nil.
+var ErrNilPointer = errors.New("decode: unmarshal target object is nil")
+
+type decoder struct {
+	s    *bufio.Scanner
+	done bool
+}
+
+// Decoder ...
+type Decoder interface {
+	Decode(interface{}) error
+}
+
 // Example
 //
 // type Company struct {
@@ -26,16 +42,6 @@ func Unmarshal(data []byte, v interface{}) error {
 	return NewDecoder(bytes.NewReader(data)).Decode(v)
 }
 
-type decoder struct {
-	s    *bufio.Scanner
-	done bool
-}
-
-// Decoder ...
-type Decoder interface {
-	Decode(interface{}) error
-}
-
 // NewDecoder builds a new decoder using a bufio.Scanner for the given input
 // io.Reader.
 func NewDecoder(r io.Reader) Decoder {
@@ -45,74 +51,61 @@ func NewDecoder(r io.Reader) Decoder {
 }
 
 // Decode scans through each line of the input data, attempting to unpack its
-// values into the provided destination struct.
+// values into the provided destination struct. If the target object is a slice,
+// it decodes each line into a separate element of the slice. If the target
+// object is not a slice, it decodes the first line into the target object.
 func (d *decoder) Decode(v interface{}) error {
 	rv := reflect.ValueOf(v)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.New("decode: unmarshal target object is not a pointer, or is nil")
+	if rv.Kind() != reflect.Ptr {
+		return ErrNotAPointer
 	}
-
+	if rv.IsNil() {
+		return ErrNilPointer
+	}
 	if rv.Elem().Kind() == reflect.Slice {
 		return d.decodeLines(rv.Elem())
 	}
-
-	ok, err := d.decodeLine(rv)
-	if d.done && err == nil && !ok {
-		return io.EOF
-	}
-
-	return err
+	return d.decodeLine(rv.Elem())
 }
 
 // decodeLine scans the next line in the scanner, sets d.done to true if the
-// scanner has reached EOF (and returns false indicating not to continue),
-// otherwise, detecting the appropriate setter function based on the type of the
-// given value v, and unpacks a string representation of the bytes associated
+// scanner has reached EOF (and returns ErrEOF),
+// otherwise, unpacks a byte representation of the bytes associated
 // with that line, into the object v using the identified setter function, set.
-func (d *decoder) decodeLine(v reflect.Value) (bool, error) {
+func (d *decoder) decodeLine(v reflect.Value) error {
 	if ok := d.s.Scan(); !ok {
 		d.done = true
-		return false, nil
+		return io.EOF
 	}
-
-	set := newSetFunc(v.Type(), 0, 0)
-	return true, set(v, string(d.s.Bytes()))
+	return newSetValueFunc(v.Type(), 0, 0)(v, string(d.s.Bytes()))
 }
 
 // decodeLines iterates through each line of the scanner, builds an instance of
 // the type that the line is expected to be unpacked into, sets the type to the
 // scanned values, and appends it to the incoming object v
-func (d *decoder) decodeLines(v reflect.Value) (err error) {
+func (d *decoder) decodeLines(v reflect.Value) error {
 	currentType := v.Type().Elem()
-	for {
+	for !d.done {
 		newValue := reflect.New(currentType).Elem()
-		ok, err := d.decodeLine(newValue)
-		if err != nil {
+		if err := d.decodeLine(newValue); err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
 			return err
 		}
-
-		if ok {
-			v.Set(reflect.Append(v, newValue))
-		}
-
-		if d.done {
-			break
-		}
+		v.Set(reflect.Append(v, newValue))
 	}
-
 	return nil
 }
 
-// newValFromLine cuts a value out of a string line from character indices
-// start to end
-func newValFromLine(line string, start int, end int) string {
-	if len(line) == 0 || start > len(line) {
+// newValFromLine extracts a substring from line, starting at startIndex and ending at endIndex.
+// If startIndex is greater than the length of line, it returns an empty string.
+func newValFromLine(line string, startIndex int, endIndex int) string {
+	if len(line) == 0 || startIndex > len(line) {
 		return ""
 	}
-
-	if end > len(line) {
-		end = len(line)
+	if endIndex > len(line) {
+		endIndex = len(line)
 	}
-
-	return strings.Trim(line[start-1:end], " ")
+	return strings.TrimSpace(line[startIndex-1 : endIndex])
 }

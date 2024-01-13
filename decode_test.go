@@ -232,7 +232,7 @@ func TestUnmarshal(t *testing.T) {
 			val:      []byte("foo  123  1.2  "),
 			target:   basicTypes{},
 			expected: basicTypes{},
-			err:      fmt.Errorf("decode: unmarshal target object is not a pointer, or is nil"),
+			err:      fmt.Errorf("decode: unmarshal target object is not a pointer"),
 		}, {
 			name:   "offsetcheck",
 			val:    []byte("000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 00000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 "),
