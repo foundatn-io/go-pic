@@ -13,212 +13,185 @@ const (
 	alphaNumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 )
 
-func lexInsideStatement(l *lexer) stateFn { // nolint:gocyclo // good luck simplifying this
-	switch r := l.next(); {
-	case isEOL(r):
-		l.emit(itemEOL)
-
-	case r == eof:
-		l.emit(itemEOF)
+// lexStatementTokens lexes tokens within a statement.
+func lexStatementTokens(lexer *lexerState) stateFunction { // nolint:gocyclo // good luck simplifying this
+	switch currentRune := lexer.next(); {
+	case isEOL(currentRune):
+		lexer.emit(tokenEOL)
+	case currentRune == eof:
+		lexer.emit(tokenEOF)
 		return nil
-
-	case isSpace(r):
-		l.backup()
+	case isSpace(currentRune):
+		lexer.backup()
 		return lexSpace
-
-	case r == picLeft:
-		// special look-ahead for "PIC" so we don't break l.backup().
-		if l.pos < Pos(len(l.input)) {
+	case currentRune == picLeft:
+		// special look-ahead for "PIC" so we don't break lexer.backup().
+		if lexer.pos < Pos(len(lexer.input)) {
 			// Look for PIC
-			if (r < '0' || '9' < r) && l.peek() == 'I' && l.lookAhead(2) == 'C' { // nolint:gomnd // obvious meaning
-				return lexPIC
+			if (currentRune < '0' || '9' < currentRune) && lexer.peek() == 'I' && lexer.lookAhead(2) == 'C' { // nolint:gomnd // obvious meaning
+				return lexPICToken
 			}
-
 			return lexIdentifier
 		}
-
-	case r == 'O':
-		return lexOCCURS(l)
-
-	case r == 'R':
-		return lexREDEFINES(l)
-
-	case r == '+' || r == '-' || ('0' <= r && r <= '9'):
-		l.backup()
+	case currentRune == 'O':
+		return lexOCCURSToken(lexer)
+	case currentRune == 'R':
+		return lexREDEFINESToken(lexer)
+	case currentRune == '+' || currentRune == '-' || ('0' <= currentRune && currentRune <= '9'):
+		lexer.backup()
 		return lexNumber
-
-	case isAlphaNumeric(r):
-		l.backup()
+	case isAlphaNumeric(currentRune):
+		lexer.backup()
 		return lexIdentifier
-
-	case r == '.':
-		l.emit(itemDot)
-
-	case r == singleQuote:
+	case currentRune == '.':
+		lexer.emit(tokenDot)
+	case currentRune == singleQuote:
 		return lexEnum
-
-	case r <= unicode.MaxASCII && unicode.IsPrint(r):
-		l.emit(itemChar)
-
-	case r == substituteHex:
+	case currentRune <= unicode.MaxASCII && unicode.IsPrint(currentRune):
+		lexer.emit(tokenChar)
+	case currentRune == substituteHex:
 		log.Printf("found SUBSTITUTE rune")
-		l.emit(itemEOF)
-
+		lexer.emit(tokenEOF)
 	default:
-		e := fmt.Errorf("unrecognized character in action: %#U", r)
+		e := fmt.Errorf("unrecognized character in action: %#U", currentRune)
 		log.Println(e)
-		return l.errorf(e.Error())
+		return lexer.errorf(e.Error())
 	}
-
-	return lexInsideStatement(l)
+	return lexStatementTokens(lexer)
 }
 
-func lexPIC(l *lexer) stateFn {
-	var r rune
+// lexPICToken lexes a PIC token.
+func lexPICToken(lexer *lexerState) stateFunction {
+	var currentRune rune
 	for {
-		r = l.next()
-
-		if !isPICChar(r) {
+		currentRune = lexer.next()
+		if !isPICChar(currentRune) {
 			// if after a pic character, we get a space it is likely
 			// there may be an OCCURS definition to follow, e.g.
 			// PIC X(10) OCCURS 12.
-			if isSpace(r) {
-				switch nx := l.peek(); {
+			if isSpace(currentRune) {
+				switch nx := lexer.peek(); {
 				case isPICChar(nx), isPICType(nx), nx == '.':
 					continue
 
 				default:
-					l.backup()
-					l.emit(itemPIC)
-					return lexSpace(l)
+					lexer.backup()
+					lexer.emit(tokenPIC)
+					return lexSpace(lexer)
 				}
 			}
-
 			// if we've just reached the terminator '.'
 			// let's peek and see if it's actually an explicit decimal point
 			// e.g. PIC 9(9).9(2) -> 123456789.50
-			if isPICChar(l.peek()) {
+			if isPICChar(lexer.peek()) {
 				continue
 			}
-
-			if !l.atPICTerminator() {
-				l.backup()
+			if !lexer.atPICTerminator() {
+				lexer.backup()
 				break
 			}
 		}
 	}
 
-	if !l.atPICTerminator() {
-		e := fmt.Errorf("bad character %#U", r)
+	if !lexer.atPICTerminator() {
+		e := fmt.Errorf("bad character %#U", currentRune)
 		log.Println(e)
-		return l.errorf(e.Error())
+		return lexer.errorf(e.Error())
 	}
-
-	l.emit(itemPIC)
-	return lexInsideStatement(l)
+	lexer.emit(tokenPIC)
+	return lexStatementTokens(lexer)
+}
+func lexREDEFINESToken(lexer *lexerState) stateFunction {
+	if lexer.scanRedefinesToken() {
+		lexer.emit(tokenREDEFINES)
+	}
+	return lexStatementTokens(lexer)
 }
 
-func lexREDEFINES(l *lexer) stateFn {
-	if l.scanRedefines() {
-		l.emit(itemREDEFINES)
+func lexOCCURSToken(lexer *lexerState) stateFunction {
+	if lexer.scanOccursToken() {
+		lexer.emit(tokenOCCURS)
 	}
-
-	return lexInsideStatement(l)
+	return lexStatementTokens(lexer)
 }
 
-func lexOCCURS(l *lexer) stateFn {
-	if l.scanOccurs() {
-		l.emit(itemOCCURS)
-	}
-
-	return lexInsideStatement(l)
-}
-
-func (l *lexer) scanRedefines() bool {
-	l.acceptRun("REDEFINES")
-	if !isSpace(l.peek()) {
-		l.next()
+func (lexer *lexerState) scanRedefinesToken() bool {
+	lexer.acceptRun("REDEFINES")
+	if !isSpace(lexer.peek()) {
+		lexer.next()
 		return false
 	}
-
 	return true
 }
 
-func (l *lexer) scanOccurs() bool {
-	l.acceptRun("OCCURS")
-	if !isSpace(l.peek()) {
-		l.next()
+func (lexer *lexerState) scanOccursToken() bool {
+	lexer.acceptRun("OCCURS")
+	if !isSpace(lexer.peek()) {
+		lexer.next()
 		return false
 	}
-
 	for {
-		r := l.next()
-		if !isPICChar(r) && !isSpace(r) {
-			if l.atTerminator() {
-				l.backup()
+		currentRune := lexer.next()
+		if !isPICChar(currentRune) && !isSpace(currentRune) {
+			if lexer.atTerminator() {
+				lexer.backup()
 				break
 			}
 
-			panic(fmt.Sprintf("bad character %#U", r))
+			panic(fmt.Sprintf("bad character %#U", currentRune))
 		}
 	}
-
 	return true
 }
 
-func (l *lexer) atPICTerminator() bool {
-	r := l.peek()
-	return r == picRight
+func (lexer *lexerState) atPICTerminator() bool {
+	currentRune := lexer.peek()
+	return currentRune == picRight
 }
 
 // lexIdentifier scans an alphanumeric.
-func lexIdentifier(l *lexer) stateFn {
+func lexIdentifier(lexer *lexerState) stateFunction {
 Loop:
 	for {
-		switch r := l.next(); {
-		case isAlphaNumeric(r):
+		switch currentRune := lexer.next(); {
+		case isAlphaNumeric(currentRune):
 			// absorb.
 		default:
-			l.backup()
-			word := l.input[l.start:l.pos]
-			if !l.atTerminator() {
-				e := fmt.Errorf("bad character %#U", r)
+			lexer.backup()
+			word := lexer.input[lexer.start:lexer.pos]
+			if !lexer.atTerminator() {
+				e := fmt.Errorf("bad character %#U", currentRune)
 				log.Println(e)
-				return l.errorf(e.Error())
+				return lexer.errorf(e.Error())
 			}
-
 			switch {
 			case word == "true", word == "false":
-				l.emit(itemBool)
-
+				lexer.emit(tokenBool)
 			default:
-				l.emit(itemIdentifier)
+				lexer.emit(tokenIdentifier)
 			}
-
 			break Loop
 		}
 	}
-
-	return lexInsideStatement(l)
+	return lexStatementTokens(lexer)
 }
 
 // lexEnum scans an apostrophe-wrapped alphanumeric value.
-func lexEnum(l *lexer) stateFn {
+func lexEnum(lexer *lexerState) stateFunction {
 	for {
-		switch r := l.peek(); {
-		case isAlphaNumeric(r):
+		switch currentRune := lexer.peek(); {
+		case isAlphaNumeric(currentRune):
 			// absorb
-			l.acceptRun(alphaNumeric)
+			lexer.acceptRun(alphaNumeric)
 		default:
-			if !l.atEnumTerminator() {
-				e := fmt.Errorf("bad character %#U", r)
+			if !lexer.atEnumTerminator() {
+				e := fmt.Errorf("bad character %#U", currentRune)
 				log.Println(e)
-				return l.errorf(e.Error())
+				return lexer.errorf(e.Error())
 			}
-
-			l.next()
-			l.emit(itemEnum)
-			return lexInsideStatement(l)
+			lexer.next()
+			lexer.emit(tokenEnum)
+			return lexStatementTokens(lexer)
 		}
 	}
 }
@@ -227,26 +200,24 @@ func lexEnum(l *lexer) stateFn {
 // isn't a perfect number scanner - for instance it accepts "." and "0x0.2"
 // and "089" - but when it's wrong the input is invalid and the parser (via
 // strconv) will notice.
-func lexNumber(l *lexer) stateFn {
-	if !l.scanNumber() {
-		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
+func lexNumber(lexer *lexerState) stateFunction {
+	if !lexer.scanNumber() {
+		return lexer.errorf("bad number syntax: %q", lexer.input[lexer.start:lexer.pos])
 	}
-
-	if sign := l.peek(); sign == '+' || sign == '-' {
+	if sign := lexer.peek(); sign == '+' || sign == '-' {
 		// Complex: 1+2i. No spaces, must end in 'i'.
-		if !l.scanNumber() || l.input[l.pos-1] != 'i' {
-			return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
+		if !lexer.scanNumber() || lexer.input[lexer.pos-1] != 'i' {
+			return lexer.errorf("bad number syntax: %q", lexer.input[lexer.start:lexer.pos])
 		}
-
-		l.emit(itemComplex)
+		lexer.emit(tokenComplex)
 	} else {
-		l.emit(itemNumber)
+		lexer.emit(tokenNumber)
 	}
 
-	return lexInsideStatement(l)
+	return lexStatementTokens(lexer)
 }
 
-func (l *lexer) scanNumber() bool { // nolint:gocyclo // good luck simplifying this
+func (l *lexerState) scanNumber() bool { // nolint:gocyclo // good luck simplifying this
 	// Optional leading sign.
 	l.accept("+-")
 	// Is it hex?
@@ -256,10 +227,8 @@ func (l *lexer) scanNumber() bool { // nolint:gocyclo // good luck simplifying t
 		switch {
 		case l.accept("xX"):
 			digits = "0123456789abcdefABCDEF_"
-
 		case l.accept("oO"):
 			digits = "01234567_"
-
 		case l.accept("bB"):
 			digits = "01_"
 		}
@@ -269,17 +238,14 @@ func (l *lexer) scanNumber() bool { // nolint:gocyclo // good luck simplifying t
 	if l.accept(".") {
 		l.acceptRun(digits)
 	}
-
 	if len(digits) == 10+1 && l.accept("eE") {
 		l.accept("+-")
 		l.acceptRun("0123456789_")
 	}
-
 	if len(digits) == 16+6+1 && l.accept("pP") {
 		l.accept("+-")
 		l.acceptRun("0123456789_")
 	}
-
 	// Is it imaginary?
 	l.accept("i")
 	// Next thing mustn't be alphanumeric.
@@ -293,7 +259,7 @@ func (l *lexer) scanNumber() bool { // nolint:gocyclo // good luck simplifying t
 // lexSpace scans a run of space characters.
 // We have not consumed the first space, which is known to be present.
 // Take care if there is a trim-marked right delimiter, which starts with a space.
-func lexSpace(l *lexer) stateFn {
+func lexSpace(l *lexerState) stateFunction {
 	for {
 		r := l.peek()
 		if !isSpace(r) {
@@ -302,19 +268,17 @@ func lexSpace(l *lexer) stateFn {
 
 		l.next()
 	}
-
-	l.emit(itemSpace)
-	return lexInsideStatement(l)
+	l.emit(tokenSpace)
+	return lexStatementTokens(l)
 }
 
 // atTerminator reports whether the input is at valid termination character to
 // appear after an identifier.
-func (l *lexer) atTerminator() bool {
+func (l *lexerState) atTerminator() bool {
 	r := l.peek()
 	if isSpace(r) || isEOL(r) {
 		return true
 	}
-
 	switch r {
 	case eof, '.', ',', '|', ':', ')', '(':
 		return true
@@ -323,7 +287,7 @@ func (l *lexer) atTerminator() bool {
 	return false
 }
 
-func (l *lexer) atEnumTerminator() bool {
+func (l *lexerState) atEnumTerminator() bool {
 	r := l.peek()
 	return r == singleQuote
 }

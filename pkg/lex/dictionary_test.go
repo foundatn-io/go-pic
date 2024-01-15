@@ -15,23 +15,23 @@ func Test_equalWord(t *testing.T) {
 	}{
 		{
 			name: "Equal",
-			a:    numDelimitedStructWord,
-			b:    numDelimitedStructWord,
+			a:    numDelimitedStructPattern,
+			b:    numDelimitedStructPattern,
 			want: true,
 		}, {
 			name: "NotEqual",
-			a:    numDelimitedStructWord,
-			b:    nonNumDelimitedStructWord,
+			a:    numDelimitedStructPattern,
+			b:    nonNumDelimitedStructPattern,
 			want: false,
 		}, {
 			name: "NotPrebuilt-Equal",
-			a:    word{itemNumber, itemSpace, itemIdentifier, itemSpace, itemNumber},
-			b:    word{itemNumber, itemSpace, itemIdentifier, itemSpace, itemNumber},
+			a:    word{tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenNumber},
+			b:    word{tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenNumber},
 			want: true,
 		}, {
 			name: "NotPrebuilt-NotEqual",
-			a:    word{itemNumber, itemSpace, itemIdentifier, itemSpace, itemNumber},
-			b:    word{itemNumber, itemSpace, itemPIC, itemSpace, itemNumber},
+			a:    word{tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenNumber},
+			b:    word{tokenNumber, tokenSpace, tokenPIC, tokenSpace, tokenNumber},
 			want: false,
 		},
 	}
@@ -48,70 +48,70 @@ func Test_getWord(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		in   []item
+		in   []token
 		want word
 	}{
 		{
 			name: "Returns-NumDelimited",
-			in: []item{
+			in: []token{
 				{
-					typ: itemNumber,
+					typ: tokenNumber,
 					val: "000123",
 				}, {
-					typ: itemSpace,
+					typ: tokenSpace,
 					pos: 6,
 					val: "  ",
 				}, {
-					typ: itemNumber,
+					typ: tokenNumber,
 					pos: 8,
 					val: "10",
 				}, {
-					typ: itemSpace,
+					typ: tokenSpace,
 					pos: 10,
 					val: "  ",
 				}, {
-					typ: itemIdentifier,
+					typ: tokenIdentifier,
 					pos: 12,
 					val: "OBJ-A",
 				}, {
-					typ: itemDot,
+					typ: tokenDot,
 					pos: 17,
 					val: ".",
 				}, {
-					typ: itemSpace,
+					typ: tokenSpace,
 					pos: 18,
 					val: "  ",
 				}, {
-					typ: itemNumber,
+					typ: tokenNumber,
 					pos: 20,
 					val: "000123",
 				},
 			},
-			want: numDelimitedStructWord,
+			want: numDelimitedStructPattern,
 		}, {
 			name: "Returns-NumDelimited",
-			in: []item{
+			in: []token{
 				{
-					typ: itemSpace,
+					typ: tokenSpace,
 					val: "  ",
 				}, {
-					typ: itemNumber,
+					typ: tokenNumber,
 					val: "10",
 				}, {
-					typ: itemSpace,
+					typ: tokenSpace,
 					val: "  ",
 				}, {
-					typ: itemIdentifier,
+					typ: tokenIdentifier,
 					val: "OBJ-A",
 				}, {
-					typ: itemDot,
+					typ: tokenDot,
 					val: ".",
 				}, {
-					typ: itemSpace,
+					typ: tokenSpace,
 					val: "  ",
 				},
 			},
-			want: nonNumDelimitedStructWord,
+			want: nonNumDelimitedStructPattern,
 		},
 	}
 	for _, test := range tests {

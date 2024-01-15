@@ -9,7 +9,7 @@ import (
 
 type Tree struct {
 	lex   Lexer
-	token item
+	token token
 	lines []line
 	state *Record
 	line  line
@@ -30,7 +30,7 @@ func (t *Tree) Parse() *Record {
 	log.Println("parsing lexer tokens")
 	for {
 		li := t.scanLine()
-		if t.token.typ == itemEOF {
+		if t.token.typ == tokenEOF {
 			log.Println("reached EOF token, input lexed.")
 			break
 		}
@@ -48,15 +48,15 @@ func (t *Tree) Parse() *Record {
 	return t.state
 }
 
-func (t *Tree) scanLine() []item {
-	var lineItems []item
+func (t *Tree) scanLine() []token {
+	var lineItems []token
 	for {
 		t.token = t.next()
-		if t.token == (item{}) || t.token.typ == itemError {
+		if t.token == (token{}) || t.token.typ == tokenError {
 			break
 		}
 
-		if t.token.typ == itemEOL || itemEOF == t.token.typ {
+		if t.token.typ == tokenEOL || tokenEOF == t.token.typ {
 			break
 		}
 
@@ -67,7 +67,7 @@ func (t *Tree) scanLine() []item {
 }
 
 // next returns the next token.
-func (t *Tree) next() item {
+func (t *Tree) next() token {
 	return t.lex.getNext()
 }
 
@@ -88,7 +88,10 @@ func (t *Tree) parseLines(root *Record) { //nolint:gocyclo // TODO: refine
 			t.line.fn(t, t.line, root)
 
 		case lineStruct:
-			rec := t.line.fn(t, t.line, root)
+			rec, err := t.line.fn(t, t.line, root)
+			if err != nil {
+				log.Fatalf("error parsing line: %+v", err)
+			}
 			if rec == nil {
 				continue
 			}
@@ -101,7 +104,10 @@ func (t *Tree) parseLines(root *Record) { //nolint:gocyclo // TODO: refine
 			delve(t, root, rec)
 
 		default:
-			rec := t.line.fn(t, t.line, root)
+			rec, err := t.line.fn(t, t.line, root)
+			if err != nil {
+				log.Fatalf("error parsing line: %+v", err)
+			}
 			if rec == nil {
 				log.Fatalf("parser returned nil record for line: %+v", t.line)
 			}

@@ -2,155 +2,147 @@ package lex
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"unicode/utf8"
 )
 
-// stateFn represents the state of the scanner as a function that returns the next state.
-type stateFn func(*lexer) stateFn
+// stateFunction represents the state of the scanner as a function that returns the next state.
+type stateFunction func(*lexerState) stateFunction
 
-// lexer holds the state of the scanner.
-type lexer struct {
-	name      string // the name of the input; used only for error reports
-	input     string // the string being scanned
-	pos       Pos    // current position in the input
-	start     Pos    // start position of this item
-	width     Pos    // width of last rune read from input
-	items     []item // channel of scanned items
-	line      int    // 1+number of newlines seen
-	startLine int    // start line of this item
+// lexerState holds the state of the scanner.
+type lexerState struct {
+	name      string  // the name of the input; used only for error reports
+	input     string  // the string being scanned
+	pos       Pos     // current position in the input
+	start     Pos     // start position of this item
+	width     Pos     // width of last rune read from input
+	items     []token // channel of scanned items
+	line      int     // 1+number of newlines seen
+	startLine int     // start line of this item
 }
 
+// Lexer is an interface that represents a lexer. It has methods for getting the next token and the name of the lexer.
 type Lexer interface {
-	getNext() item
+	getNext() token
 	getName() string
 }
 
 // New creates a new scanner for the input string.
+// It takes a name and an input string, and returns a Lexer.
 func New(name, input string) Lexer {
-	log.Println("building new lexer")
-	l := &lexer{
+	lexer := &lexerState{
 		name:      name,
 		input:     input,
-		items:     make([]item, 0),
+		items:     make([]token, 0),
 		line:      1,
 		startLine: 1,
 	}
-	l.run()
-	return l
+	lexer.run()
+	return lexer
 }
 
-func (l *lexer) getName() string {
-	return l.name
+func (lexer *lexerState) getName() string {
+	return lexer.name
 }
 
 // run runs the state machine for the lexer.
-func (l *lexer) run() {
-	for state := lexInsideStatement(l); state != nil; {
-		state = state(l)
+func (lexer *lexerState) run() {
+	for state := lexStatementTokens(lexer); state != nil; {
+		state = state(lexer)
 	}
 }
 
 // next returns the next rune in the input.
-func (l *lexer) next() rune {
-	if int(l.pos) >= len(l.input) {
-		l.width = 0
+func (lexer *lexerState) next() rune {
+	if int(lexer.pos) >= len(lexer.input) {
+		lexer.width = 0
 		return eof
 	}
-	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
-	l.width = Pos(w)
-	l.pos += l.width
-
+	r, width := utf8.DecodeRuneInString(lexer.input[lexer.pos:])
+	lexer.width = Pos(width)
+	lexer.pos += lexer.width
 	if r == '\n' {
-		l.line++
+		lexer.line++
 	}
-
 	return r
 }
 
 // peek returns but does not consume the next rune in the input.
-func (l *lexer) peek() rune {
-	r := l.next()
-	l.backup()
+func (lexer *lexerState) peek() rune {
+	r := lexer.next()
+	lexer.backup()
 	return r
 }
 
-// bit of a hack tbh
-func (l *lexer) lookAhead(i int) rune {
-	if int(l.pos) >= len(l.input) {
-		l.width = 0
+// lookAhead returns the rune at the specified position ahead in the input, without consuming any runes.
+func (lexer *lexerState) lookAhead(i int) rune {
+	if int(lexer.pos) >= len(lexer.input) {
+		lexer.width = 0
 		return eof
 	}
-
-	r, w := utf8.DecodeRuneInString(l.input[l.pos+Pos(i-1):])
-	l.width = Pos(w)
-	l.pos += l.width
-
+	r, width := utf8.DecodeRuneInString(lexer.input[lexer.pos+Pos(i-1):])
+	lexer.width = Pos(width)
+	lexer.pos += lexer.width
 	if r == '\n' {
-		l.line++
+		lexer.line++
 	}
-
-	l.backup()
+	lexer.backup()
 	return r
 }
 
 // backup steps back one rune. Can only be called once per call of next.
-func (l *lexer) backup() {
-	l.pos -= l.width
-
+func (lexer *lexerState) backup() {
+	lexer.pos -= lexer.width
 	// Correct newline count.
-	if l.width == 1 && l.input[l.pos] == '\n' {
-		l.line--
+	if lexer.width == 1 && lexer.input[lexer.pos] == '\n' {
+		lexer.line--
 	}
 }
 
-// emit passes an item back to the client.
-func (l *lexer) emit(t itemType) {
-	l.items = append(l.items, item{t, l.start, l.input[l.start:l.pos], l.startLine})
-	l.start = l.pos
-	l.startLine = l.line
+// emit passes an item back to the client. It takes a token type as a parameter.
+func (lexer *lexerState) emit(tokenType tokenType) {
+	lexer.items = append(lexer.items, token{tokenType, lexer.start, lexer.input[lexer.start:lexer.pos], lexer.startLine})
+	lexer.start = lexer.pos
+	lexer.startLine = lexer.line
 }
 
-// accept consumes the next rune if it's from the valid set.
-func (l *lexer) accept(valid string) bool {
-	if strings.ContainsRune(valid, l.next()) {
+// accept consumes the next rune if it's from the valid set of runes.
+// It takes a string of valid runes as a parameter and returns a boolean indicating whether the next rune was accepted.
+func (lexer *lexerState) accept(validRunes string) bool {
+	if strings.ContainsRune(validRunes, lexer.next()) {
 		return true
 	}
-
-	l.backup()
+	lexer.backup()
 	return false
 }
 
-// acceptRun consumes a run of runes from the valid set.
-func (l *lexer) acceptRun(valid string) {
-	for strings.ContainsRune(valid, l.next()) {
+// acceptRun consumes a run of runes from the valid set of runes.
+// It takes a string of valid runes as a parameter.
+func (lexer *lexerState) acceptRun(validRunes string) {
+	for strings.ContainsRune(validRunes, lexer.next()) {
 	}
-
-	l.backup()
+	lexer.backup()
 }
 
 // errorf returns an error token and terminates the scan by passing
-// back a nil pointer that will be the next state, terminating l.getNext.
-func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	l.items = append(l.items, item{
-		typ:  itemError,
-		pos:  l.start,
-		val:  fmt.Sprintf(format, args...),
-		line: l.startLine})
-
+// back a nil pointer that will be the next state, terminating lexer.getNext.
+// It takes a string format for the error message and a variadic number of arguments to format the error message.
+func (lexer *lexerState) errorf(errorMessageFormat string, formatArgs ...interface{}) stateFunction {
+	lexer.items = append(lexer.items, token{
+		typ:  tokenError,
+		pos:  lexer.start,
+		val:  fmt.Sprintf(errorMessageFormat, formatArgs...),
+		line: lexer.startLine})
 	return nil
 }
 
-// nextItem returns the next item from the input.
+// getNext returns the next item from the input.
 // Called by the parser, not in the lexing goroutine.
-func (l *lexer) getNext() item {
-	var next item
-	if len(l.items) == 0 {
-		log.Println("no lexed items left in stack")
-		return item{}
+func (lexer *lexerState) getNext() token {
+	if len(lexer.items) == 0 {
+		return token{}
 	}
-
-	next, l.items = l.items[0], l.items[1:]
+	var next token
+	next, lexer.items = lexer.items[0], lexer.items[1:]
 	return next
 }

@@ -26,7 +26,7 @@ func NewTrie() *Trie {
 }
 
 // Insert will take a word and add it to the trie
-func (t *Trie) Insert(word word, p parser, typ lineType) {
+func (t *Trie) Insert(word word, p lineParser, typ lineType) {
 	cur := t.root
 	for i := 0; i < len(word); i++ {
 		// if the itemType is not in the children...
@@ -39,9 +39,9 @@ func (t *Trie) Insert(word word, p parser, typ lineType) {
 		cur = cur.children[word[i]]
 	}
 	cur.isEnd = &entry{
-		w:   word,
-		fn:  p,
-		typ: typ,
+		wordPattern: word,
+		parseFunc:   p,
+		lineType:    typ,
 	}
 }
 
@@ -58,6 +58,5 @@ func (t *Trie) Search(word word) *entry { // nolint:golint
 		// node (or existing node of the previous character)
 		cur = cur.children[word[i]]
 	}
-
 	return cur.isEnd
 }

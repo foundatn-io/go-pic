@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	types = map[picType]reflect.Kind{
+	typeMap = map[picType]reflect.Kind{
 		unknown:  reflect.Invalid,
 		unsigned: reflect.Uint,
 		signed:   reflect.Int,
@@ -40,67 +40,48 @@ func parsePICType(s string) reflect.Kind {
 	if strings.ContainsAny(s, alphaIndicators) {
 		if alpha > picType {
 			picType = alpha
-			return types[picType]
 		}
-	}
-
-	if strings.ContainsAny(s, decimalIndicators) {
+	} else if strings.ContainsAny(s, decimalIndicators) {
 		if decimal > picType {
 			picType = decimal
-			return types[picType]
 		}
-	}
-
-	if strings.ContainsAny(s, signedIntIndicators) {
+	} else if strings.ContainsAny(s, signedIntIndicators) {
 		if signed > picType {
 			picType = signed
-			return types[picType]
 		}
-	}
-
-	if strings.ContainsAny(s, intIndicators) {
+	} else if strings.ContainsAny(s, intIndicators) {
 		picType = unsigned
-		return types[picType]
 	}
-
-	return types[picType]
+	return typeMap[picType]
 }
 
 // parsePICCount identifies the fixed width, or length, of the given
 // PIC definition such as: X(2)., XX., 9(9)., etc.
+//
+// TODO: this can be simplified further, and should include tests
 func parsePICCount(s string) (int, error) {
-	// prepare a slice of runes, representing the string
 	s = strings.TrimRight(s, ".")
-	c := []rune(s)
+	picChars := []rune(s)
+	totalLength := 0
 
-	size := 0
-
-	// S9(9)V9(9)
-	// SV = 2 + 18 = 20
-	for strings.Contains(s, "(") {
-		left := strings.Index(s, "(")
-		right := strings.Index(s, ")")
-		// capture type when using parentheses "9(99)" should be stripped to
-		// "" so that it results in 99+0, not 99+len("9")
+	for strings.Contains(string(picChars), "(") {
+		left := strings.Index(string(picChars), "(")
+		right := strings.Index(string(picChars), ")")
 		start := left - 1
 		end := right + 1
-		amount, err := strconv.Atoi(s[left+1 : right])
+		length, err := strconv.Atoi(string(picChars[left+1 : right]))
 		if err != nil {
-			return 0, fmt.Errorf("failed string->int conversion: %w", err)
+			return 0, fmt.Errorf("failed to convert PIC count '%s' to int: %w", string(picChars[left+1:right]), err)
 		}
-
-		size += amount
-		c = append(c[:start], c[end:]...)
-		s = string(c)
+		totalLength += length
+		picChars = append(picChars[:start], picChars[end:]...)
 	}
-
-	return size + len(c), nil
+	return totalLength + len(picChars), nil
 }
 
 // parseOccursCount captures N where N is the OCCURS count
 // e.g. OCCURS 12. returns 12
-func parseOccursCount(i item) (int, error) {
-	s := strings.TrimPrefix(i.val, "OCCURS ")
-	n := strings.TrimSuffix(s, ".")
-	return strconv.Atoi(n)
+func parseOccursCount(t token) (int, error) {
+	countStr := strings.TrimSuffix(strings.TrimPrefix(t.val, "OCCURS "), ".")
+	return strconv.Atoi(countStr)
 }

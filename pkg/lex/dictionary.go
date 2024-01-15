@@ -4,12 +4,12 @@ import (
 	"log"
 )
 
-type word []itemType
+type word []tokenType
 
 type entry struct {
-	w   word
-	fn  parser
-	typ lineType
+	wordPattern word
+	parseFunc   lineParser
+	lineType    lineType
 }
 
 const (
@@ -20,143 +20,128 @@ var (
 	parsers = NewTrie()
 
 	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12. 00000241
-	occursWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemOCCURS, itemDot, itemSpace, itemNumber}
-
+	occursPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenPIC, tokenSpace, tokenOCCURS, tokenDot, tokenSpace, tokenNumber}
 	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12)  00000241
-	multiOccursWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemSpace, itemNumber}
-
+	multiOccursPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenPIC, tokenSpace, tokenNumber}
 	// 001300      OCCURS 12.                            00000242
-	multiOccursPartWord = word{itemNumber, itemSpace, itemOCCURS, itemDot, itemSpace, itemNumber}
-
+	multiOccursPartPattern = word{tokenNumber, tokenSpace, tokenOCCURS, tokenDot, tokenSpace, tokenNumber}
 	// 001150  DUMMY-OBJECT-2   PIC X(7).  00000227
-	multiRedefinesPartWord = word{itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemDot, itemSpace, itemNumber}
-
+	multiRedefinesPartPattern = word{tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenPIC, tokenDot, tokenSpace, tokenNumber}
 	// 000830  05  DUMMY-OBJECT-3  REDEFINES   00000195
-	multiRedefinesWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemNumber}
-
+	multiRedefinesPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenREDEFINES, tokenSpace, tokenNumber}
 	// 000830  05  DUMMY-GROUP-3  REDEFINES   DUMMY-GROUP-2.  00000195
-	groupRedefinesWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber}
-
+	groupRedefinesPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenREDEFINES, tokenSpace, tokenIdentifier, tokenDot, tokenSpace, tokenNumber}
 	// 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2 PIC X.  00000195
-	redefinesWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemREDEFINES, itemSpace, itemIdentifier, itemSpace, itemPIC, itemDot, itemSpace, itemNumber}
-
+	redefinesPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenREDEFINES, tokenSpace, tokenIdentifier, tokenSpace, tokenPIC, tokenDot, tokenSpace, tokenNumber}
 	// 000190  15  DUMMY-GROUP-1-OBJECT-B  PIC X.  00000118
-	picWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemPIC, itemDot, itemSpace, itemNumber}
-
-	//  05  DUMMY-GROUP-1.
-	nonNumDelimitedStructWord = word{itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace}
-
+	picPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenPIC, tokenDot, tokenSpace, tokenNumber}
+	// 05  DUMMY-GROUP-1.
+	nonNumDelimitedStructPattern = word{tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenDot, tokenSpace}
 	// 000160  05  DUMMY-GROUP-1.  00000115
-	numDelimitedStructWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemDot, itemSpace, itemNumber}
-
+	numDelimitedStructPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenDot, tokenSpace, tokenNumber}
 	// 000600   88   EXAMPLE-ENUM VALUE   'N'. 00000600
-	numDelimitedEnumWord = word{itemNumber, itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemIdentifier, itemSpace, itemEnum, itemDot, itemSpace, itemNumber}
-
-	//    88   EXAMPLE-ENUM-VALUE   'N'.
-	nonNumDelimitedEnumWord = word{itemSpace, itemNumber, itemSpace, itemIdentifier, itemSpace, itemIdentifier, itemSpace, itemEnum, itemDot, itemSpace}
+	numDelimitedEnumPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenIdentifier, tokenSpace, tokenEnum, tokenDot, tokenSpace, tokenNumber}
+	// 88   EXAMPLE-ENUM-VALUE   'N'.
+	nonNumDelimitedEnumPattern = word{tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenIdentifier, tokenSpace, tokenEnum, tokenDot, tokenSpace}
 
 	dictionary = map[string]entry{
 		"numDelimitedStruct": {
-			typ: lineStruct,
-			fn:  parseNumDelimitedStruct,
-			w:   numDelimitedStructWord},
+			lineType:    lineStruct,
+			parseFunc:   parseNumDelimitedStruct,
+			wordPattern: numDelimitedStructPattern},
 
 		"nonNumDelimitedStruct": {
-			typ: lineStruct,
-			fn:  parseNonNumDelimitedStruct,
-			w:   nonNumDelimitedStructWord},
+			lineType:    lineStruct,
+			parseFunc:   parseNonNumDelimitedStruct,
+			wordPattern: nonNumDelimitedStructPattern},
 
 		"numDelimitedEnum": {
-			typ: lineEnum,
-			fn:  noOp,
-			w:   numDelimitedEnumWord},
+			lineType:    lineEnum,
+			parseFunc:   noop,
+			wordPattern: numDelimitedEnumPattern},
 
 		"nonNumDelimitedEnum": {
-			typ: lineEnum,
-			fn:  noOp,
-			w:   nonNumDelimitedEnumWord},
+			lineType:    lineEnum,
+			parseFunc:   noop,
+			wordPattern: nonNumDelimitedEnumPattern},
 
 		"pic": {
-			typ: linePIC,
-			fn:  parsePIC,
-			w:   picWord},
+			lineType:    linePIC,
+			parseFunc:   parsePIC,
+			wordPattern: picPattern},
 
 		"redefines": {
-			typ: lineRedefines,
-			fn:  parseRedefines,
-			w:   redefinesWord},
+			lineType:    lineRedefines,
+			parseFunc:   parseRedefinitions,
+			wordPattern: redefinesPattern},
 
 		"groupRedefines": {
-			typ: lineGroupRedefines,
-			fn:  parseGroupRedefines,
-			w:   groupRedefinesWord},
+			lineType:    lineGroupRedefines,
+			parseFunc:   parseGroupRedefinitions,
+			wordPattern: groupRedefinesPattern},
 
 		"multiRedefines": {
-			typ: lineMultilineRedefines,
-			fn:  parseRedefinesMulti,
-			w:   multiRedefinesWord},
+			lineType:    lineMultilineRedefines,
+			parseFunc:   parseRedefinesMulti,
+			wordPattern: multiRedefinesPattern},
 
 		"multiRedefinesPart": {
-			typ: lineMultilineRedefines,
-			fn:  parseRedefinesMulti,
-			w:   multiRedefinesPartWord},
+			lineType:    lineMultilineRedefines,
+			parseFunc:   parseRedefinesMulti,
+			wordPattern: multiRedefinesPartPattern},
 
 		"occurs": {
-			typ: lineOccurs,
-			fn:  parseOccurs,
-			w:   occursWord},
+			lineType:    lineOccurs,
+			parseFunc:   parseOccurs,
+			wordPattern: occursPattern},
 
 		"multiOccurs": {
-			typ: lineMultilineOccurs,
-			fn:  parseOccursMulti,
-			w:   multiOccursWord},
+			lineType:    lineMultilineOccurs,
+			parseFunc:   parseOccursMulti,
+			wordPattern: multiOccursPattern},
 
 		"multiOccursPart": {
-			typ: lineMultilineOccurs,
-			fn:  parseOccursMulti,
-			w:   multiOccursPartWord},
+			lineType:    lineMultilineOccurs,
+			parseFunc:   parseOccursMulti,
+			wordPattern: multiOccursPartPattern},
 	}
 )
 
+// init preloads the trie with entries from the dictionary
 func init() { // nolint:gochecknoinits
-	for _, v := range dictionary {
-		parsers.Insert(v.w, v.fn, v.typ)
+	for _, entry := range dictionary {
+		parsers.Insert(entry.wordPattern, entry.parseFunc, entry.lineType)
 	}
-
 	log.Println("trie preloaded")
 }
 
-// getWord constructs a word for a slice of items
-func getWord(items []item) word {
-	w := make(word, len(items))
-	for i, l := range items {
-		w[i] = l.typ
+// getWord constructs a word from a list of items
+func getWord(itemList []token) word {
+	wordPattern := make(word, len(itemList))
+	for i, item := range itemList {
+		wordPattern[i] = item.typ
 	}
-
-	return w
+	return wordPattern
 }
 
-func basicParserGet(items []item) (parser, []item, bool) { // nolint:unparam // param is used...
-	d := parsers.Search(getWord(items))
-	if d == nil {
+// basicParserGet searches for a parser in the parsers trie using a word constructed from the given items
+func basicParserGet(items []token) (lineParser, []token, bool) { // nolint:unparam // param is used...
+	foundEntry := parsers.Search(getWord(items))
+	if foundEntry == nil {
 		return nil, nil, false
 	}
-
-	return d.fn, items, true
+	return foundEntry.parseFunc, items, true
 }
 
-// equalWord tells whether a and b contain the same elements.
-// A nil argument is equivalent to an empty slice.
+// equalWord checks if two words are deeply equal
 func equalWord(a, b word) bool {
 	if len(a) != len(b) {
 		return false
 	}
-
 	for i, v := range a {
 		if v != b[i] {
 			return false
 		}
 	}
-
 	return true
 }
