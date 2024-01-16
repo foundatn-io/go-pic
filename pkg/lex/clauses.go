@@ -37,19 +37,21 @@ var (
 func parsePICType(s string) reflect.Kind {
 	picType := unknown
 	s = strings.TrimRight(s, ".")
-	if strings.ContainsAny(s, alphaIndicators) {
+
+	switch {
+	case strings.ContainsAny(s, alphaIndicators):
 		if alpha > picType {
 			picType = alpha
 		}
-	} else if strings.ContainsAny(s, decimalIndicators) {
+	case strings.ContainsAny(s, decimalIndicators):
 		if decimal > picType {
 			picType = decimal
 		}
-	} else if strings.ContainsAny(s, signedIntIndicators) {
+	case strings.ContainsAny(s, signedIntIndicators):
 		if signed > picType {
 			picType = signed
 		}
-	} else if strings.ContainsAny(s, intIndicators) {
+	case strings.ContainsAny(s, intIndicators):
 		picType = unsigned
 	}
 	return typeMap[picType]
@@ -82,6 +84,6 @@ func parsePICCount(s string) (int, error) {
 // parseOccursCount captures N where N is the OCCURS count
 // e.g. OCCURS 12. returns 12
 func parseOccursCount(t token) (int, error) {
-	countStr := strings.TrimSuffix(strings.TrimPrefix(t.val, "OCCURS "), ".")
+	countStr := strings.TrimSuffix(strings.TrimPrefix(t.value, "OCCURS "), ".")
 	return strconv.Atoi(countStr)
 }

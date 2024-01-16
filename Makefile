@@ -6,7 +6,7 @@ COLOUR_GREEN=$(shell tput setaf 2)
 COVERAGE=$(shell cat THRESHOLD)
 DOCKER_REGISTRY?=library
 
-default: | clean vendor tidy lint cover
+default: | clean tidy lint cover
 	@if [[ -e .git/rebase-merge ]]; then git --no-pager log -1 --pretty='%h %s'; fi
 	@printf '%sSuccess%s\n' "${COLOUR_GREEN}" "${COLOUR_NORMAL}"
 
@@ -32,11 +32,6 @@ clean: ## Cleans up generated coverage files and binaries
 	rm -f cover.html
 	rm -rf `find . -type d -name "dist"`
 
-.PHONY: vendor
-vendor: ## Cleans up go mod dependencies and vendor's all dependencies
-	go mod tidy
-	go mod vendor
-
 .PHONY: build
 build: clean ## Builds the gopic struct generation tool
 	go build -v \
@@ -49,7 +44,7 @@ install: build ## Builds and installs gopic struct generation tool to your GOPAT
 
 .PHONY: tidy
 tidy: ## Reorders imports
-	goimports -v -w -e . ./cmd/*
+	go mod tidy
 
 .PHONY: lint
 lint: ## Runs the golangci-lint checker

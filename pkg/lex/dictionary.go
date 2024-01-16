@@ -4,7 +4,7 @@ import (
 	"log"
 )
 
-type word []tokenType
+type word []tokenKind
 
 type entry struct {
 	wordPattern word
@@ -20,29 +20,29 @@ var (
 	parsers = NewTrie()
 
 	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12) OCCURS 12. 00000241
-	occursPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenPIC, tokenSpace, tokenOCCURS, tokenDot, tokenSpace, tokenNumber}
+	occursPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindPIC, tokenKindSpace, tokenKindOCCURS, tokenKindDot, tokenKindSpace, tokenKindNumber}
 	// 001290  15  DUMMY-SUBGROUP-2-OBJECT-A  PIC X(12)  00000241
-	multiOccursPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenPIC, tokenSpace, tokenNumber}
+	multiOccursPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindPIC, tokenKindSpace, tokenKindNumber}
 	// 001300      OCCURS 12.                            00000242
-	multiOccursPartPattern = word{tokenNumber, tokenSpace, tokenOCCURS, tokenDot, tokenSpace, tokenNumber}
+	multiOccursPartPattern = word{tokenKindNumber, tokenKindSpace, tokenKindOCCURS, tokenKindDot, tokenKindSpace, tokenKindNumber}
 	// 001150  DUMMY-OBJECT-2   PIC X(7).  00000227
-	multiRedefinesPartPattern = word{tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenPIC, tokenDot, tokenSpace, tokenNumber}
+	multiRedefinesPartPattern = word{tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindPIC, tokenKindDot, tokenKindSpace, tokenKindNumber}
 	// 000830  05  DUMMY-OBJECT-3  REDEFINES   00000195
-	multiRedefinesPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenREDEFINES, tokenSpace, tokenNumber}
+	multiRedefinesPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindREDEFINES, tokenKindSpace, tokenKindNumber}
 	// 000830  05  DUMMY-GROUP-3  REDEFINES   DUMMY-GROUP-2.  00000195
-	groupRedefinesPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenREDEFINES, tokenSpace, tokenIdentifier, tokenDot, tokenSpace, tokenNumber}
+	groupRedefinesPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindREDEFINES, tokenKindSpace, tokenKindIdentifier, tokenKindDot, tokenKindSpace, tokenKindNumber}
 	// 000830  05  DUMMY-OBJECT-3  REDEFINES  DUMMY-OBJECT-2 PIC X.  00000195
-	redefinesPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenREDEFINES, tokenSpace, tokenIdentifier, tokenSpace, tokenPIC, tokenDot, tokenSpace, tokenNumber}
+	redefinesPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindREDEFINES, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindPIC, tokenKindDot, tokenKindSpace, tokenKindNumber}
 	// 000190  15  DUMMY-GROUP-1-OBJECT-B  PIC X.  00000118
-	picPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenPIC, tokenDot, tokenSpace, tokenNumber}
+	picPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindPIC, tokenKindDot, tokenKindSpace, tokenKindNumber}
 	// 05  DUMMY-GROUP-1.
-	nonNumDelimitedStructPattern = word{tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenDot, tokenSpace}
+	nonNumDelimitedStructPattern = word{tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindDot, tokenKindSpace}
 	// 000160  05  DUMMY-GROUP-1.  00000115
-	numDelimitedStructPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenDot, tokenSpace, tokenNumber}
+	numDelimitedStructPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindDot, tokenKindSpace, tokenKindNumber}
 	// 000600   88   EXAMPLE-ENUM VALUE   'N'. 00000600
-	numDelimitedEnumPattern = word{tokenNumber, tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenIdentifier, tokenSpace, tokenEnum, tokenDot, tokenSpace, tokenNumber}
+	numDelimitedEnumPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindEnum, tokenKindDot, tokenKindSpace, tokenKindNumber}
 	// 88   EXAMPLE-ENUM-VALUE   'N'.
-	nonNumDelimitedEnumPattern = word{tokenSpace, tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenIdentifier, tokenSpace, tokenEnum, tokenDot, tokenSpace}
+	nonNumDelimitedEnumPattern = word{tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindEnum, tokenKindDot, tokenKindSpace}
 
 	dictionary = map[string]entry{
 		"numDelimitedStruct": {
@@ -108,7 +108,7 @@ var (
 )
 
 // init preloads the trie with entries from the dictionary
-func init() { // nolint:gochecknoinits
+func init() { //nolint:gochecknoinits
 	for _, entry := range dictionary {
 		parsers.Insert(entry.wordPattern, entry.parseFunc, entry.lineType)
 	}
@@ -116,21 +116,21 @@ func init() { // nolint:gochecknoinits
 }
 
 // getWord constructs a word from a list of items
-func getWord(itemList []token) word {
-	wordPattern := make(word, len(itemList))
-	for i, item := range itemList {
-		wordPattern[i] = item.typ
+func getWord(tokens []token) word {
+	wordPattern := make(word, len(tokens))
+	for i, token := range tokens {
+		wordPattern[i] = token.kind
 	}
 	return wordPattern
 }
 
 // basicParserGet searches for a parser in the parsers trie using a word constructed from the given items
-func basicParserGet(items []token) (lineParser, []token, bool) { // nolint:unparam // param is used...
-	foundEntry := parsers.Search(getWord(items))
+func basicParserGet(tokens []token) (lineParser, []token, bool) { //nolint:unparam // param is used...
+	foundEntry := parsers.Search(getWord(tokens))
 	if foundEntry == nil {
 		return nil, nil, false
 	}
-	return foundEntry.parseFunc, items, true
+	return foundEntry.parseFunc, tokens, true
 }
 
 // equalWord checks if two words are deeply equal

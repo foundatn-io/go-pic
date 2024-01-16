@@ -133,10 +133,10 @@ func newPicTag(length int, elemCount int) string {
 // e.g. DUMMYGROUP1's length of 63 is being calculated 3x to 1+189
 // so DUMMYGROUP3 now starts at 201, instead of 64
 //
-// type root struct {
-//	DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`  // start:1 end:63
-//	DUMMYGROUP3 DUMMYGROUP3 `pic:"201"` // start:190 end:390
-// }
+//	type root struct {
+//		DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`  // start:1 end:63
+//		DUMMYGROUP3 DUMMYGROUP3 `pic:"201"` // start:190 end:390
+//	}
 func indexComment(length int, elemCount int) string {
 	size := length
 	if elemCount > 0 {

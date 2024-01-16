@@ -2,139 +2,122 @@ package lex
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"reflect"
 )
 
+// Tree represents a parse tree with a lexer, tokens, lines, and a state.
 type Tree struct {
-	lex   Lexer
-	token token
-	lines []line
-	state *Record
-	line  line
-	lIdx  int
+	lexer        Lexer
+	currentToken token
+	lines        []line
+	state        *Record
+	currentLine  line
+	lineIndex    int
 }
 
-func NewTree(lxr Lexer) *Tree {
-	log.Println("building new tree")
-	root := &Record{Typ: reflect.Struct, Name: lxr.getName(), depthMap: make(map[string]*Record)}
+// NewTree creates a new parse tree with the provided lexer.
+func NewTree(inputLexer Lexer) *Tree {
+	log.Println("Building new parse tree")
+	root := &Record{Typ: reflect.Struct, Name: inputLexer.getName(), depthMap: make(map[string]*Record)}
 	return &Tree{
-		lex:   lxr,
-		state: root,
-		lIdx:  -1,
+		lexer:     inputLexer,
+		state:     root,
+		lineIndex: -1,
 	}
 }
 
-func (t *Tree) Parse() *Record {
-	log.Println("parsing lexer tokens")
-	for {
-		li := t.scanLine()
-		if t.token.typ == tokenEOF {
-			log.Println("reached EOF token, input lexed.")
-			break
+// Parse processes the lexer tokens and returns the root record.
+func (tree *Tree) Parse() (*Record, error) {
+	log.Println("Parsing lexer tokens")
+	for lineTokens := tree.scanLine(); tree.currentToken.kind != tokenKindEOF; lineTokens = tree.scanLine() {
+		if line := buildLine(lineTokens); line != nil {
+			tree.lines = append(tree.lines, *line)
 		}
-
-		l := buildLine(li)
-
-		if l == nil {
-			continue
-		}
-
-		t.lines = append(t.lines, *l)
 	}
-
-	t.parseLines(t.state)
-	return t.state
-}
-
-func (t *Tree) scanLine() []token {
-	var lineItems []token
-	for {
-		t.token = t.next()
-		if t.token == (token{}) || t.token.typ == tokenError {
-			break
-		}
-
-		if t.token.typ == tokenEOL || tokenEOF == t.token.typ {
-			break
-		}
-
-		lineItems = append(lineItems, t.token)
+	log.Println("Reached EOF token, input lexed.")
+	if err := tree.parseLines(tree.state); err != nil {
+		return nil, fmt.Errorf("error parsing lines: %w", err)
 	}
-
-	return lineItems
+	return tree.state, nil
 }
 
-// next returns the next token.
-func (t *Tree) next() token {
-	return t.lex.getNext()
+// scanLine scans a line and returns its tokens.
+func (tree *Tree) scanLine() []token {
+	var lineTokens []token
+	for tree.currentToken = tree.nextToken(); isParseableToken(tree.currentToken); tree.currentToken = tree.nextToken() {
+		lineTokens = append(lineTokens, tree.currentToken)
+	}
+	return lineTokens
 }
 
-// parseLines generates the text for the line
-// and adds it to the tree data
-func (t *Tree) parseLines(root *Record) { //nolint:gocyclo // TODO: refine
-	for {
-		if errors.Is(t.nextLine(), io.EOF) {
-			break
-		}
+// nextToken returns the next token from the lexer.
+func (tree *Tree) nextToken() token {
+	return tree.lexer.getNext()
+}
 
-		switch t.line.typ {
+// parseLines processes the lines and adds them to the tree data.
+func (tree *Tree) parseLines(rootRecord *Record) error {
+	for !errors.Is(tree.nextLine(), io.EOF) {
+		switch tree.currentLine.typ {
 		case lineJunk, lineEnum:
-			log.Printf("%s on copybook line %d resulted in no-op", t.line.typ, t.lIdx)
+			log.Printf("%s on copybook line %d resulted in no-op", tree.currentLine.typ, tree.lineIndex)
 			continue
-
 		case lineRedefines, lineMultilineRedefines, lineGroupRedefines:
-			t.line.fn(t, t.line, root)
-
-		case lineStruct:
-			rec, err := t.line.fn(t, t.line, root)
-			if err != nil {
-				log.Fatalf("error parsing line: %+v", err)
+			if _, err := tree.currentLine.fn(tree, tree.currentLine, rootRecord); err != nil {
+				return fmt.Errorf("error redefining line: %w", err)
 			}
-			if rec == nil {
+		case lineStruct:
+			record, err := tree.currentLine.fn(tree, tree.currentLine, rootRecord)
+			if err != nil {
+				return fmt.Errorf("error parsing line: %w", err)
+			}
+			if record == nil {
 				continue
 			}
-
-			parent, ok := root.depthMap[rec.depth]
+			parentRecord, ok := rootRecord.depthMap[record.depth]
 			if ok {
-				root = parent
+				rootRecord = parentRecord
 			}
-
-			delve(t, root, rec)
-
+			if _, err := delve(tree, rootRecord, record); err != nil {
+				return err
+			}
 		default:
-			rec, err := t.line.fn(t, t.line, root)
+			record, err := tree.currentLine.fn(tree, tree.currentLine, rootRecord)
 			if err != nil {
-				log.Fatalf("error parsing line: %+v", err)
+				return fmt.Errorf("error parsing line: %w", err)
 			}
-			if rec == nil {
-				log.Fatalf("parser returned nil record for line: %+v", t.line)
+			if record == nil {
+				return fmt.Errorf("parser returned nil record for line: %+v", tree.currentLine)
 			}
-
-			parent, ok := root.depthMap[rec.depth]
+			parentRecord, ok := rootRecord.depthMap[record.depth]
 			if ok {
-				root = parent
+				rootRecord = parentRecord
 			}
-
-			idx := len(root.Children)
-			l := rec.Length
-			if rec.Occurs > 0 {
-				l *= rec.Occurs
+			childIndex := len(rootRecord.Children)
+			length := record.Length
+			if record.Occurs > 0 {
+				length *= record.Occurs
 			}
-
-			root.Length += l
-			root.Children = append(root.Children, root.toCache(rec, idx))
+			rootRecord.Length += length
+			rootRecord.Children = append(rootRecord.Children, rootRecord.toCache(record, childIndex))
 		}
 	}
+	return nil
 }
 
-func (t *Tree) nextLine() error {
-	if t.lIdx == len(t.lines)-1 {
+// nextLine moves to the next line in the tree.
+func (tree *Tree) nextLine() error {
+	tree.lineIndex++
+	if tree.lineIndex >= len(tree.lines) {
 		return io.EOF
 	}
-
-	t.lIdx++
-	t.line = t.lines[t.lIdx]
+	tree.currentLine = tree.lines[tree.lineIndex]
 	return nil
+}
+
+func isParseableToken(t token) bool {
+	return !(t == (token{}) || t.kind == tokenKindError || t.kind == tokenKindEOL || tokenKindEOF == t.kind)
 }

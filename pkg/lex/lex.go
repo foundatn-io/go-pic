@@ -8,17 +8,17 @@ import (
 
 const (
 	substituteHexElement = '\U0000001A'
-	singleQuoteElement   = rune(39) // nolint:gomnd // rune of '
+	singleQuoteElement   = rune(39) // rune of '
 	alphaNumericElements = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 )
 
 // lexStatementTokens lexes tokens within a statement.
-func lexStatementTokens(lexer *lexerState) stateFunction { // nolint:gocyclo // good luck simplifying this
+func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // good luck simplifying this
 	switch currentRune := lexer.next(); {
 	case isEOL(currentRune):
-		lexer.emit(tokenEOL)
-	case currentRune == eof:
-		lexer.emit(tokenEOF)
+		lexer.emit(tokenKindEOL)
+	case currentRune == endOfFile:
+		lexer.emit(tokenKindEOF)
 		return nil
 	case isSpace(currentRune):
 		lexer.backup()
@@ -27,7 +27,7 @@ func lexStatementTokens(lexer *lexerState) stateFunction { // nolint:gocyclo // 
 		// special look-ahead for "PIC" so we don't break lexerState.backup().
 		if lexer.pos < Pos(len(lexer.input)) {
 			// Look for PIC
-			if (currentRune < '0' || '9' < currentRune) && lexer.peek() == 'I' && lexer.lookAhead(2) == 'C' { // nolint:gomnd // obvious meaning
+			if (currentRune < '0' || '9' < currentRune) && lexer.peek() == 'I' && lexer.lookAhead(2) == 'C' { //nolint:gomnd // obvious meaning
 				return lexPICToken
 			}
 			return lexIdentifier
@@ -43,14 +43,14 @@ func lexStatementTokens(lexer *lexerState) stateFunction { // nolint:gocyclo // 
 		lexer.backup()
 		return lexIdentifier
 	case currentRune == '.':
-		lexer.emit(tokenDot)
+		lexer.emit(tokenKindDot)
 	case currentRune == singleQuoteElement:
 		return lexEnum
 	case currentRune <= unicode.MaxASCII && unicode.IsPrint(currentRune):
-		lexer.emit(tokenChar)
+		lexer.emit(tokenKindChar)
 	case currentRune == substituteHexElement:
 		log.Printf("found SUBSTITUTE rune")
-		lexer.emit(tokenEOF)
+		lexer.emit(tokenKindEOF)
 	default:
 		errorMessage := fmt.Errorf("unrecognized character in action: %#U", currentRune)
 		log.Println(errorMessage)
@@ -77,7 +77,7 @@ func lexPICToken(lexerState *lexerState) stateFunction {
 
 				default:
 					lexerState.backup()
-					lexerState.emit(tokenPIC)
+					lexerState.emit(tokenKindPIC)
 					return lexSpace(lexerState)
 				}
 			}
@@ -99,7 +99,7 @@ func lexPICToken(lexerState *lexerState) stateFunction {
 		log.Println(errorMessage)
 		return lexerState.errorf(errorMessage.Error())
 	}
-	lexerState.emit(tokenPIC)
+	lexerState.emit(tokenKindPIC)
 	return lexStatementTokens(lexerState)
 }
 
@@ -107,7 +107,7 @@ func lexPICToken(lexerState *lexerState) stateFunction {
 // REDEFINES token. If it encounters a REDEFINES token, it emits a tokenREDEFINES.
 func lexRedefinesToken(lexer *lexerState) stateFunction {
 	if lexer.scanRedefinesToken() {
-		lexer.emit(tokenREDEFINES)
+		lexer.emit(tokenKindREDEFINES)
 	}
 	return lexStatementTokens(lexer)
 }
@@ -121,7 +121,7 @@ func lexOccursToken(lexer *lexerState) stateFunction {
 		return lexer.errorf(err.Error())
 	}
 	if valid {
-		lexer.emit(tokenOCCURS)
+		lexer.emit(tokenKindOCCURS)
 	}
 	return lexStatementTokens(lexer)
 }
@@ -143,9 +143,9 @@ func lexIdentifier(lexer *lexerState) stateFunction {
 		return lexer.errorf(err.Error())
 	}
 
-	toEmit := tokenIdentifier
+	toEmit := tokenKindIdentifier
 	if word == "true" || word == "false" {
-		toEmit = tokenBool
+		toEmit = tokenKindBool
 	}
 	lexer.emit(toEmit)
 	return lexStatementTokens(lexer)
@@ -167,7 +167,7 @@ func lexEnum(lexer *lexerState) stateFunction {
 	}
 
 	lexer.next()
-	lexer.emit(tokenEnum)
+	lexer.emit(tokenKindEnum)
 	return lexStatementTokens(lexer)
 }
 
@@ -184,13 +184,13 @@ func lexNumber(lexer *lexerState) stateFunction {
 	if !lexer.scanNumber() {
 		return lexer.errorf(errMsg, lexer.input[lexer.start:lexer.pos])
 	}
-	toEmit := tokenNumber
+	toEmit := tokenKindNumber
 	if sign := lexer.peek(); sign == '+' || sign == '-' {
 		// Complex: 1+2i. No spaces, must end in 'i'.
 		if !lexer.scanNumber() || lexer.input[lexer.pos-1] != 'i' {
 			return lexer.errorf(errMsg, lexer.input[lexer.start:lexer.pos])
 		}
-		toEmit = tokenComplex
+		toEmit = tokenKindComplex
 	}
 	lexer.emit(toEmit)
 	return lexStatementTokens(lexer)
@@ -203,7 +203,7 @@ func lexSpace(lexer *lexerState) stateFunction {
 	for isSpace(lexer.peek()) {
 		lexer.next()
 	}
-	lexer.emit(tokenSpace)
+	lexer.emit(tokenKindSpace)
 	return lexStatementTokens(lexer)
 }
 

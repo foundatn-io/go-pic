@@ -145,7 +145,6 @@ linters:
   disable-all: true
   enable:
     - deadcode
-    - depguard
     - dupl
     - errcheck
     - gochecknoinits
@@ -180,6 +179,7 @@ linters:
     - scopelint
 
   # don't enable:
+  # - depguard
   # - gochecknoglobals
   # - gocognit
   # - prealloc
@@ -215,4 +215,4 @@ issues:
   # e.g. new-from-patch: path/to/patch/file
 
 service:
-  golangci-lint-version: 1.32.X
+  golangci-lint-version: 1.55.X

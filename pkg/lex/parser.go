@@ -18,7 +18,7 @@ type lineParser func(tree *Tree, currentLine line, rootRecord *Record) (*Record,
 // noop is a lineParser that logs a no-operation message and returns nil.
 // It is used when the current line does not require any action.
 func noop(tree *Tree, currentLine line, _ *Record) (*Record, error) {
-	log.Printf("%s on copybook line %d resulted in no-operation", currentLine.typ, tree.lIdx)
+	log.Printf("%s on copybook line %d resulted in no-operation", currentLine.typ, tree.lineIndex)
 	return nil, nil
 }
 
@@ -28,16 +28,16 @@ func noop(tree *Tree, currentLine line, _ *Record) (*Record, error) {
 //
 // TODO: explain magic number 6, 4, 2
 func parsePIC(_ *Tree, currentLine line, _ *Record) (*Record, error) {
-	pictureNumberDefinition := currentLine.items[6].val[len(picPrefix):]
+	pictureNumberDefinition := currentLine.tokens[6].value[len(picPrefix):]
 	length, err := parsePICCount(pictureNumberDefinition)
 	if err != nil {
 		return nil, err
 	}
 	return &Record{
 		depthMap: map[string]*Record{},
-		Name:     currentLine.items[4].val,
+		Name:     currentLine.tokens[4].value,
 		Length:   length,
-		depth:    currentLine.items[2].val,
+		depth:    currentLine.tokens[2].value,
 		Typ:      parsePICType(pictureNumberDefinition),
 	}, nil
 }
@@ -49,7 +49,7 @@ func parsePIC(_ *Tree, currentLine line, _ *Record) (*Record, error) {
 //
 // TODO: explain magic number 10, 8
 func parseRedefinitions(_ *Tree, currentLine line, rootRecord *Record) (*Record, error) {
-	pictureNumberDefinition := currentLine.items[10].val[len(picPrefix):]
+	pictureNumberDefinition := currentLine.tokens[10].value[len(picPrefix):]
 	length, err := parsePICCount(pictureNumberDefinition)
 	if err != nil {
 		return nil, err
@@ -57,12 +57,12 @@ func parseRedefinitions(_ *Tree, currentLine line, rootRecord *Record) (*Record,
 
 	newRecord := &Record{
 		depthMap: map[string]*Record{},
-		Name:     currentLine.items[4].val,
+		Name:     currentLine.tokens[4].value,
 		Length:   length,
 		Typ:      parsePICType(pictureNumberDefinition),
 	}
 
-	target := currentLine.items[8].val
+	target := currentLine.tokens[8].value
 	destination, index, err := rootRecord.fromCache(target)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func parseRedefinitions(_ *Tree, currentLine line, rootRecord *Record) (*Record,
 // TODO: explain magic numbers 8, 4, 2
 func parseGroupRedefinitions(tree *Tree, currentLine line, rootRecord *Record) (*Record, error) {
 	// Trim the trailing period from the target name, if present
-	target := strings.TrimSuffix(currentLine.items[8].val, ".")
+	target := strings.TrimSuffix(currentLine.tokens[8].value, ".")
 	destination, index, err := rootRecord.fromCache(target)
 	if err != nil {
 		return nil, err
@@ -98,9 +98,9 @@ func parseGroupRedefinitions(tree *Tree, currentLine line, rootRecord *Record) (
 	}
 
 	newRecord := &Record{
-		Name:     currentLine.items[4].val,
+		Name:     currentLine.tokens[4].value,
 		Typ:      reflect.Struct,
-		depth:    currentLine.items[2].val,
+		depth:    currentLine.tokens[2].value,
 		depthMap: destination.depthMap,
 	}
 
@@ -110,7 +110,9 @@ func parseGroupRedefinitions(tree *Tree, currentLine line, rootRecord *Record) (
 	if err != nil {
 		return nil, err
 	}
-	tree.parseLines(newRecord)
+	if err := tree.parseLines(newRecord); err != nil {
+		return nil, err
+	}
 	rootRecord.Length += newRecord.Length
 	return newRecord, nil
 }
@@ -121,20 +123,20 @@ func parseGroupRedefinitions(tree *Tree, currentLine line, rootRecord *Record) (
 //
 // TODO: explain magic numbers 6, 4, 2, 8
 func parseOccurs(_ *Tree, currentLine line, _ *Record) (*Record, error) {
-	pictureNumberDefinition := strings.TrimSpace(currentLine.items[6].val)[len(picPrefix):]
+	pictureNumberDefinition := strings.TrimSpace(currentLine.tokens[6].value)[len(picPrefix):]
 	length, err := parsePICCount(pictureNumberDefinition)
 	if err != nil {
 		return nil, err
 	}
-	occurrenceCount, err := parseOccursCount(currentLine.items[8])
+	occurrenceCount, err := parseOccursCount(currentLine.tokens[8])
 	if err != nil {
 		return nil, err
 	}
 	return &Record{
-		Name:     currentLine.items[4].val,
+		Name:     currentLine.tokens[4].value,
 		Length:   length,
 		Occurs:   occurrenceCount,
-		depth:    currentLine.items[2].val,
+		depth:    currentLine.tokens[2].value,
 		depthMap: map[string]*Record{},
 		Typ:      parsePICType(pictureNumberDefinition),
 	}, nil
@@ -147,11 +149,11 @@ func parseRedefinesMulti(tree *Tree, currentLine line, rootRecord *Record) (*Rec
 	if err := tree.nextLine(); err != nil {
 		return nil, err
 	}
-	_, index, ok := basicParserGet(tree.line.items)
+	_, index, ok := basicParserGet(tree.currentLine.tokens)
 	if !ok || !equalWord(getWord(index), multiRedefinesPartPattern) {
 		return nil, fmt.Errorf("parser indicated multi-line redefinition, but failed to verify next line")
 	}
-	currentLine.items = lineFromMultiRedefines(currentLine.items, index)
+	currentLine.tokens = lineFromMultiRedefines(currentLine.tokens, index)
 	return parseRedefinitions(nil, currentLine, rootRecord)
 }
 
@@ -162,16 +164,16 @@ func parseOccursMulti(tree *Tree, currentLine line, _ *Record) (*Record, error) 
 	if err := tree.nextLine(); err != nil {
 		return nil, err
 	}
-	_, index, ok := basicParserGet(tree.line.items)
+	_, index, ok := basicParserGet(tree.currentLine.tokens)
 	if !ok || !equalWord(getWord(index), multiOccursPartPattern) {
-		return nil, fmt.Errorf("parser indicated multi-line occurs, but failed to verify next line: %v", tree.line.items)
+		return nil, fmt.Errorf("parser indicated multi-line occurs, but failed to verify next line: %v", tree.currentLine.tokens)
 	}
-	currentLine.items = lineFromMultiOccurs(currentLine.items, index)
+	currentLine.tokens = lineFromMultiOccurs(currentLine.tokens, index)
 	return parseOccurs(nil, currentLine, nil)
 }
 
 func parseDelimitedStruct(tree *Tree, currentLine line, rootRecord *Record, recordIndicatorIndex, nameIndex, groupIndex int) (*Record, error) {
-	if currentLine.items[recordIndicatorIndex].val == recordDescriptionIndicator {
+	if currentLine.tokens[recordIndicatorIndex].value == recordDescriptionIndicator {
 		return noop(tree, currentLine, rootRecord)
 	}
 	return parseStruct(tree, currentLine, rootRecord, nameIndex, groupIndex)
@@ -202,9 +204,9 @@ func parseNonNumDelimitedStruct(tree *Tree, currentLine line, rootRecord *Record
 // the type of the Record to reflect.Struct.
 func parseStruct(_ *Tree, currentLine line, _ *Record, nameIndex, groupIndex int) (*Record, error) {
 	return &Record{
-		Name:     currentLine.items[nameIndex].val,
+		Name:     currentLine.tokens[nameIndex].value,
 		Typ:      reflect.Struct,
-		depth:    currentLine.items[groupIndex].val,
+		depth:    currentLine.tokens[groupIndex].value,
 		depthMap: map[string]*Record{},
 	}, nil
 }
@@ -221,31 +223,32 @@ func delve(tree *Tree, rootRecord *Record, newRecord *Record) (*Record, error) {
 		if newRecord.depthMap == nil || len(newRecord.depthMap) == 0 {
 			copyDepthMap(parentRecord, newRecord)
 		}
-		tree.parseLines(newRecord)
+		if err := tree.parseLines(newRecord); err != nil {
+			return nil, err
+		}
 		length := newRecord.Length
 		if newRecord.Occurs > 0 {
 			length *= newRecord.Occurs
 		}
-
 		parentRecord.Length += length
 		return parentRecord, nil
 	}
-
 	if rootRecord.depthMap == nil {
 		rootRecord.depthMap = make(map[string]*Record)
 	}
 
 	rootRecord.depthMap[newRecord.depth] = rootRecord
 	copyDepthMap(rootRecord, newRecord)
-
 	rootRecord.Children = append(rootRecord.Children, newRecord)
-	tree.parseLines(newRecord)
+
+	if err := tree.parseLines(newRecord); err != nil {
+		return nil, err
+	}
 
 	length := newRecord.Length
 	if newRecord.Occurs > 0 {
 		length *= newRecord.Occurs
 	}
-
 	rootRecord.Length += length
 	return newRecord, nil
 }

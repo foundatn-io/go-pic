@@ -76,7 +76,7 @@ func (lexer *lexerState) run() {
 func (lexer *lexerState) next() rune {
 	if int(lexer.pos) >= len(lexer.input) {
 		lexer.width = 0
-		return eof
+		return endOfFile
 	}
 	r, width := utf8.DecodeRuneInString(lexer.input[lexer.pos:])
 	lexer.width = Pos(width)
@@ -90,7 +90,7 @@ func (lexer *lexerState) next() rune {
 func (lexer *lexerState) current() rune {
 	if int(lexer.pos) >= len(lexer.input) {
 		lexer.width = 0
-		return eof
+		return endOfFile
 	}
 	r, _ := utf8.DecodeRuneInString(lexer.input[lexer.pos:])
 	return r
@@ -107,7 +107,7 @@ func (lexer *lexerState) peek() rune {
 func (lexer *lexerState) lookAhead(i int) rune {
 	if int(lexer.pos) >= len(lexer.input) {
 		lexer.width = 0
-		return eof
+		return endOfFile
 	}
 	r, width := utf8.DecodeRuneInString(lexer.input[lexer.pos+Pos(i-1):])
 	lexer.width = Pos(width)
@@ -129,8 +129,8 @@ func (lexer *lexerState) backup() {
 }
 
 // emit passes an item back to the client. It takes a token type as a parameter.
-func (lexer *lexerState) emit(tokenType tokenType) {
-	lexer.items = append(lexer.items, token{tokenType, lexer.start, lexer.input[lexer.start:lexer.pos], lexer.startLine})
+func (lexer *lexerState) emit(kind tokenKind) {
+	lexer.items = append(lexer.items, token{kind, lexer.start, lexer.input[lexer.start:lexer.pos], lexer.startLine})
 	lexer.start = lexer.pos
 	lexer.startLine = lexer.line
 }
@@ -158,10 +158,11 @@ func (lexer *lexerState) acceptRun(validRunes string) {
 // It takes a string format for the error message and a variadic number of arguments to format the error message.
 func (lexer *lexerState) errorf(errorMessageFormat string, formatArgs ...interface{}) stateFunction {
 	lexer.items = append(lexer.items, token{
-		typ:  tokenError,
-		pos:  lexer.start,
-		val:  fmt.Sprintf(errorMessageFormat, formatArgs...),
-		line: lexer.startLine})
+		kind:       tokenKindError,
+		position:   lexer.start,
+		value:      fmt.Sprintf(errorMessageFormat, formatArgs...),
+		lineNumber: lexer.startLine,
+	})
 	return nil
 }
 
@@ -223,7 +224,7 @@ func (lexer *lexerState) atTerminator() bool {
 // isTerminatorSymbol checks if the given character is a terminator symbol.
 func isTerminatorSymbol(char rune) bool {
 	switch char {
-	case eof, '.', ',', '|', ':', ')', '(':
+	case endOfFile, '.', ',', '|', ':', ')', '(':
 		return true
 	default:
 		return false

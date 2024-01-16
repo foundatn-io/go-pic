@@ -25,13 +25,13 @@ func Test_equalWord(t *testing.T) {
 			want: false,
 		}, {
 			name: "NotPrebuilt-Equal",
-			a:    word{tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenNumber},
-			b:    word{tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenNumber},
+			a:    word{tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindNumber},
+			b:    word{tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindNumber},
 			want: true,
 		}, {
 			name: "NotPrebuilt-NotEqual",
-			a:    word{tokenNumber, tokenSpace, tokenIdentifier, tokenSpace, tokenNumber},
-			b:    word{tokenNumber, tokenSpace, tokenPIC, tokenSpace, tokenNumber},
+			a:    word{tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindNumber},
+			b:    word{tokenKindNumber, tokenKindSpace, tokenKindPIC, tokenKindSpace, tokenKindNumber},
 			want: false,
 		},
 	}
@@ -55,36 +55,36 @@ func Test_getWord(t *testing.T) {
 			name: "Returns-NumDelimited",
 			in: []token{
 				{
-					typ: tokenNumber,
-					val: "000123",
+					kind:  tokenKindNumber,
+					value: "000123",
 				}, {
-					typ: tokenSpace,
-					pos: 6,
-					val: "  ",
+					kind:     tokenKindSpace,
+					position: 6,
+					value:    "  ",
 				}, {
-					typ: tokenNumber,
-					pos: 8,
-					val: "10",
+					kind:     tokenKindNumber,
+					position: 8,
+					value:    "10",
 				}, {
-					typ: tokenSpace,
-					pos: 10,
-					val: "  ",
+					kind:     tokenKindSpace,
+					position: 10,
+					value:    "  ",
 				}, {
-					typ: tokenIdentifier,
-					pos: 12,
-					val: "OBJ-A",
+					kind:     tokenKindIdentifier,
+					position: 12,
+					value:    "OBJ-A",
 				}, {
-					typ: tokenDot,
-					pos: 17,
-					val: ".",
+					kind:     tokenKindDot,
+					position: 17,
+					value:    ".",
 				}, {
-					typ: tokenSpace,
-					pos: 18,
-					val: "  ",
+					kind:     tokenKindSpace,
+					position: 18,
+					value:    "  ",
 				}, {
-					typ: tokenNumber,
-					pos: 20,
-					val: "000123",
+					kind:     tokenKindNumber,
+					position: 20,
+					value:    "000123",
 				},
 			},
 			want: numDelimitedStructPattern,
@@ -92,23 +92,23 @@ func Test_getWord(t *testing.T) {
 			name: "Returns-NumDelimited",
 			in: []token{
 				{
-					typ: tokenSpace,
-					val: "  ",
+					kind:  tokenKindSpace,
+					value: "  ",
 				}, {
-					typ: tokenNumber,
-					val: "10",
+					kind:  tokenKindNumber,
+					value: "10",
 				}, {
-					typ: tokenSpace,
-					val: "  ",
+					kind:  tokenKindSpace,
+					value: "  ",
 				}, {
-					typ: tokenIdentifier,
-					val: "OBJ-A",
+					kind:  tokenKindIdentifier,
+					value: "OBJ-A",
 				}, {
-					typ: tokenDot,
-					val: ".",
+					kind:  tokenKindDot,
+					value: ".",
 				}, {
-					typ: tokenSpace,
-					val: "  ",
+					kind:  tokenKindSpace,
+					value: "  ",
 				},
 			},
 			want: nonNumDelimitedStructPattern,

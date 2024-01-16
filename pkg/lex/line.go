@@ -31,9 +31,9 @@ const (
 
 // line represents a line of tokens with a specific type and parser function.
 type line struct {
-	items []token
-	typ   lineType
-	fn    lineParser
+	tokens []token
+	typ    lineType
+	fn     lineParser
 }
 
 // String returns the string description of the line type.
@@ -42,19 +42,19 @@ func (l lineType) String() string {
 }
 
 // buildLine constructs a line from a slice of tokens.
-func buildLine(items []token) *line {
-	parserData := parsers.Search(getWord(items))
+func buildLine(tokens []token) *line {
+	parserData := parsers.Search(getWord(tokens))
 	if parserData != nil {
 		return &line{
-			items: items,
-			typ:   parserData.lineType,
-			fn:    parserData.parseFunc,
+			tokens: tokens,
+			typ:    parserData.lineType,
+			fn:     parserData.parseFunc,
 		}
 	}
 	return &line{
-		items: items,
-		typ:   lineJunk,
-		fn:    noop,
+		tokens: tokens,
+		typ:    lineJunk,
+		fn:     noop,
 	}
 }
 
@@ -91,6 +91,5 @@ func lineFromMultiOccurs(a, b []token) []token {
 // joinLines joins two slices of tokens into one.
 func joinLines(a, b []token) []token {
 	// copy all but the num delimiter at the end of a
-	res := append(a[:len(a)-1], b[2:]...)
-	return res
+	return append(a[:len(a)-1], b[2:]...)
 }
