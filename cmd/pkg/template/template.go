@@ -10,46 +10,148 @@ import (
 	"github.com/foundatn-io/go-pic/pkg/lex"
 )
 
-var (
-	// TODO: investigate https://github.com/masterminds/sprig for better
-	// templating?
-	//
-	// Global state for funcMap reference when templating
-	newStart   = 1
-	newEnd     = 1
-	savedStart = 1
-	savedEnd   = 1
-	cursor     = 1
-
-	structs = make([]string, 0)
-
-	special = regexp.MustCompile("[^a-zA-Z0-9]+")
+const (
+	stringTag = "string"
+	intTag    = "int"
+	uintTag   = "uint"
+	floatTag  = "float64"
 )
 
-func resetCounters() {
-	newStart = 1
-	newEnd = 1
-	savedStart = 1
-	savedEnd = 1
-	cursor = 1
+// specialCharsRegexp is a regular expression that matches any character that is not alphanumeric.
+var specialCharsRegexp = regexp.MustCompile("[^a-zA-Z0-9]+")
+
+// state holds the state of the template.
+type state struct {
+	newStartPosition   int
+	newEndPosition     int
+	savedStartPosition int
+	savedEndPosition   int
+	cursor             int
+	structs            []string
 }
 
-func getTemplateFuncs() template.FuncMap {
-	return template.FuncMap{
-		"goType":       goType,
-		"picTag":       newPicTag,
-		"sanitiseName": sanitiseName,
-		"indexComment": indexComment,
-		"isStruct":     isStruct,
-		"buildStruct":  buildStruct,
-		"getStructs":   getStructs,
+func Copybook() *template.Template {
+	ts := newTemplateState()
+	return ts.createParsedTemplate()
+}
+
+// newTemplateState creates a new state.
+func newTemplateState() *state {
+	return &state{
+		newStartPosition:   1,
+		newEndPosition:     1,
+		savedStartPosition: 1,
+		savedEndPosition:   1,
+		cursor:             1,
+		structs:            make([]string, 0),
 	}
 }
 
-func getTemplate() *template.Template {
+// createTemplateFuncMap returns a map of functions that can be used in the template.
+func (ts *state) createTemplateFuncMap() template.FuncMap {
+	return template.FuncMap{
+		"translateToGoType":    translateToGoType,
+		"checkIfStruct":        checkIfStruct,
+		"sanitiseName":         sanitiseName,
+		"generatePicTag":       ts.generatePicTag,
+		"generateIndexComment": ts.generateIndexComment,
+		"constructStruct":      ts.constructStruct,
+		"retrieveStructs":      ts.retrieveStructs,
+	}
+}
+
+// generatePicTag generates a new PIC tag.
+func (ts *state) generatePicTag(length int, elemCount int) string {
+	size := ts.calculateElementSize(length, elemCount)
+	start := ts.newStartPosition
+	end := start + (size - 1)
+
+	// manipulate state
+	ts.newEndPosition = end
+	ts.newStartPosition = ts.newEndPosition + 1
+	if elemCount > 0 {
+		return "`" + fmt.Sprintf("pic:\"%d,%d,%d\"", start, end, elemCount) + "`"
+	}
+
+	return "`" + fmt.Sprintf("pic:\"%d,%d\"", start, end) + "`"
+}
+
+// generateIndexComment generates a comment for the index.
+// FIXME: (pgmitche) index comments are being over-calculated now,
+// due to struct support.
+// e.g. DUMMYGROUP1's length of 63 is being calculated 3x to 1+189
+// so DUMMYGROUP3 now starts at 201, instead of 64
+//
+//	type root struct {
+//		DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`  // start:1 end:63
+//		DUMMYGROUP3 DUMMYGROUP3 `pic:"201"` // start:190 end:390
+//	}
+func (ts *state) generateIndexComment(length int, elemCount int) string {
+	size := ts.calculateElementSize(length, elemCount)
+	s := ts.cursor
+	e := s + size
+	ts.cursor = e
+	return fmt.Sprintf(" // start:%d end:%d", s, e-1)
+}
+
+// calculateElementSize calculates the size of the element.
+func (ts *state) calculateElementSize(length int, elemCount int) int {
+	size := length
+	if elemCount > 0 {
+		size *= elemCount
+	}
+	return size
+}
+
+// constructStruct builds a struct from a record.
+func (ts *state) constructStruct(r *lex.Record) string {
+	ts.savedStartPosition = ts.newStartPosition
+	ts.savedEndPosition = ts.newEndPosition
+	b := bytes.Buffer{}
+	if err := ts.createStructTemplate().Execute(&b, r); err != nil {
+		panic(fmt.Errorf("execute struct templte: %w", err))
+	}
+	ts.structs = append(ts.structs, b.String())
+	ts.newStartPosition = ts.savedStartPosition
+	ts.newEndPosition = ts.savedEndPosition
+	return ""
+}
+
+// retrieveStructs returns the structs.
+func (ts *state) retrieveStructs() []string {
+	return ts.structs
+}
+
+// createStructTemplate returns the template for a struct.
+func (ts *state) createStructTemplate() *template.Template {
+	ts.newStartPosition = 1
+	ts.newEndPosition = 1
+
+	t, err := template.New("struct").
+		Funcs(ts.createTemplateFuncMap()).
+		Parse(`
+// {{ sanitiseName .Name }} contains a representation of the nested group {{ .Name }}
+type {{ sanitiseName .Name }} struct {
+	{{- range $element := .Children}}
+		{{- if checkIfStruct $element }}
+			{{ sanitiseName $element.Name }} {{ translateToGoType $element -}} {{ generatePicTag $element.Length $element.Occurs}}
+            {{- constructStruct $element }}
+		{{- else }}
+			{{ sanitiseName $element.Name }} {{ translateToGoType $element }} {{ generatePicTag $element.Length $element.Occurs}} {{ generateIndexComment $element.Length $element.Occurs -}}
+		{{- end }}
+	{{- end }}
+}`)
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
+// createParsedTemplate parses the template.
+func (ts *state) createParsedTemplate() *template.Template {
 	return template.Must(
 		template.New("root").
-			Funcs(getTemplateFuncs()).
+			Funcs(ts.createTemplateFuncMap()).
 			Parse(`
 ////////////////////////////////
 //     AUTOGENERATED FILE     //
@@ -62,143 +164,50 @@ package {{ .Package }}
 // {{ .Root.Name }} contains a representation of your provided Copybook
 type {{ .Root.Name }} struct {
 	{{- range $element := .Root.Children}}
-		{{- if isStruct $element }}
-			{{- sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}}
-            {{- buildStruct $element }} 
-		{{ else }}
-			{{ sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}}{{ indexComment $element.Length $element.Occurs -}} 
+		{{- if checkIfStruct $element }}
+			{{- sanitiseName $element.Name }} {{ translateToGoType $element }} {{ generatePicTag $element.Length $element.Occurs}}
+			{{- constructStruct $element }}
+  		{{ else }}
+			{{ sanitiseName $element.Name }} {{ translateToGoType $element }} {{ generatePicTag $element.Length $element.Occurs}}{{ generateIndexComment $element.Length $element.Occurs -}}
 		{{- end }}
 	{{- end }}
 }
 
-{{- range $elem := getStructs }}
+{{- range $elem := retrieveStructs }}
 	{{ $elem }}
 {{- end }}
 `))
 }
 
-func Copybook() *template.Template {
-	resetCounters()
-	structs = make([]string, 0)
-
-	return getTemplate()
-}
-
-// goType translates a type into a go type
-func goType(l *lex.Record) string {
-	tag := ""
+// translateToGoType translates a type into a go type.
+func translateToGoType(l *lex.Record) string {
+	var tag string
 	switch l.Typ {
 	case reflect.String:
-		tag = "string"
+		tag = stringTag
 	case reflect.Int:
-		tag = "int"
+		tag = intTag
 	case reflect.Uint:
-		tag = "uint"
+		tag = uintTag
 	case reflect.Float64:
-		tag = "float64"
+		tag = floatTag
 	case reflect.Struct:
 		tag = sanitiseName(l.Name)
 	default:
-		panic(fmt.Sprintf("unrecognized type %v", l.Typ))
+		panic(fmt.Errorf("unrecognized type %v", l.Typ))
 	}
-
 	if l.Occurs > 0 {
 		tag = fmt.Sprintf("[]%s", tag)
 	}
-
 	return tag
 }
 
-func newPicTag(length int, elemCount int) string {
-	// tag values
-	start := newStart
-	size := length
-	if elemCount > 0 {
-		size *= elemCount
-	}
-	end := start + (size - 1)
-
-	// manipulate global state :(
-	newEnd = end
-	newStart = newEnd + 1
-	if elemCount > 0 {
-		return "`" + fmt.Sprintf("pic:\"%d,%d,%d\"", start, end, elemCount) + "`"
-	}
-
-	return "`" + fmt.Sprintf("pic:\"%d,%d\"", start, end) + "`"
-}
-
-// FIXME: (pgmitche) index comments are being over-calculated now,
-// due to struct support.
-// e.g. DUMMYGROUP1's length of 63 is being calculated 3x to 1+189
-// so DUMMYGROUP3 now starts at 201, instead of 64
-//
-// type root struct {
-//	DUMMYGROUP1 DUMMYGROUP1 `pic:"63"`  // start:1 end:63
-//	DUMMYGROUP3 DUMMYGROUP3 `pic:"201"` // start:190 end:390
-// }
-func indexComment(length int, elemCount int) string {
-	size := length
-	if elemCount > 0 {
-		size *= elemCount
-	}
-
-	s := cursor
-	e := s + size
-	cursor = e
-	return fmt.Sprintf(" // start:%d end:%d", s, e-1)
-}
-
+// sanitiseName removes special characters from a string.
 func sanitiseName(s string) string {
-	return special.ReplaceAllString(s, "")
+	return specialCharsRegexp.ReplaceAllString(s, "")
 }
 
-func isStruct(r *lex.Record) bool {
+// checkIfStruct checks if a record is a struct.
+func checkIfStruct(r *lex.Record) bool {
 	return r.Typ == reflect.Struct
-}
-
-func getStructs() []string {
-	return structs
-}
-
-// FIXME: (pgmitche) if record is struct but has no children,
-// it should probably be ignored entirely
-func getStructTemplate() *template.Template {
-	newStart = 1
-	newEnd = 1
-	t, err := template.New("struct").
-		Funcs(getTemplateFuncs()).
-		Parse(`
-// {{ sanitiseName .Name }} contains a representation of the nested group {{ .Name }}
-type {{ sanitiseName .Name }} struct {
-	{{- range $element := .Children}}
-		{{- if isStruct $element }}
-			{{ sanitiseName $element.Name }} {{ goType $element -}} {{ picTag $element.Length $element.Occurs}} 
-            {{- buildStruct $element }} 
-		{{- else }}
-			{{ sanitiseName $element.Name }} {{ goType $element }} {{ picTag $element.Length $element.Occurs}} {{ indexComment $element.Length $element.Occurs -}}
-		{{- end }}
-	{{- end }}
-}`)
-	if err != nil {
-		panic(err)
-	}
-
-	return t
-}
-
-// FIXME: (pgmitche) if record is struct but has no children,
-// it should probably be ignored entirely
-func buildStruct(r *lex.Record) string {
-	savedStart = newStart
-	savedEnd = newEnd
-	b := bytes.Buffer{}
-	if err := getStructTemplate().Execute(&b, r); err != nil {
-		panic(err)
-	}
-
-	structs = append(structs, b.String())
-	newStart = savedStart
-	newEnd = savedEnd
-	return ""
 }

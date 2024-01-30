@@ -26,38 +26,37 @@ func NewTrie() *Trie {
 }
 
 // Insert will take a word and add it to the trie
-func (t *Trie) Insert(word word, p parser, typ lineType) {
-	cur := t.root
+func (t *Trie) Insert(word word, p lineParser, typ lineType) {
+	current := t.root
 	for i := 0; i < len(word); i++ {
-		// if the itemType is not in the children...
-		if cur.children[word[i]] == nil {
+		// if the tokenKind is not in the children...
+		if current.children[word[i]] == nil {
 			// ... add it to the children
-			cur.children[word[i]] = &Node{}
+			current.children[word[i]] = &Node{}
 		}
 		// iterate, adding each character in the word to the new
 		// node (or existing node of the previous character)
-		cur = cur.children[word[i]]
+		current = current.children[word[i]]
 	}
-	cur.isEnd = &entry{
-		w:   word,
-		fn:  p,
-		typ: typ,
+	current.isEnd = &entry{
+		wordPattern: word,
+		parseFunc:   p,
+		lineType:    typ,
 	}
 }
 
 // Search will search for the given word
-func (t *Trie) Search(word word) *entry { // nolint:golint
-	cur := t.root
+func (t *Trie) Search(word word) *entry { //nolint:golint
+	current := t.root
 	for i := 0; i < len(word); i++ {
-		// if the itemType is not in the children...
-		if cur.children[word[i]] == nil {
+		// if the tokenKind is not in the children...
+		if current.children[word[i]] == nil {
 			// ... then the word does not exist
 			return nil
 		}
 		// iterate, adding each character in the word to the new
 		// node (or existing node of the previous character)
-		cur = cur.children[word[i]]
+		current = current.children[word[i]]
 	}
-
-	return cur.isEnd
+	return current.isEnd
 }

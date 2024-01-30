@@ -7,176 +7,179 @@ import (
 	"strconv"
 )
 
+// Constants for float bit sizes.
 const (
-	float32Size = 32
-	float64Size = 64
+	float32BitSize = 32
+	float64BitSize = 64
 )
 
-type setFunc func(v reflect.Value, s string) error
+// setValueFunc is a function type that sets a value on a target reflect.Value
+// from a source string. It returns an error if the setting of the value fails.
+type setValueFunc func(target reflect.Value, source string) error
 
-// newSetFunc evaluates the Type of the value t and returns a relevant setFunc
-// predetermined for that type. Params picSize & occursSize are passed through
-// for arraySetFunc alone
-func newSetFunc(t reflect.Type, picSize, occursSize int) setFunc {
-	switch t.Kind() {
+// newSetValueFunc returns a setValueFunc appropriate for the given targetType.
+// picSize and occursSize are used for slice types to determine the size of the slice.
+func newSetValueFunc(targetType reflect.Type, picSize, occursSize int) setValueFunc {
+	switch targetType.Kind() {
 	case reflect.String:
-		return strSetFunc
+		return stringSetValueFunc
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return intSetFunc
+		return intSetValueFunc
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return uintSetFunc
+		return uintSetValueFunc
 	case reflect.Float32:
-		return floatSetFunc(float32Size)
+		return floatSetValueFunc(float32BitSize)
 	case reflect.Float64:
-		return floatSetFunc(float64Size)
+		return floatSetValueFunc(float64BitSize)
 	case reflect.Slice:
-		return arraySetFunc(picSize, occursSize)
+		return arraySetValueFunc(picSize, occursSize)
 	case reflect.Ptr:
-		return ptrSetFunc(t)
+		return pointerSetValueFunc(targetType)
 	case reflect.Interface:
-		return ifaceSetFunc
+		return interfaceSetValueFunc
 	case reflect.Struct:
-		return structSetFunc(t)
+		return structSetValueFunc(targetType)
 	}
-	return failSetFunc
+	return failSetValueFunc
 }
 
-// skipSetFunc is provided as a setFunc for use when a field is tagged with the
-// omit value "-"
-func skipSetFunc(_ reflect.Value, _ string) error {
+// skipSetValueFunc is a setValueFunc that does nothing and returns no error.
+func skipSetValueFunc(_ reflect.Value, _ string) error {
 	return nil
 }
 
-// failSetFunc is provided as a setFunc for use when a fields type is not
-// identified as valid, and will always return an error.
-func failSetFunc(_ reflect.Value, _ string) error {
+// failSetValueFunc is a setValueFunc that always returns an error.
+func failSetValueFunc(_ reflect.Value, _ string) error {
 	return errors.New("pic: unknown type")
 }
 
-func nilSetFunc(v reflect.Value, _ string) error {
-	v.Set(reflect.Zero(v.Type()))
+// nilSetValueFunc is a setValueFunc that sets the target to its zero value.
+func nilSetValueFunc(target reflect.Value, _ string) error {
+	target.Set(reflect.Zero(target.Type()))
 	return nil
 }
 
-func strSetFunc(v reflect.Value, s string) error {
-	v.SetString(s)
+// stringSetValueFunc is a setValueFunc that sets the target to the source string.
+func stringSetValueFunc(target reflect.Value, source string) error {
+	target.SetString(source)
 	return nil
 }
 
-func intSetFunc(v reflect.Value, s string) error {
-	if len(s) < 1 {
+// intSetValueFunc is a setValueFunc that converts the source string to an int
+// and sets the target to the resulting value.
+func intSetValueFunc(target reflect.Value, source string) error {
+	if len(source) < 1 {
 		return nil
 	}
-
-	i, err := strconv.Atoi(s)
+	intValue, err := strconv.Atoi(source)
 	if err != nil {
 		return fmt.Errorf("failed string->int conversion: %w", err)
 	}
-
-	v.SetInt(int64(i))
+	target.SetInt(int64(intValue))
 	return nil
 }
 
-func uintSetFunc(v reflect.Value, s string) error {
-	if len(s) < 1 {
+// uintSetValueFunc is a setValueFunc that converts the source string to a uint
+// and sets the target to the resulting value.
+func uintSetValueFunc(target reflect.Value, source string) error {
+	if len(source) < 1 {
 		return nil
 	}
-
-	i, err := strconv.ParseUint(s, 10, 64)
+	uintValue, err := strconv.ParseUint(source, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed string->int conversion: %w", err)
 	}
-
-	v.SetUint(i)
+	target.SetUint(uintValue)
 	return nil
 }
 
-func floatSetFunc(size int) setFunc {
-	return func(v reflect.Value, s string) error {
-		if len(s) < 1 {
+// floatSetValueFunc returns a setValueFunc that converts the source string to a float
+// of the given bitSize and sets the target to the resulting value.
+func floatSetValueFunc(bitSize int) setValueFunc {
+	return func(target reflect.Value, source string) error {
+		if len(source) < 1 {
 			return nil
 		}
-
-		f, err := strconv.ParseFloat(s, size)
+		floatValue, err := strconv.ParseFloat(source, bitSize)
 		if err != nil {
 			return fmt.Errorf("failed string->float64 conversion: %w", err)
 		}
-
-		v.SetFloat(f)
+		target.SetFloat(floatValue)
 		return nil
 	}
 }
 
-// arraySetFunc is provided as a setFunc for use when reflection identifies the
-// field as an array/slice. l represents total length of the array, count is the
-// specified element count
-func arraySetFunc(l, count int) setFunc {
-	return func(v reflect.Value, s string) error {
-		size := l / count
-		if len(s) == 0 {
-			return nilSetFunc(v, s)
+// arraySetValueFunc returns a setValueFunc that sets the target to a slice of values
+// derived from the source string. The source string is divided into items of equal size,
+// and each item is set on the corresponding index in the target slice.
+func arraySetValueFunc(length, itemCount int) setValueFunc {
+	return func(target reflect.Value, source string) error {
+		itemSize := length / itemCount
+		if len(source) == 0 {
+			return nilSetValueFunc(target, source)
 		}
 
-		if v.IsNil() {
-			v.Set(reflect.MakeSlice(v.Type(), 0, 0))
+		if target.IsNil() {
+			target.Set(reflect.MakeSlice(target.Type(), 0, 0))
 		}
 
-		newSlice := reflect.MakeSlice(v.Type(), count, count)
-		sf := newSetFunc(v.Type().Elem(), 0, 0)
-		track := 1
-
-		for i := 0; i < count; i++ {
-			next := track + size
-			val := newValFromLine(s, track, next-1)
-
-			if err := sf(newSlice.Index(i), val); err != nil {
-				return errors.New("failed to set array data" + val + " " + s)
+		newArray := reflect.MakeSlice(target.Type(), itemCount, itemCount)
+		setValueFunction := newSetValueFunc(target.Type().Elem(), 0, 0)
+		currentIndex := 1
+		for i := 0; i < itemCount; i++ {
+			nextIndex := currentIndex + itemSize
+			value := newValFromLine(source, currentIndex, nextIndex-1)
+			if err := setValueFunction(newArray.Index(i), value); err != nil {
+				return fmt.Errorf("failed to set array data: %s %s", value, source)
 			}
-
-			track = next
+			currentIndex = nextIndex
 		}
 
-		v.Set(newSlice)
+		target.Set(newArray)
 		return nil
 	}
 }
 
-func ptrSetFunc(t reflect.Type) setFunc {
-	innerSetter := newSetFunc(t.Elem(), 0, 0)
-	return func(v reflect.Value, s string) error {
-		if len(s) == 0 {
-			return nilSetFunc(v, s)
+// pointerSetValueFunc returns a setValueFunc that sets the target to a new value
+// derived from the source string. If the target is nil, a new value of the appropriate
+// type is allocated and set on the target.
+func pointerSetValueFunc(targetType reflect.Type) setValueFunc {
+	innerSetter := newSetValueFunc(targetType.Elem(), 0, 0)
+	return func(target reflect.Value, source string) error {
+		if len(source) == 0 {
+			return nilSetValueFunc(target, source)
 		}
-
-		if v.IsNil() {
-			v.Set(reflect.New(t.Elem()))
+		if target.IsNil() {
+			target.Set(reflect.New(targetType.Elem()))
 		}
-
-		return innerSetter(reflect.Indirect(v), s)
+		return innerSetter(reflect.Indirect(target), source)
 	}
 }
 
-func ifaceSetFunc(v reflect.Value, s string) error {
-	return newSetFunc(v.Elem().Type(), 0, 0)(v.Elem(), s)
+// interfaceSetValueFunc is a setValueFunc that sets the target to a new value
+// derived from the source string. The target must be settable and its underlying
+// value must have a type that is compatible with the source string.
+func interfaceSetValueFunc(target reflect.Value, source string) error {
+	return newSetValueFunc(target.Elem().Type(), 0, 0)(target.Elem(), source)
 }
 
-func structSetFunc(t reflect.Type) setFunc {
-	spec := cachedStructRepresentation(t)
-	return func(v reflect.Value, s string) error {
-		for i, ff := range spec.fields {
-			if ff.err != nil {
+// structSetValueFunc returns a setValueFunc that sets the fields of the target
+// to values derived from the source string. The source string is divided into
+// items of equal size, and each item is set on the corresponding field in the target struct.
+func structSetValueFunc(targetType reflect.Type) setValueFunc {
+	spec := cachedStructRepresentation(targetType)
+	return func(target reflect.Value, source string) error {
+		for i, fieldFunc := range spec.fields {
+			if fieldFunc.err != nil {
 				continue
 			}
-
-			var val string
-			if !ff.tag.skip {
-				val = newValFromLine(s, ff.tag.start, ff.tag.end)
+			var value string
+			if !fieldFunc.tag.skip {
+				value = newValFromLine(source, fieldFunc.tag.start, fieldFunc.tag.end)
 			}
-
-			err := ff.setFunc(v.Field(i), val)
-			if err != nil {
-				sf := t.Field(i)
-				return &UnmarshalTypeError{s, sf.Type, t.Name(), sf.Name, err}
+			if err := fieldFunc.setFunc(target.Field(i), value); err != nil {
+				structField := targetType.Field(i)
+				return &UnmarshalTypeError{source, structField.Type, targetType.Name(), structField.Name, err}
 			}
 		}
 		return nil

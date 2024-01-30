@@ -8,39 +8,39 @@ package main
 
 // dirfile2 contains a representation of your provided Copybook
 type dirfile2 struct {
-	EXAMPLEGROUP1 EXAMPLEGROUP1 `pic:"63"`
-	EXAMPLEGROUP3 EXAMPLEGROUP3 `pic:"201"`
+	EXAMPLEGROUP1 EXAMPLEGROUP1 `pic:"1,63"`
+	EXAMPLEGROUP3 EXAMPLEGROUP3 `pic:"64,264"`
 }
 
 // EXAMPLESUBGROUP1 contains a representation of the nested group EXAMPLE-SUB-GROUP-1
 type EXAMPLESUBGROUP1 struct {
-	EXAMPLEGROUP1OBJECTA uint   `pic:"4"`  // start:1 end:4
-	EXAMPLEGROUP1OBJECTB string `pic:"1"`  // start:5 end:5
-	EXAMPLEGROUP1OBJECTC uint   `pic:"4"`  // start:6 end:9
-	EXAMPLEGROUP1OBJECTD string `pic:"40"` // start:10 end:49
-	EXAMPLEGROUP1OBJECTE string `pic:"8"`  // start:50 end:57
-	EXAMPLEGROUP1OBJECTG string `pic:"2"`  // start:58 end:59
-	EXAMPLEGROUP1OBJECTH uint   `pic:"4"`  // start:60 end:63
+	EXAMPLEGROUP1OBJECTA uint   `pic:"1,4"`   // start:1 end:4
+	EXAMPLEGROUP1OBJECTB string `pic:"5,5"`   // start:5 end:5
+	EXAMPLEGROUP1OBJECTC uint   `pic:"6,9"`   // start:6 end:9
+	EXAMPLEGROUP1OBJECTD string `pic:"10,49"` // start:10 end:49
+	EXAMPLEGROUP1OBJECTE string `pic:"50,57"` // start:50 end:57
+	EXAMPLEGROUP1OBJECTG string `pic:"58,59"` // start:58 end:59
+	EXAMPLEGROUP1OBJECTH uint   `pic:"60,63"` // start:60 end:63
 }
 
 // EXAMPLEGROUP1 contains a representation of the nested group EXAMPLE-GROUP-1
 type EXAMPLEGROUP1 struct {
-	EXAMPLESUBGROUP1 EXAMPLESUBGROUP1 `pic:"63"`
+	EXAMPLESUBGROUP1 EXAMPLESUBGROUP1 `pic:"1,63"`
 }
 
 // EXAMPLESUBGROUP2GETSDROPPED contains a representation of the nested group EXAMPLE-SUBGROUP-2-GETSDROPPED
 type EXAMPLESUBGROUP2GETSDROPPED struct {
-	EXAMPLESUBGROUP2OBJECTA []string `pic:"12,12"` // start:97 end:240
+	EXAMPLESUBGROUP2OBJECTA []string `pic:"1,144,12"` // start:97 end:240
 }
 
 // EXAMPLEGROUP3 contains a representation of the nested group EXAMPLE-GROUP-3
 type EXAMPLEGROUP3 struct {
-	EXAMPLEGROUP2OBJECTA        string                      `pic:"14"` // start:64 end:77
-	EXAMPLEGROUP2OBJECTB        float64                     `pic:"7"`  // start:78 end:84
-	EXAMPLEGROUP2OBJECTC        string                      `pic:"4"`  // start:85 end:88
-	EXAMPLEGROUP2OBJECTD        string                      `pic:"1"`  // start:89 end:89
-	EXAMPLEGROUP2OBJECTF        string                      `pic:"7"`  // start:90 end:96
-	EXAMPLESUBGROUP2GETSDROPPED EXAMPLESUBGROUP2GETSDROPPED `pic:"144"`
-	EXAMPLEGROUP2OBJECTG        string                      `pic:"12"` // start:241 end:252
-	EXAMPLEGROUP2OBJECTH        string                      `pic:"12"` // start:253 end:264
+	EXAMPLEGROUP2OBJECTA        string                      `pic:"1,14"`  // start:64 end:77
+	EXAMPLEGROUP2OBJECTB        float64                     `pic:"15,21"` // start:78 end:84
+	EXAMPLEGROUP2OBJECTC        string                      `pic:"22,25"` // start:85 end:88
+	EXAMPLEGROUP2OBJECTD        string                      `pic:"26,26"` // start:89 end:89
+	EXAMPLEGROUP2OBJECTF        string                      `pic:"27,33"` // start:90 end:96
+	EXAMPLESUBGROUP2GETSDROPPED EXAMPLESUBGROUP2GETSDROPPED `pic:"34,177"`
+	EXAMPLEGROUP2OBJECTG        string                      `pic:"178,189"` // start:241 end:252
+	EXAMPLEGROUP2OBJECTH        string                      `pic:"190,201"` // start:253 end:264
 }

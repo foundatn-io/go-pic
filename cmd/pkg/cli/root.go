@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -51,10 +50,13 @@ var (
 
 // Execute executes the root command.
 func Execute() error {
-	return rootCmd.Execute()
+	if err := rootCmd.Execute(); err != nil {
+		return fmt.Errorf("execute: %w", err)
+	}
+	return nil
 }
 
-func init() { // nolint:gochecknoinits
+func init() { //nolint:gochecknoinits
 	dirCmd.Flags().BoolP(displayFlag, "d", false, displayHelp)
 	dirCmd.Flags().StringP(outFlag, "o", "", outputHelp)
 	dirCmd.Flags().StringP(inFlag, "i", "", inputHelp)
@@ -77,7 +79,7 @@ func init() { // nolint:gochecknoinits
 	rootCmd.AddCommand(fileCmd)
 }
 
-func dirRun(cmd *cobra.Command, _ []string) error { // nolint:gocyclo
+func dirRun(cmd *cobra.Command, _ []string) error { //nolint:gocyclo
 	out, err := cmd.Flags().GetString(outFlag)
 	if err != nil {
 		return fmt.Errorf("failed to extract value for flag %s: %w", outFlag, err)
@@ -95,14 +97,14 @@ func dirRun(cmd *cobra.Command, _ []string) error { // nolint:gocyclo
 
 	d, _ := cmd.Flags().GetBool(displayFlag)
 
-	fs, err := ioutil.ReadDir(in)
+	fs, err := os.ReadDir(in)
 	if err != nil {
 		return fmt.Errorf("failed to read files for dir %s: %w", in, err)
 	}
 
 	_, err = os.Stat(out)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(out, 0750)
+		errDir := os.MkdirAll(out, os.ModePerm)
 		if errDir != nil {
 			return fmt.Errorf("failed to create dir %s: %w", out, errDir)
 		}
@@ -112,13 +114,11 @@ func dirRun(cmd *cobra.Command, _ []string) error { // nolint:gocyclo
 		if ff.IsDir() {
 			continue
 		}
-
 		log.Printf("parsing copybook file %s", ff.Name())
-		f, err := os.Open(filepath.Join(in, ff.Name())) // nolint:gosec
+		f, err := os.Open(filepath.Join(in, ff.Name())) //nolint:gosec
 		if err != nil {
 			return fmt.Errorf("failed to open file %s: %w", ff.Name(), err)
 		}
-
 		if err := run(f, filepath.Join(out, ff.Name()), pkg, d); err != nil {
 			return err
 		}
@@ -132,42 +132,39 @@ func fileRun(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to extract value for flag %s: %w", outFlag, err)
 	}
-
 	in, err := cmd.Flags().GetString(inFlag)
 	if err != nil {
 		return fmt.Errorf("failed to extract value for flag %s: %w", inFlag, err)
 	}
-
 	pkg, err := cmd.Flags().GetString(pkgFlag)
 	if err != nil {
 		return fmt.Errorf("failed to extract value for flag %s: %w", pkgFlag, err)
 	}
-
 	d, _ := cmd.Flags().GetBool(displayFlag)
 
 	log.Printf("parsing copybook file %s", in)
-	f, err := os.Open(in) // nolint:gosec
+	f, err := os.Open(in) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", in, err)
 	}
-
 	return run(f, out, pkg, d)
 }
 
 func run(r io.Reader, output, pkg string, preview bool) error {
 	name := strings.TrimSuffix(output, filepath.Ext(output))
 	n := name[strings.LastIndex(name, "/")+1:]
-
 	c := copybook.New(n, pkg, template.Copybook())
-
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("failed to read input data: %w", err)
 	}
-
 	tree := lex.NewTree(lex.New(n, string(b)))
 	time.Sleep(time.Millisecond)
-	c.Root = tree.Parse()
+	c.Root, err = tree.Parse()
+	if err != nil {
+		return fmt.Errorf("failed to parse copybook: %w", err)
+	}
+
 	// TODO: (pgmitche) if record in tree is struct but has no children,
 	// it should probably be ignored entirely
 	if preview {
@@ -175,7 +172,7 @@ func run(r io.Reader, output, pkg string, preview bool) error {
 	}
 
 	name = fmt.Sprintf("%s.go", name)
-	newFile, err := os.Create(name)
+	newFile, err := os.Create(name) //nolint:gosec // intentionally creating file
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %w", name, err)
 	}
@@ -184,6 +181,8 @@ func run(r io.Reader, output, pkg string, preview bool) error {
 			log.Fatalln(err)
 		}
 	}()
-
-	return c.WriteToStruct(newFile)
+	if err := c.WriteToStruct(newFile); err != nil {
+		return fmt.Errorf("write to struct: %w", err)
+	}
+	return nil
 }

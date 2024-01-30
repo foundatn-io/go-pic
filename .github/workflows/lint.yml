@@ -14,11 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2.3.4
-
       - name: Run linter
         uses: golangci/golangci-lint-action@v2.5.2
         with:
-          version: v1.33.2
+          version: v1.55.0
           args: --timeout=5m
         env:
           GOFLAGS: "-mod=readonly"

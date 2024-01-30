@@ -78,7 +78,8 @@ func Test_Build(t *testing.T) {
 
 			lxr := lex.New(tt.name, string(b))
 			tree := lex.NewTree(lxr)
-			c.Root = tree.Parse()
+			c.Root, err = tree.Parse()
+			require.NoError(t, err)
 
 			var buf bytes.Buffer
 			require.NoError(t, c.WriteToStruct(&buf))
