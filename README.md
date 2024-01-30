@@ -6,6 +6,7 @@ COBOL PIC (Picture) clause parsing library
 [![Sourcegraph](https://sourcegraph.com/github.com/foundatn-io/go-pic/-/badge.svg)](https://sourcegraph.com/github.com/foundatn-io/go-pic?badge)
 [![Release](https://img.shields.io/github/release/foundatn-io/go-pic.svg?style=flat-square)](https://github.com/foundatn-io/go-pic/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/foundatn-io/go-pic/blob/master/LICENSE)
+[![codebeat badge](https://codebeat.co/badges/0e7b507d-633f-4d0c-b7d3-307e21f6b8eb)](https://codebeat.co/projects/github-com-pgmitche-go-pic-master)
 
 ## 🤷🏽‍ What is go-pic
 
