@@ -13,43 +13,48 @@ import (
 	"github.com/foundatn-io/go-pic/pkg/lex"
 )
 
+// Copybook represents a copybook.
 type Copybook struct {
-	Name    string
-	Root    *lex.Record
-	Package string
-	t       *template.Template
+	Name     string
+	Root     *lex.Record
+	Package  string
+	template *template.Template
 }
 
+// Record represents a record.
 type Record struct {
-	Num     int          // Num is not necessarily required
-	Level   int          // Level is not necessarily required
-	Name    string       // Name is required
-	Picture reflect.Kind // Picture is required
-	Length  int          // Length is required
-	Occurs  int          // Occurs is required if present
+	Number     int          // Number is not necessarily required
+	Level      int          // Level is not necessarily required
+	Name       string       // Name is required
+	Type       reflect.Kind // Type is required
+	Length     int          // Length is required
+	Occurrence int          // Occurrence is required if present
 }
 
-func New(name, pkg string, t *template.Template) *Copybook {
+// New creates a new copybook.
+func New(name, pkg string, tmpl *template.Template) *Copybook {
 	return &Copybook{
-		Name:    name,
-		Package: pkg,
-		t:       t,
+		Name:     name,
+		Package:  pkg,
+		template: tmpl,
 	}
 }
 
+// Preview prints a preview of the copybook.
 func (c *Copybook) Preview() {
 	log.Println("------ STRUCT PREVIEW -----")
-	treePrint(c.Root, 0)
+	printTree(c.Root, 0)
 	log.Println("------- END PREVIEW -------")
 }
 
-func treePrint(node *lex.Record, nest int) {
+// printTree prints a tree representation of a record.
+func printTree(node *lex.Record, nest int) {
 	if node.Typ == reflect.Struct {
 		indent := strings.Repeat(">", nest)
 		log.Printf("L%d: %s%s", nest, indent, node.Name)
 		nest++
-		for _, nn := range node.Children {
-			treePrint(nn, nest)
+		for _, nestedNode := range node.Children {
+			printTree(nestedNode, nest)
 		}
 	} else {
 		indent := strings.Repeat("-", nest)
@@ -57,18 +62,19 @@ func treePrint(node *lex.Record, nest int) {
 	}
 }
 
+// WriteToStruct writes the copybook to a formatted struct.
 func (c *Copybook) WriteToStruct(writer io.Writer) error {
-	var b bytes.Buffer
-	if err := c.t.Execute(&b, c); err != nil {
-		return fmt.Errorf("failed template copybook data: %w", err)
+	var buffer bytes.Buffer
+	if err := c.template.Execute(&buffer, c); err != nil {
+		return fmt.Errorf("failed to execute template: %w", err)
 	}
-	bb, err := format.Source(b.Bytes())
+	formatted, err := format.Source(buffer.Bytes())
 	if err != nil {
-		return fmt.Errorf("failed to gofmt templated copybook data: %w", err)
+		return fmt.Errorf("failed to format source: %w", err)
 	}
-	if _, err = writer.Write(bb); err != nil {
-		return fmt.Errorf("failed to write templated copybook data: %w", err)
+	if _, err = writer.Write(formatted); err != nil {
+		return fmt.Errorf("failed to write to writer: %w", err)
 	}
-	b.Reset()
+	buffer.Reset()
 	return nil
 }

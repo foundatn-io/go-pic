@@ -22,10 +22,8 @@ func (e *UnmarshalTypeError) Error() string {
 	} else {
 		err = fmt.Errorf("pic: cannot unmarshal %s into Go value of type %s", e.Value, e.Type.String())
 	}
-
 	if e.Cause != nil {
 		return fmt.Sprintf("%s: %s", err.Error(), e.Cause.Error())
 	}
-
 	return err.Error()
 }
