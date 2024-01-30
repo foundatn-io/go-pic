@@ -51,7 +51,7 @@ var (
 
 // Execute executes the root command.
 func Execute() error {
-	return rootCmd.Execute()
+	return fmt.Errorf("execute: %w", rootCmd.Execute())
 }
 
 func init() { //nolint:gochecknoinits
@@ -102,7 +102,7 @@ func dirRun(cmd *cobra.Command, _ []string) error { //nolint:gocyclo
 
 	_, err = os.Stat(out)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(out, 0750)
+		errDir := os.MkdirAll(out, os.ModePerm)
 		if errDir != nil {
 			return fmt.Errorf("failed to create dir %s: %w", out, errDir)
 		}
@@ -178,7 +178,7 @@ func run(r io.Reader, output, pkg string, preview bool) error {
 	}
 
 	name = fmt.Sprintf("%s.go", name)
-	newFile, err := os.Create(name)
+	newFile, err := os.Create(name) //nolint:gosec // intentionally creating file
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %w", name, err)
 	}
@@ -188,5 +188,5 @@ func run(r io.Reader, output, pkg string, preview bool) error {
 		}
 	}()
 
-	return c.WriteToStruct(newFile)
+	return fmt.Errorf("write to struct: %w", c.WriteToStruct(newFile))
 }

@@ -242,33 +242,65 @@ func (lexer *lexerState) atEnumTerminator() bool {
 func (lexer *lexerState) scanNumber() bool {
 	// optional leading signs
 	lexer.accept("+-")
-	validDigits := decimalDigits
 	if lexer.accept("0") {
 		// Note: Leading 0 does not mean octal in floats.
 		switch {
 		case lexer.accept("xX"):
-			validDigits = hexDigits
+			return lexer.scanHexNumber()
 		case lexer.accept("oO"):
-			validDigits = octalDigits
+			return lexer.scanOctalNumber()
 		case lexer.accept("bB"):
-			validDigits = binaryDigits
+			return lexer.scanBinaryNumber()
 		}
 	}
+	return lexer.scanDecimalNumber()
+}
 
-	lexer.acceptRun(validDigits)
+func (lexer *lexerState) scanDecimalNumber() bool {
+	lexer.acceptRun(decimalDigits)
 	if lexer.accept(".") {
-		lexer.acceptRun(validDigits)
-	}
-	if validDigits == decimalDigits && lexer.accept("eE") {
-		lexer.accept("+-")
 		lexer.acceptRun(decimalDigits)
 	}
-	if validDigits == hexDigits && lexer.accept("pP") {
+	if lexer.accept("eE") {
 		lexer.accept("+-")
 		lexer.acceptRun(decimalDigits)
 	}
 	// Is it imaginary?
 	lexer.accept("i")
+	// Next thing mustn't be alphanumeric.
+	if isAlphaNumeric(lexer.peek()) {
+		lexer.next()
+		return false
+	}
+	return true
+}
+
+func (lexer *lexerState) scanHexNumber() bool {
+	lexer.acceptRun(hexDigits)
+	if lexer.accept("pP") {
+		lexer.accept("+-")
+		lexer.acceptRun(decimalDigits)
+	}
+	// Next thing mustn't be alphanumeric.
+	if isAlphaNumeric(lexer.peek()) {
+		lexer.next()
+		return false
+	}
+	return true
+}
+
+func (lexer *lexerState) scanOctalNumber() bool {
+	lexer.acceptRun(octalDigits)
+	// Next thing mustn't be alphanumeric.
+	if isAlphaNumeric(lexer.peek()) {
+		lexer.next()
+		return false
+	}
+	return true
+}
+
+func (lexer *lexerState) scanBinaryNumber() bool {
+	lexer.acceptRun(binaryDigits)
 	// Next thing mustn't be alphanumeric.
 	if isAlphaNumeric(lexer.peek()) {
 		lexer.next()

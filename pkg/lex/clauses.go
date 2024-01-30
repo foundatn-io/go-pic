@@ -85,5 +85,9 @@ func parsePICCount(s string) (int, error) {
 // e.g. OCCURS 12. returns 12
 func parseOccursCount(t token) (int, error) {
 	countStr := strings.TrimSuffix(strings.TrimPrefix(t.value, "OCCURS "), ".")
-	return strconv.Atoi(countStr)
+	val, err := strconv.Atoi(countStr)
+	if err != nil {
+		return 0, fmt.Errorf("parse count: %w", err)
+	}
+	return val, nil
 }

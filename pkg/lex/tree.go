@@ -59,7 +59,7 @@ func (tree *Tree) nextToken() token {
 }
 
 // parseLines processes the lines and adds them to the tree data.
-func (tree *Tree) parseLines(rootRecord *Record) error {
+func (tree *Tree) parseLines(rootRecord *Record) error { //nolint: gocyclo // TODO: Refactor for simplicity
 	for !errors.Is(tree.nextLine(), io.EOF) {
 		switch tree.currentLine.typ {
 		case lineJunk, lineEnum:

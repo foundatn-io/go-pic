@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"strings"
@@ -39,7 +40,10 @@ type Decoder interface {
 // Unmarshal accepts input data, and a destination object it will build a new
 // decoder and decode the input into the target object.
 func Unmarshal(data []byte, v interface{}) error {
-	return NewDecoder(bytes.NewReader(data)).Decode(v)
+	if err := NewDecoder(bytes.NewReader(data)).Decode(v); err != nil {
+		return fmt.Errorf("unmarshal: %w", err)
+	}
+	return nil
 }
 
 // NewDecoder builds a new decoder using a bufio.Scanner for the given input

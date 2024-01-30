@@ -62,17 +62,13 @@ func (c *Copybook) WriteToStruct(writer io.Writer) error {
 	if err := c.t.Execute(&b, c); err != nil {
 		return fmt.Errorf("failed template copybook data: %w", err)
 	}
-
 	bb, err := format.Source(b.Bytes())
 	if err != nil {
 		return fmt.Errorf("failed to gofmt templated copybook data: %w", err)
 	}
-
 	if _, err = writer.Write(bb); err != nil {
 		return fmt.Errorf("failed to write templated copybook data: %w", err)
 	}
-
 	b.Reset()
-
 	return nil
 }

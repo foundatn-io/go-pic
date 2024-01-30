@@ -101,11 +101,9 @@ func goType(l *lex.Record) string {
 	default:
 		panic(fmt.Sprintf("unrecognized type %v", l.Typ))
 	}
-
 	if l.Occurs > 0 {
 		tag = fmt.Sprintf("[]%s", tag)
 	}
-
 	return tag
 }
 

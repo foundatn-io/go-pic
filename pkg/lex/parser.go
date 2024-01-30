@@ -186,17 +186,25 @@ func parseDelimitedStruct(tree *Tree, currentLine line, rootRecord *Record, reco
 //
 // TODO: explain magic numbers 2, 4, 2
 func parseNumDelimitedStruct(tree *Tree, currentLine line, rootRecord *Record) (*Record, error) {
-	return parseDelimitedStruct(tree, currentLine, rootRecord, 2, 4, 2)
+	var (
+		recordIndicatorIndex = 2
+		nameIndex            = 4
+		groupIndex           = 2
+	)
+	return parseDelimitedStruct(tree, currentLine, rootRecord, recordIndicatorIndex, nameIndex, groupIndex)
 }
 
 // parseNonNumDelimitedStruct is a function that parses a struct from a line
 // that is not delimited by numbers. It checks if the line is a record description,
 // and if so, it returns a noop. Otherwise, it calls parseStruct with the
 // appropriate indices for the name and group.
-//
-// TODO: explain magic numbers 1, 3, 1
 func parseNonNumDelimitedStruct(tree *Tree, currentLine line, rootRecord *Record) (*Record, error) {
-	return parseDelimitedStruct(tree, currentLine, rootRecord, 1, 3, 1)
+	var (
+		recordIndicatorIndex = 1
+		nameIndex            = 3
+		groupIndex           = 1
+	)
+	return parseDelimitedStruct(tree, currentLine, rootRecord, recordIndicatorIndex, nameIndex, groupIndex)
 }
 
 // parseStruct is a function that creates a new Record from a line. It uses

@@ -87,7 +87,6 @@ func lineFromMultiOccurs(a, b []token) []token {
 	return lineFromMulti(a, b, occursPattern)
 }
 
-// TODO: there is a bug in the joining of lines
 // joinLines joins two slices of tokens into one.
 func joinLines(a, b []token) []token {
 	// copy all but the num delimiter at the end of a
