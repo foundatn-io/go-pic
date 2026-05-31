@@ -172,11 +172,21 @@ func pointerSetValueFunc(targetType reflect.Type) setValueFunc {
 	}
 }
 
-// interfaceSetValueFunc is a setValueFunc that sets the target to a new value
-// derived from the source string. The target must be settable and its underlying
-// value must have a type that is compatible with the source string.
+// interfaceSetValueFunc sets the concrete value stored inside an interface field.
+// target.Elem() returns the concrete value but it is not addressable, so we
+// allocate a fresh addressable value of the same type, set it, then store it
+// back into the interface.
 func interfaceSetValueFunc(target reflect.Value, source string) error {
-	return newSetValueFunc(target.Elem().Type(), 0, 0)(target.Elem(), source)
+	if target.IsNil() {
+		return nil
+	}
+	inner := target.Elem()
+	newVal := reflect.New(inner.Type()).Elem()
+	if err := newSetValueFunc(inner.Type(), 0, 0)(newVal, source); err != nil {
+		return err
+	}
+	target.Set(newVal)
+	return nil
 }
 
 // structSetValueFunc returns a setValueFunc that sets the fields of the target

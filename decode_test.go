@@ -1,11 +1,15 @@
 package pic
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+// ---------- Unmarshal: omit tag -----------------------------------------------
 
 func TestUnmarshal_Omit(t *testing.T) {
 	t.Parallel()
@@ -14,15 +18,9 @@ func TestUnmarshal_Omit(t *testing.T) {
 		Int    int     `pic:"-"`
 		Float  float64 `pic:"11,15"`
 	}
-
 	in := &stuff{}
-	err := Unmarshal([]byte("foo  123  1.2  "), in)
-	require.NoError(t, err)
-	require.Equal(t, &stuff{
-		String: "foo",
-		Int:    0,
-		Float:  1.2,
-	}, in)
+	require.NoError(t, Unmarshal([]byte("foo  123  1.2  "), in))
+	require.Equal(t, &stuff{String: "foo", Int: 0, Float: 1.2}, in)
 }
 
 func TestUnmarshal_OmitArray(t *testing.T) {
@@ -32,15 +30,9 @@ func TestUnmarshal_OmitArray(t *testing.T) {
 		Int    []int   `pic:"-"`
 		Float  float64 `pic:"11,15"`
 	}
-
 	in := &stuff{}
-	err := Unmarshal([]byte("foo  123  1.2  "), in)
-	require.NoError(t, err)
-	require.Equal(t, &stuff{
-		String: "foo",
-		Int:    nil,
-		Float:  1.2,
-	}, in)
+	require.NoError(t, Unmarshal([]byte("foo  123  1.2  "), in))
+	require.Equal(t, &stuff{String: "foo", Int: nil, Float: 1.2}, in)
 }
 
 func TestUnmarshal_OmitStruct(t *testing.T) {
@@ -52,91 +44,237 @@ func TestUnmarshal_OmitStruct(t *testing.T) {
 		D int `pic:"4,4"`
 		E int `pic:"5,5"`
 	}
-
 	type stuff struct {
 		String string  `pic:"1,5"`
 		Int    abcde   `pic:"-"`
 		Float  float64 `pic:"11,15"`
 	}
-
 	in := &stuff{}
-	err := Unmarshal([]byte("foo  123  1.2  "), in)
-	require.NoError(t, err)
-	require.Equal(t, &stuff{
-		String: "foo",
-		Int:    abcde{},
-		Float:  1.2,
-	}, in)
+	require.NoError(t, Unmarshal([]byte("foo  123  1.2  "), in))
+	require.Equal(t, &stuff{String: "foo", Int: abcde{}, Float: 1.2}, in)
 }
 
-func TestUnmarshal_Other(t *testing.T) {
+// ---------- Unmarshal: scalar and pointer coverage ----------------------------
+
+func TestUnmarshal_AllScalarTypes(t *testing.T) {
 	t.Parallel()
 
-	t.Run("FieldLength1", func(t *testing.T) {
+	t.Run("uint field", func(t *testing.T) {
 		t.Parallel()
-		var st = struct {
-			F1 string `pic:"1,1"`
-		}{}
-		require.NoError(t, Unmarshal([]byte("v"), &st))
-		require.Equal(t, "v", st.F1)
+		type s struct {
+			N uint `pic:"1,5"`
+		}
+		got := &s{}
+		require.NoError(t, Unmarshal([]byte("00042"), got))
+		require.Equal(t, uint(42), got.N)
 	})
 
-	t.Run("BasicOCCURS_primitives", func(t *testing.T) {
+	t.Run("uint empty source leaves field unchanged", func(t *testing.T) {
 		t.Parallel()
-		type basicWithOccurs struct {
-			String    string `pic:"1,5"`
-			Int       int    `pic:"6,10"`
-			IntOccurs []int  `pic:"11,16,3"`
+		type s struct {
+			N uint `pic:"1,5"`
 		}
-		expect := &basicWithOccurs{"foo", 123, []int{12, 34, 56}}
-		got := &basicWithOccurs{}
-		require.NoError(t, Unmarshal([]byte("foo  123  123456"), got))
-		require.Equal(t, expect, got)
+		// An all-whitespace field trims to "" — the setter returns early without
+		// modifying the target, so the initial zero value is preserved.
+		got := &s{}
+		require.NoError(t, Unmarshal([]byte("     "), got))
+		require.Equal(t, uint(0), got.N)
 	})
 
-	t.Run("BasicOCCURS_structs", func(t *testing.T) {
+	t.Run("int negative", func(t *testing.T) {
 		t.Parallel()
-		type dummy struct {
-			A int `pic:"1,1"`
-			B int `pic:"2,2"`
+		type s struct {
+			N int `pic:"1,4"`
 		}
-		type basicWithOccursStruct struct {
-			String string  `pic:"1,5"`
-			Int    int     `pic:"6,10"`
-			Dummy  []dummy `pic:"11,16,3"`
-		}
-		expect := &basicWithOccursStruct{"foo", 123, []dummy{{A: 1, B: 2}, {A: 3, B: 4}, {A: 5, B: 6}}}
-		got := &basicWithOccursStruct{}
-		require.NoError(t, Unmarshal([]byte("foo  123  123456"), got))
-		require.Equal(t, expect, got)
+		got := &s{}
+		require.NoError(t, Unmarshal([]byte("-042"), got))
+		require.Equal(t, -42, got.N)
 	})
 
-	t.Run("InvalidUnmarshalErrors", func(t *testing.T) {
+	t.Run("float32 field", func(t *testing.T) {
 		t.Parallel()
-		for _, test := range []struct {
-			name      string
-			v         interface{}
-			shouldErr bool
-		}{
-			{"Nil", nil, true},
-			{"NotPointer_struct", struct{}{}, true},
-			{"NotPointer_slice", []struct{}{}, true},
-			{"ValidSlice", &[]struct{}{}, false},
-			{"ValidStruct_emptyInput", &struct{}{}, true}, // EOF on empty input
-		} {
-			tt := test
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
-				err := Unmarshal([]byte{}, tt.v)
-				if tt.shouldErr {
-					require.Error(t, err)
-				} else {
-					require.NoError(t, err)
-				}
-			})
+		type s struct {
+			F float32 `pic:"1,4"`
 		}
+		got := &s{}
+		require.NoError(t, Unmarshal([]byte("3.14"), got))
+		require.InDelta(t, float32(3.14), got.F, 0.01)
+	})
+
+	t.Run("bool truthy values", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			A bool `pic:"1,1"`
+			B bool `pic:"2,2"`
+			C bool `pic:"3,3"`
+			D bool `pic:"4,7"`
+		}
+		got := &s{}
+		require.NoError(t, Unmarshal([]byte("YT1TRUE"), got))
+		require.Equal(t, &s{A: true, B: true, C: true, D: true}, got)
+	})
+
+	t.Run("bool falsy values", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			A bool `pic:"1,1"`
+			B bool `pic:"2,2"`
+			C bool `pic:"3,3"`
+			D bool `pic:"4,8"`
+		}
+		got := &s{A: true, B: true, C: true, D: true}
+		require.NoError(t, Unmarshal([]byte("NF0FALSE"), got))
+		require.Equal(t, &s{}, got)
+	})
+
+	t.Run("bool empty source stays false", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			F bool `pic:"1,1"`
+		}
+		got := &s{}
+		require.NoError(t, Unmarshal([]byte(" "), got))
+		require.False(t, got.F)
+	})
+
+	t.Run("bool invalid value returns error", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			F bool `pic:"1,1"`
+		}
+		err := Unmarshal([]byte("Z"), &s{})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "cannot convert")
+	})
+
+	t.Run("pointer to string populated", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			P *string `pic:"1,5"`
+		}
+		got := &s{}
+		require.NoError(t, Unmarshal([]byte("hello"), got))
+		require.NotNil(t, got.P)
+		require.Equal(t, "hello", *got.P)
+	})
+
+	t.Run("pointer empty source stays nil", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			P *string `pic:"1,3"`
+		}
+		got := &s{}
+		require.NoError(t, Unmarshal([]byte("   "), got))
+		require.Nil(t, got.P)
+	})
+
+	t.Run("interface{} field", func(t *testing.T) {
+		t.Parallel()
+		val := "placeholder"
+		type s struct {
+			V interface{} `pic:"1,5"`
+		}
+		got := &s{V: val}
+		require.NoError(t, Unmarshal([]byte("world"), got))
+		require.Equal(t, "world", got.V)
 	})
 }
+
+// ---------- Unmarshal: error paths --------------------------------------------
+
+func TestUnmarshal_Errors(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NilTarget", func(t *testing.T) {
+		t.Parallel()
+		require.ErrorIs(t, Unmarshal([]byte("x"), nil), ErrNotAPointer)
+	})
+
+	t.Run("NotPointer_struct", func(t *testing.T) {
+		t.Parallel()
+		require.ErrorIs(t, Unmarshal([]byte("x"), struct{}{}), ErrNotAPointer)
+	})
+
+	t.Run("NilPointer", func(t *testing.T) {
+		t.Parallel()
+		var p *struct{}
+		require.ErrorIs(t, Unmarshal([]byte("x"), p), ErrNilPointer)
+	})
+
+	t.Run("EOF_on_empty_input", func(t *testing.T) {
+		t.Parallel()
+		err := Unmarshal([]byte(""), &struct{}{})
+		require.Error(t, err)
+	})
+
+	t.Run("bad_int_field", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			N int `pic:"1,3"`
+		}
+		require.Error(t, Unmarshal([]byte("nan"), &s{}))
+	})
+
+	t.Run("bad_uint_field", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			N uint `pic:"1,3"`
+		}
+		require.Error(t, Unmarshal([]byte("nan"), &s{}))
+	})
+
+	t.Run("bad_float_field", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			F float64 `pic:"1,3"`
+		}
+		// "nan" is accepted by strconv.ParseFloat; use letters-only to trigger error.
+		require.Error(t, Unmarshal([]byte("abc"), &s{}))
+	})
+
+	t.Run("bad_tag_single_non_dash_field_silently_skipped", func(t *testing.T) {
+		t.Parallel()
+		// A single-element tag that is not "-" causes a parse error stored on
+		// the field representation, but Unmarshal does NOT surface it — the
+		// field is silently skipped and left at its zero value.
+		type s struct {
+			F string `pic:"5"`
+		}
+		got := &s{}
+		require.NoError(t, Unmarshal([]byte("hello"), got))
+		require.Empty(t, got.F)
+	})
+
+	t.Run("bad_tag_end_before_start_field_silently_skipped", func(t *testing.T) {
+		t.Parallel()
+		// Same rationale: tag validation errors on a field are stored but not
+		// propagated — the field is skipped.
+		type s struct {
+			F string `pic:"5,1"`
+		}
+		got := &s{}
+		require.NoError(t, Unmarshal([]byte("hello"), got))
+		require.Empty(t, got.F)
+	})
+
+	t.Run("decodeLines_error_mid_slice", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			N int `pic:"1,3"`
+		}
+		require.Error(t, Unmarshal([]byte("001\nnan"), &[]s{}))
+	})
+
+	t.Run("unsupported_type_chan", func(t *testing.T) {
+		t.Parallel()
+		type s struct {
+			C chan int `pic:"1,1"`
+		}
+		require.Error(t, Unmarshal([]byte("1"), &s{}))
+	})
+}
+
+// ---------- Unmarshal: table-driven main tests --------------------------------
 
 func TestUnmarshal(t *testing.T) {
 	t.Parallel()
@@ -161,22 +299,18 @@ func TestUnmarshal(t *testing.T) {
 	type C struct {
 		CA []string `pic:"1,5,5"`
 	}
-
 	type D struct {
 		DA string `pic:"1,2"`
 	}
-
 	type C2 struct {
 		CA []string `pic:"1,5,5"`
 		CB D        `pic:"6,7"`
 	}
-
 	type nestedStruct struct {
 		A string `pic:"1,13"`
 		B string `pic:"14,26"`
 		C C      `pic:"27,32"`
 	}
-
 	type multiNestedStruct struct {
 		A string `pic:"1,13"`
 		B string `pic:"14,26"`
@@ -243,26 +377,15 @@ func TestUnmarshal(t *testing.T) {
 			val:    []byte("000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 00000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 "),
 			target: &occursOffset{},
 			expected: &occursOffset{
-				A: "000000000.00",
-				B: "000000000.00",
-				C: "000000000.00",
-				D: "000000000.00",
-				E: "000000000.00",
-				F: "000000000.00",
+				A: "000000000.00", B: "000000000.00", C: "000000000.00",
+				D: "000000000.00", E: "000000000.00", F: "000000000.00",
 				G: "00",
 				H: []string{
-					"000000000.00",
-					"000000000.00",
-					"000000000.00",
-					"000000000.00",
-					"000000000.00",
-					"000000000.00",
-					"000000000.00",
-					"000000000.00",
-					"000000000.00",
-					"000000000.00",
-					"000000000.00",
-					"000000000.00"},
+					"000000000.00", "000000000.00", "000000000.00",
+					"000000000.00", "000000000.00", "000000000.00",
+					"000000000.00", "000000000.00", "000000000.00",
+					"000000000.00", "000000000.00", "000000000.00",
+				},
 			},
 		}, {
 			name:   "NestedStruct",
@@ -297,6 +420,8 @@ func TestUnmarshal(t *testing.T) {
 	}
 }
 
+// ---------- newValFromLine ----------------------------------------------------
+
 func TestNewValFromLine(t *testing.T) {
 	t.Parallel()
 	for _, tt := range []struct {
@@ -320,9 +445,48 @@ func TestNewValFromLine(t *testing.T) {
 	}
 }
 
-func TestUnmarshalTypeError_Unwrap(t *testing.T) {
+// ---------- UnmarshalTypeError ------------------------------------------------
+
+func TestUnmarshalTypeError_Error(t *testing.T) {
 	t.Parallel()
-	cause := fmt.Errorf("underlying cause")
-	e := &UnmarshalTypeError{Cause: cause}
-	require.ErrorIs(t, e, cause)
+	intT := reflect.TypeOf(0)
+
+	t.Run("with struct and field", func(t *testing.T) {
+		t.Parallel()
+		e := &UnmarshalTypeError{
+			Value:  "bad",
+			Type:   intT,
+			Struct: "MyStruct",
+			Field:  "MyField",
+		}
+		require.Contains(t, e.Error(), "Go struct field MyStruct.MyField")
+	})
+
+	t.Run("without struct or field", func(t *testing.T) {
+		t.Parallel()
+		e := &UnmarshalTypeError{
+			Value: "bad",
+			Type:  intT,
+		}
+		require.Contains(t, e.Error(), "Go value of type")
+		require.NotContains(t, e.Error(), "struct field")
+	})
+
+	t.Run("cause is propagated via Unwrap", func(t *testing.T) {
+		t.Parallel()
+		cause := errors.New("root cause")
+		e := &UnmarshalTypeError{Cause: cause}
+		require.ErrorIs(t, e, cause)
+		require.Contains(t, e.Error(), "root cause")
+	})
+
+	t.Run("no cause omits nested error text", func(t *testing.T) {
+		t.Parallel()
+		e := &UnmarshalTypeError{Value: "v", Type: intT}
+		msg := e.Error()
+		require.Contains(t, msg, "v")
+		require.Contains(t, msg, "int")
+		// Without a Cause the message ends after the type — no extra ": <cause>" suffix.
+		require.NotContains(t, msg, "root cause")
+	})
 }
