@@ -36,6 +36,7 @@ const (
 	tokenKindPIC                         // PIC keyword
 	tokenKindREDEFINES                   // REDEFINES keyword
 	tokenKindEnum                        // enum example: 'Y' 'N' 'T' 'F'
+	tokenKindSIGN                        // SIGN clause, e.g. "SIGN IS TRAILING SEPARATE"
 
 	tokenKindCount // sentinel: total number of token kinds; must stay last
 )

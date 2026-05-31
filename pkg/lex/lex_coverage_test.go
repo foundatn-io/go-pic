@@ -265,6 +265,58 @@ func Test_parseLines_errors(t *testing.T) {
 	})
 }
 
+// ---------- SIGN clause lexing -----------------------------------------------
+
+// lexKinds collects the tokens the lexer emits for input, stopping at EOF or an
+// error token.
+func lexKinds(input string) []token {
+	l := New("test", input)
+	var toks []token
+	for {
+		tok := l.getNext()
+		if tok == (token{}) || tok.kind == tokenKindEOF {
+			break
+		}
+		toks = append(toks, tok)
+	}
+	return toks
+}
+
+func Test_lexSignToken(t *testing.T) {
+	t.Parallel()
+
+	t.Run("SIGN clause folds into one tokenKindSIGN after the PIC", func(t *testing.T) {
+		t.Parallel()
+		toks := lexKinds("000110     05  BAL  PIC S9(4) SIGN IS TRAILING SEPARATE.   00000110\n")
+		var pic, sign *token
+		for i := range toks {
+			switch toks[i].kind {
+			case tokenKindPIC:
+				pic = &toks[i]
+			case tokenKindSIGN:
+				sign = &toks[i]
+			}
+		}
+		require.NotNil(t, pic, "expected a PIC token")
+		require.Equal(t, "PIC S9(4)", pic.value)
+		require.NotNil(t, sign, "expected a SIGN token")
+		require.Equal(t, "SIGN IS TRAILING SEPARATE", sign.value)
+	})
+
+	t.Run("data name starting with S is not mistaken for SIGN", func(t *testing.T) {
+		t.Parallel()
+		toks := lexKinds("000110     05  STATUS      PIC X(2).   00000110\n")
+		var found bool
+		for _, tok := range toks {
+			require.NotEqual(t, tokenKindSIGN, tok.kind, "STATUS should not yield a SIGN token")
+			if tok.kind == tokenKindIdentifier && tok.value == "STATUS" {
+				found = true
+			}
+		}
+		require.True(t, found, "expected STATUS to lex as an identifier")
+	})
+}
+
 // ---------- deepCompare helper used by existing tests (keep in same pkg) ------
 
 // Ensure deepCompare works correctly for mismatches (exercised by callers above).

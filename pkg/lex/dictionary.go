@@ -31,6 +31,8 @@ var (
 	redefinesPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindREDEFINES, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindPIC, tokenKindDot, tokenKindSpace, tokenKindNumber}
 	// 000190  15  DUMMY-GROUP-1-OBJECT-B  PIC X.  00000118
 	picPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindPIC, tokenKindDot, tokenKindSpace, tokenKindNumber}
+	// 000110  05  BALANCE  PIC S9(4) SIGN IS TRAILING SEPARATE.  00000110
+	picSignPattern = word{tokenKindNumber, tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindSpace, tokenKindPIC, tokenKindSpace, tokenKindSIGN, tokenKindDot, tokenKindSpace, tokenKindNumber}
 	// 05  DUMMY-GROUP-1.
 	nonNumDelimitedStructPattern = word{tokenKindSpace, tokenKindNumber, tokenKindSpace, tokenKindIdentifier, tokenKindDot, tokenKindSpace}
 	// 000160  05  DUMMY-GROUP-1.  00000115
@@ -65,6 +67,11 @@ var (
 			lineType:    linePIC,
 			parseFunc:   parsePIC,
 			wordPattern: picPattern},
+
+		"picSign": {
+			lineType:    linePIC,
+			parseFunc:   parsePICSign,
+			wordPattern: picSignPattern},
 
 		"redefines": {
 			lineType:    lineRedefines,

@@ -575,6 +575,51 @@ func Test_Parse(t *testing.T) {
 					{Name: "BALANCE", Typ: reflect.Int, Length: 5},
 				},
 			},
+		}, {
+			// Per-field SIGN IS SEPARATE clause: reserves a sign byte (5), even
+			// though the tree-wide default is overpunch.
+			name: "PIC_S_signClause_separate",
+			in: NewTree(New("test",
+				`000100     05  BALANCE   PIC S9(4) SIGN IS TRAILING SEPARATE.   00000100
+`)),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 5,
+				Children: []*Record{
+					{Name: "BALANCE", Typ: reflect.Int, Length: 5},
+				},
+			},
+		}, {
+			// Per-field SIGN clause WITHOUT SEPARATE: overpunch (4 bytes).
+			name: "PIC_S_signClause_overpunch",
+			in: NewTree(New("test",
+				`000100     05  BALANCE   PIC S9(4) SIGN IS TRAILING.   00000100
+`)),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 4,
+				Children: []*Record{
+					{Name: "BALANCE", Typ: reflect.Int, Length: 4},
+				},
+			},
+		}, {
+			// An explicit per-field clause overrides the copybook-wide toggle:
+			// WithSignSeparate is on, but the field declares plain SIGN (no
+			// SEPARATE), so it stays an overpunch (4 bytes).
+			name: "PIC_S_signClause_overrides_toggle",
+			in: NewTree(New("test",
+				`000100     05  BALANCE   PIC S9(4) SIGN IS TRAILING.   00000100
+`), WithSignSeparate()),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 4,
+				Children: []*Record{
+					{Name: "BALANCE", Typ: reflect.Int, Length: 4},
+				},
+			},
 		},
 	}
 

@@ -202,6 +202,43 @@ func (lexer *lexerState) scanOccursToken() (bool, error) {
 	return true, nil
 }
 
+// scanSignClause scans a SIGN clause that follows a PIC definition — for
+// example "SIGN IS TRAILING SEPARATE" or "SIGN LEADING SEPARATE CHARACTER".
+// On success it consumes the whole clause up to (but not including) the
+// terminating period or EOL and returns true. If the word starting with 'S' is
+// not the SIGN keyword (e.g. a data name like STATUS), it returns false without
+// emitting so identifier lexing can recover the word — mirroring
+// scanOccursToken.
+func (lexer *lexerState) scanSignClause() bool {
+	lexer.acceptRun("SIGN")
+	if !isSpace(lexer.peek()) {
+		lexer.next()
+		return false
+	}
+	for {
+		switch r := lexer.peek(); {
+		case r == picRight, isEOL(r), r == endOfFile:
+			return true
+		default:
+			lexer.next()
+		}
+	}
+}
+
+// upcomingKeyword reports whether the input at the current position begins with
+// keyword followed by a word boundary, so "SIGN" matches in "SIGN IS …" but not
+// inside a picture like "S9(4)" or a longer word like "SIGNAL".
+func (lexer *lexerState) upcomingKeyword(keyword string) bool {
+	if !strings.HasPrefix(lexer.input[lexer.pos:], keyword) {
+		return false
+	}
+	after := int(lexer.pos) + len(keyword)
+	if after >= len(lexer.input) {
+		return true
+	}
+	return !isAlphaNumeric(rune(lexer.input[after]))
+}
+
 // atPICTerminator checks if the current character is a PIC terminator.
 // It returns true if the current character is a PIC terminator and false otherwise.
 func (lexer *lexerState) atPICTerminator() bool {

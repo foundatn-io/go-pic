@@ -37,6 +37,8 @@ func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // d
 		return lexOccursToken
 	case currentRune == 'R':
 		return lexRedefinesToken
+	case currentRune == 'S':
+		return lexSignToken
 	case currentRune == '+' || currentRune == '-' || ('0' <= currentRune && currentRune <= '9'):
 		lexer.backup()
 		return lexNumber
@@ -80,7 +82,15 @@ func lexPICToken(l *lexerState) stateFunction {
 
 		case isSpace(r):
 			// Space inside a PIC: look ahead to decide whether it is part of
-			// the PIC body or a boundary before OCCURS / REDEFINES.
+			// the PIC body or a boundary before a following clause.
+			if l.upcomingKeyword("SIGN") {
+				// A SIGN clause begins after the picture. 'S' is also a PIC
+				// char, so without this check the picture would bleed into
+				// "SIGN". End the PIC token before the space.
+				l.backup()
+				l.emit(tokenKindPIC)
+				return lexSpace
+			}
 			next := l.peek()
 			if isPICChar(next) || isPICType(next) || next == '.' {
 				// Space is interior (e.g. "PIC X(10) .9(2)" is unusual but
@@ -111,6 +121,16 @@ func lexPICToken(l *lexerState) stateFunction {
 			return lexStatementTokens
 		}
 	}
+}
+
+// lexSignToken scans a SIGN clause and emits a single tokenKindSIGN. When the
+// 'S'-initial word is not the SIGN keyword (e.g. a data name like STATUS) it
+// emits nothing and identifier lexing recovers the word.
+func lexSignToken(lexer *lexerState) stateFunction {
+	if lexer.scanSignClause() {
+		lexer.emit(tokenKindSIGN)
+	}
+	return lexStatementTokens
 }
 
 // lexRedefinesToken scans a REDEFINES keyword and emits tokenKindREDEFINES.

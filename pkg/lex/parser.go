@@ -22,6 +22,8 @@ const (
 	// picPattern and occursPattern both carry the PIC clause at index 6:
 	//   ... [4]name [5]space [6]"PIC X(n)" ...
 	idxPICClause = 6
+	// picSignPattern: ... [6]"PIC S9(n)" [7]space [8]"SIGN … SEPARATE" ...
+	idxSignClause = 8
 	// occursPattern: ... [6]"PIC X(n)" [7]space [8]"OCCURS n." ...
 	idxOccursClause = 8
 
@@ -48,6 +50,26 @@ func noop(_ *Tree, _ line, _ *Record) (*Record, error) {
 func parsePIC(tree *Tree, currentLine line, _ *Record) (*Record, error) {
 	pictureNumberDefinition := currentLine.tokens[idxPICClause].value[len(picPrefix):]
 	length, err := parsePICCount(pictureNumberDefinition, tree.signSeparate)
+	if err != nil {
+		return nil, err
+	}
+	return &Record{
+		depthMap: map[string]*Record{},
+		Name:     currentLine.tokens[idxName].value,
+		Length:   length,
+		depth:    currentLine.tokens[idxLevel].value,
+		Typ:      parsePICType(pictureNumberDefinition),
+	}, nil
+}
+
+// parsePICSign builds a Record from a PIC line that carries a SIGN clause. The
+// clause is authoritative for this field: SIGN … SEPARATE reserves a sign byte,
+// any other SIGN form is an overpunch (zero bytes), regardless of the
+// copybook-wide WithSignSeparate default.
+func parsePICSign(_ *Tree, currentLine line, _ *Record) (*Record, error) {
+	pictureNumberDefinition := currentLine.tokens[idxPICClause].value[len(picPrefix):]
+	separate := strings.Contains(currentLine.tokens[idxSignClause].value, "SEPARATE")
+	length, err := parsePICCount(pictureNumberDefinition, separate)
 	if err != nil {
 		return nil, err
 	}

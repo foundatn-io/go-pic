@@ -123,11 +123,16 @@ type Copybook struct {
 | `P`    | assumed decimal scale| 0 (positional)                          | `float64` |
 
 By default a signed field (`S9(4)`) follows the COBOL `USAGE DISPLAY` default and
-overpunches its sign onto a digit, so it occupies no extra byte. Pass
-`--sign-separate` (or `lex.WithSignSeparate()` when using the library) for
-copybooks compiled with `SIGN IS SEPARATE`, which reserves one byte for the sign.
+overpunches its sign onto a digit, so it occupies no extra byte.
+
+A `SIGN IS [LEADING|TRAILING] SEPARATE [CHARACTER]` clause written explicitly on a
+field is parsed and honored for that field — the field reserves one byte for the
+sign. For copybooks where separateness comes from a compiler option rather than
+the text, pass `--sign-separate` (or `lex.WithSignSeparate()` in the library) to
+treat all signed fields as separate; an explicit per-field clause always wins.
 
 ### 🚧 Alas, these are not yet supported
- - Numeric-edited / `SIGN IS SEPARATE` clauses are not detected per-field (use the copybook-wide toggle above)
+ - Numeric-edited PIC clauses (`Z`, `$`, `+`, `CR`, `B`, `0`, `/`, …)
+ - `SIGN` declared on a group/record level (only field-level SIGN clauses are read)
  - Level indicator 88 enums are skipped
  - Level indicator 77 items which cannot be sub-divided
