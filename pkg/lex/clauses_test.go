@@ -15,19 +15,34 @@ func Test_parsePICCount(t *testing.T) {
 		want    int
 		wantErr bool
 	}{
-		{"bare single char", "X", 1, false},
-		{"bare multi char", "XX", 2, false},
-		{"bare four chars", "XXXX", 4, false},
-		{"parenthesised single", "X(10)", 10, false},
-		{"parenthesised multi digit", "9(14)", 14, false},
-		{"explicit decimal", "9(9).9(2)", 12, false},
-		{"explicit decimal larger", "9(10).9(3)", 14, false},
-		{"signed integer", "S9(9)", 10, false},
+		// bare chars
+		{"bare single X", "X", 1, false},
+		{"bare multi X", "XX", 2, false},
+		{"bare four X", "XXXX", 4, false},
+		{"bare single 9", "9", 1, false},
+		// parenthesised
+		{"paren single", "X(10)", 10, false},
+		{"paren two digits", "9(14)", 14, false},
+		// explicit decimal '.' counts as physical byte
+		{"explicit decimal 9(9).9(2)", "9(9).9(2)", 12, false},
+		{"explicit decimal 9(10).9(3)", "9(10).9(3)", 14, false},
+		// V = implicit decimal, consumes NO physical bytes
+		{"V implicit decimal bare", "9(4)V9(2)", 6, false},
+		{"V bare no parens", "9999V99", 6, false},
+		{"V with paren repetition", "9(5)V(2)", 5, false}, // V(N) — V contributes 0, repetition skipped
+		// P = assumed decimal scaling, consumes NO physical bytes
+		{"P scaling leading", "PPP999", 3, false},
+		{"P scaling trailing", "9(4)PPP", 4, false},
+		// S = sign indicator, DOES occupy one physical byte (separate sign)
+		{"S signed integer", "S9(9)", 10, false},
+		{"S no parens", "S999", 4, false},
+		// trailing dot stripped
 		{"trailing dot stripped", "X(5).", 5, false},
-		{"simple 9", "9", 1, false},
-		{"V decimal indicator", "9(4)V9(4)", 9, false},
-		{"bad parens no close", "X(10", 0, true},
-		{"bad count non-numeric", "X(abc)", 0, true},
+		// combined: S=1, 9(5)=5, V=0, 9(2)=2 → 8
+		{"S with V", "S9(5)V9(2)", 8, false},
+		// errors
+		{"unclosed paren", "X(10", 0, true},
+		{"non-numeric count", "X(abc)", 0, true},
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
@@ -38,7 +53,7 @@ func Test_parsePICCount(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.want, got, "parsePICCount(%q)", tt.in)
 		})
 	}
 }
@@ -65,6 +80,32 @@ func Test_parsePICType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			require.Equal(t, tt.want, parsePICType(tt.in))
+		})
+	}
+}
+
+func Test_parseOccursCount(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name    string
+		tok     token
+		want    int
+		wantErr bool
+	}{
+		{"plain count", token{value: "OCCURS 12."}, 12, false},
+		{"no dot", token{value: "OCCURS 3"}, 3, false},
+		{"bad number", token{value: "OCCURS abc."}, 0, true},
+	} {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := parseOccursCount(tt.tok)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
