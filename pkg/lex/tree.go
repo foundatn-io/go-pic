@@ -15,16 +15,35 @@ type Tree struct {
 	state        *Record
 	currentLine  line
 	lineIndex    int
+
+	// signSeparate reports whether signed (S) PIC fields reserve a separate
+	// byte for their sign (SIGN IS SEPARATE). It is off by default, matching
+	// the COBOL default where the sign is overpunched onto a digit.
+	signSeparate bool
+}
+
+// Option configures a Tree at construction time.
+type Option func(*Tree)
+
+// WithSignSeparate makes signed (S) PIC fields reserve one byte for the sign,
+// as under a SIGN IS SEPARATE clause. The grammar does not parse SIGN clauses,
+// so this is a copybook-wide toggle rather than per-field detection.
+func WithSignSeparate() Option {
+	return func(t *Tree) { t.signSeparate = true }
 }
 
 // NewTree creates a new parse tree with the provided lexer.
-func NewTree(inputLexer Lexer) *Tree {
+func NewTree(inputLexer Lexer, opts ...Option) *Tree {
 	root := &Record{Typ: reflect.Struct, Name: inputLexer.getName(), depthMap: make(map[string]*Record)}
-	return &Tree{
+	tree := &Tree{
 		lexer:     inputLexer,
 		state:     root,
 		lineIndex: -1,
 	}
+	for _, opt := range opts {
+		opt(tree)
+	}
+	return tree
 }
 
 // Parse processes the lexer tokens and returns the root record.

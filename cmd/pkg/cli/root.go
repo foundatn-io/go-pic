@@ -36,15 +36,17 @@ var fileCmd = &cobra.Command{
 }
 
 var (
-	displayFlag = "display"
-	outFlag     = "output"
-	inFlag      = "input"
-	pkgFlag     = "package"
+	displayFlag  = "display"
+	outFlag      = "output"
+	inFlag       = "input"
+	pkgFlag      = "package"
+	signSeparate = "sign-separate"
 
-	displayHelp = "display preview in terminal, the results of parsing (not templated)"
-	inputHelp   = "path to input file"
-	outputHelp  = "path to output file"
-	pkgHelp     = "output file package name"
+	displayHelp      = "display preview in terminal, the results of parsing (not templated)"
+	inputHelp        = "path to input file"
+	outputHelp       = "path to output file"
+	pkgHelp          = "output file package name"
+	signSeparateHelp = "treat signed (S) PIC fields as SIGN IS SEPARATE (reserve one byte for the sign)"
 )
 
 // Execute executes the root command.
@@ -60,11 +62,13 @@ func init() { //nolint:gochecknoinits
 	dirCmd.Flags().StringP(outFlag, "o", "", outputHelp)
 	dirCmd.Flags().StringP(inFlag, "i", "", inputHelp)
 	dirCmd.Flags().StringP(pkgFlag, "p", "", pkgHelp)
+	dirCmd.Flags().BoolP(signSeparate, "s", false, signSeparateHelp)
 
 	fileCmd.Flags().BoolP(displayFlag, "d", false, displayHelp)
 	fileCmd.Flags().StringP(outFlag, "o", "", outputHelp)
 	fileCmd.Flags().StringP(inFlag, "i", "", inputHelp)
 	fileCmd.Flags().StringP(pkgFlag, "p", "", pkgHelp)
+	fileCmd.Flags().BoolP(signSeparate, "s", false, signSeparateHelp)
 
 	_ = dirCmd.MarkFlagRequired(outFlag)
 	_ = dirCmd.MarkFlagRequired(inFlag)
@@ -95,6 +99,7 @@ func dirRun(cmd *cobra.Command, _ []string) error { //nolint:gocyclo
 	}
 
 	d, _ := cmd.Flags().GetBool(displayFlag)
+	signSep, _ := cmd.Flags().GetBool(signSeparate)
 
 	fs, err := os.ReadDir(in)
 	if err != nil {
@@ -118,7 +123,7 @@ func dirRun(cmd *cobra.Command, _ []string) error { //nolint:gocyclo
 		if err != nil {
 			return fmt.Errorf("failed to open file %s: %w", ff.Name(), err)
 		}
-		if err := run(f, filepath.Join(out, ff.Name()), pkg, d); err != nil {
+		if err := run(f, filepath.Join(out, ff.Name()), pkg, d, signSep); err != nil {
 			return err
 		}
 	}
@@ -140,16 +145,17 @@ func fileRun(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to extract value for flag %s: %w", pkgFlag, err)
 	}
 	d, _ := cmd.Flags().GetBool(displayFlag)
+	signSep, _ := cmd.Flags().GetBool(signSeparate)
 
 	log.Printf("parsing copybook file %s", in)
 	f, err := os.Open(in) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", in, err)
 	}
-	return run(f, out, pkg, d)
+	return run(f, out, pkg, d, signSep)
 }
 
-func run(r io.Reader, output, pkg string, preview bool) error {
+func run(r io.Reader, output, pkg string, preview, signSep bool) error {
 	name := strings.TrimSuffix(output, filepath.Ext(output))
 	n := name[strings.LastIndex(name, "/")+1:]
 	c := copybook.New(n, pkg, template.Copybook())
@@ -157,7 +163,11 @@ func run(r io.Reader, output, pkg string, preview bool) error {
 	if err != nil {
 		return fmt.Errorf("failed to read input data: %w", err)
 	}
-	tree := lex.NewTree(lex.New(n, string(b)))
+	var opts []lex.Option
+	if signSep {
+		opts = append(opts, lex.WithSignSeparate())
+	}
+	tree := lex.NewTree(lex.New(n, string(b)), opts...)
 	c.Root, err = tree.Parse()
 	if err != nil {
 		return fmt.Errorf("failed to parse copybook: %w", err)

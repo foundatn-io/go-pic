@@ -54,6 +54,9 @@ func parseTag(tag string) (*tagRepresentation, error) {
 	tagValues := &tagRepresentation{}
 	splitTag := strings.Split(tag, tagSeparator)
 	tagElements := len(splitTag)
+	if tagElements > occursIndicator {
+		return nil, fmt.Errorf("pic tag has %d elements; expected %q, \"start,end\", or \"start,end,occurs\"", tagElements, ignoreTagValue)
+	}
 	if tagElements == omitIndicator {
 		if splitTag[0] != ignoreTagValue {
 			return nil, fmt.Errorf("pic tag with a single element must be %q (got %q)", ignoreTagValue, splitTag[0])

@@ -517,7 +517,7 @@ func Test_Parse(t *testing.T) {
 				}},
 			},
 		}, {
-			// S (sign) occupies 1 physical byte; type is Int (signed).
+			// S (sign) occupies 0 bytes by default (overpunch); type is Int (signed).
 			name: "PIC_S_signedInteger",
 			in: NewTree(New("test",
 				`000100     05  BALANCE   PIC S9(4).   00000100
@@ -525,9 +525,9 @@ func Test_Parse(t *testing.T) {
 			want: &Record{
 				Name:   "test",
 				Typ:    reflect.Struct,
-				Length: 5,
+				Length: 4,
 				Children: []*Record{
-					{Name: "BALANCE", Typ: reflect.Int, Length: 5},
+					{Name: "BALANCE", Typ: reflect.Int, Length: 4},
 				},
 			},
 		}, {
@@ -558,6 +558,21 @@ func Test_Parse(t *testing.T) {
 				Length: 3,
 				Children: []*Record{
 					{Name: "RATE", Typ: reflect.Float64, Length: 3},
+				},
+			},
+		}, {
+			// WithSignSeparate: the same S9(4) field now reserves a byte for the
+			// sign, so the field (and its parent) measure 5 bytes instead of 4.
+			name: "PIC_S_signSeparate",
+			in: NewTree(New("test",
+				`000100     05  BALANCE   PIC S9(4).   00000100
+`), WithSignSeparate()),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 5,
+				Children: []*Record{
+					{Name: "BALANCE", Typ: reflect.Int, Length: 5},
 				},
 			},
 		},

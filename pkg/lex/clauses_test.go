@@ -14,40 +14,44 @@ func Test_parsePICCount(t *testing.T) {
 		in      string
 		want    int
 		wantErr bool
+		signSep bool
 	}{
 		// bare chars
-		{"bare single X", "X", 1, false},
-		{"bare multi X", "XX", 2, false},
-		{"bare four X", "XXXX", 4, false},
-		{"bare single 9", "9", 1, false},
+		{"bare single X", "X", 1, false, false},
+		{"bare multi X", "XX", 2, false, false},
+		{"bare four X", "XXXX", 4, false, false},
+		{"bare single 9", "9", 1, false, false},
 		// parenthesised
-		{"paren single", "X(10)", 10, false},
-		{"paren two digits", "9(14)", 14, false},
+		{"paren single", "X(10)", 10, false, false},
+		{"paren two digits", "9(14)", 14, false, false},
 		// explicit decimal '.' counts as physical byte
-		{"explicit decimal 9(9).9(2)", "9(9).9(2)", 12, false},
-		{"explicit decimal 9(10).9(3)", "9(10).9(3)", 14, false},
+		{"explicit decimal 9(9).9(2)", "9(9).9(2)", 12, false, false},
+		{"explicit decimal 9(10).9(3)", "9(10).9(3)", 14, false, false},
 		// V = implicit decimal, consumes NO physical bytes
-		{"V implicit decimal bare", "9(4)V9(2)", 6, false},
-		{"V bare no parens", "9999V99", 6, false},
-		{"V with paren repetition", "9(5)V(2)", 5, false}, // V(N) — V contributes 0, repetition skipped
+		{"V implicit decimal bare", "9(4)V9(2)", 6, false, false},
+		{"V bare no parens", "9999V99", 6, false, false},
+		{"V with paren repetition", "9(5)V(2)", 5, false, false}, // V(N) — V contributes 0, repetition skipped
 		// P = assumed decimal scaling, consumes NO physical bytes
-		{"P scaling leading", "PPP999", 3, false},
-		{"P scaling trailing", "9(4)PPP", 4, false},
-		// S = sign indicator, DOES occupy one physical byte (separate sign)
-		{"S signed integer", "S9(9)", 10, false},
-		{"S no parens", "S999", 4, false},
+		{"P scaling leading", "PPP999", 3, false, false},
+		{"P scaling trailing", "9(4)PPP", 4, false, false},
+		// S = sign: 0 bytes by default (overpunch on a digit, USAGE DISPLAY default)
+		{"S overpunch signed integer", "S9(9)", 9, false, false},
+		{"S overpunch no parens", "S999", 3, false, false},
+		{"S overpunch with V", "S9(5)V9(2)", 7, false, false}, // S=0, 9(5)=5, V=0, 9(2)=2
+		// S = sign: 1 byte under SIGN IS SEPARATE (opt-in via signSep)
+		{"S separate signed integer", "S9(9)", 10, false, true},
+		{"S separate no parens", "S999", 4, false, true},
+		{"S separate with V", "S9(5)V9(2)", 8, false, true}, // S=1, 9(5)=5, V=0, 9(2)=2
 		// trailing dot stripped
-		{"trailing dot stripped", "X(5).", 5, false},
-		// combined: S=1, 9(5)=5, V=0, 9(2)=2 → 8
-		{"S with V", "S9(5)V9(2)", 8, false},
+		{"trailing dot stripped", "X(5).", 5, false, false},
 		// errors
-		{"unclosed paren", "X(10", 0, true},
-		{"non-numeric count", "X(abc)", 0, true},
+		{"unclosed paren", "X(10", 0, true, false},
+		{"non-numeric count", "X(abc)", 0, true, false},
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := parsePICCount(tt.in)
+			got, err := parsePICCount(tt.in, tt.signSep)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

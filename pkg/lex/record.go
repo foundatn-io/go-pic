@@ -54,10 +54,9 @@ func (r *Record) fromCache(recordName string) (*Record, int, error) {
 	return r.Children[recordIndex], recordIndex, nil
 }
 
-// redefine modifies a Record (targetRecord) in place to match another Record (sourceRecord).
-// It also updates the cache to reflect the changes.
-// It returns the modified Record and an error if any.
-func (r *Record) redefine(index int, targetRecord, sourceRecord *Record) (*Record, error) {
+// redefine overlays sourceRecord's fields onto targetRecord in place (the
+// COBOL REDEFINES semantic) and refreshes the cache entry at index.
+func (r *Record) redefine(index int, targetRecord, sourceRecord *Record) *Record {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -66,5 +65,5 @@ func (r *Record) redefine(index int, targetRecord, sourceRecord *Record) (*Recor
 	targetRecord.Length = sourceRecord.Length
 	targetRecord.Typ = sourceRecord.Typ
 	targetRecord.depthMap = sourceRecord.depthMap
-	return targetRecord, nil
+	return targetRecord
 }

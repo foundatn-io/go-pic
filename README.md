@@ -36,13 +36,16 @@ copybook
     000180      15  PropertyA    PIC X(5).     00000117
     000190      15  PropertyB    PIC X(2).     00000118
     ```
-    You would tag your struct like so
+    You would tag your struct like so, where the tag is the 1-based, inclusive
+    byte range `start,end` that the field occupies on each line
     ```go
     type yourStruct struct {
-        PropertyA string `pic:"5"` 
-        PropertyB string `pic:"2"`
+        PropertyA string `pic:"1,5"`  // bytes 1-5
+        PropertyB string `pic:"6,7"`  // bytes 6-7
     }
     ```
+    Use `pic:"-"` to skip a field, and a third element `pic:"start,end,occurs"`
+    for a repeated (OCCURS) field that decodes into a slice.
 
 3. Prepare a decoder and unmarshal your input
 
@@ -100,13 +103,31 @@ For example, the example copybook clauses:
 if generated with `gopic` becomes:
 
 ```go
-type Copybook struct{
-    PropertyA uint      `pic:"9"`  // start:1 end:9
-    PropertyB string    `pic:"2"`  // start:10 end:11
+type Copybook struct {
+    PropertyA uint   `pic:"1,5"`  // start:1 end:5
+    PropertyB string `pic:"6,7"`  // start:6 end:7
 }
 ```
 
+### PIC symbol support
+
+`gopic` sizes and types the common PIC symbols:
+
+| Symbol | Meaning              | Bytes                                   | Go type   |
+|--------|----------------------|-----------------------------------------|-----------|
+| `9`    | digit                | 1 each                                  | `uint`    |
+| `X`    | any character        | 1 each                                  | `string`  |
+| `A`    | alphabetic           | 1 each                                  | `string`  |
+| `S`    | operational sign     | 0 (overpunch); 1 with `--sign-separate` | `int`     |
+| `V`    | implied decimal point| 0 (positional)                          | `float64` |
+| `P`    | assumed decimal scale| 0 (positional)                          | `float64` |
+
+By default a signed field (`S9(4)`) follows the COBOL `USAGE DISPLAY` default and
+overpunches its sign onto a digit, so it occupies no extra byte. Pass
+`--sign-separate` (or `lex.WithSignSeparate()` when using the library) for
+copybooks compiled with `SIGN IS SEPARATE`, which reserves one byte for the sign.
+
 ### 🚧 Alas, these are not yet supported
- - PIC symbols [ `S`, `V`, `P` ]
+ - Numeric-edited / `SIGN IS SEPARATE` clauses are not detected per-field (use the copybook-wide toggle above)
  - Level indicator 88 enums are skipped
  - Level indicator 77 items which cannot be sub-divided

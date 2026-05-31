@@ -66,10 +66,9 @@ func (d *decoder) Decode(v interface{}) error {
 	return d.decodeLine(rv.Elem())
 }
 
-// decodeLine scans the next line in the scanner, sets d.done to true if the
-// scanner has reached EOF (and returns ErrEOF),
-// otherwise, unpacks a byte representation of the bytes associated
-// with that line, into the object v using the identified setter function, set.
+// decodeLine scans the next line from the scanner and unpacks it into v using
+// the setter resolved from v's type. At end of input it marks the decoder done
+// and returns io.EOF, which decodeLines treats as a clean stop.
 func (d *decoder) decodeLine(v reflect.Value) error {
 	if ok := d.s.Scan(); !ok {
 		d.done = true

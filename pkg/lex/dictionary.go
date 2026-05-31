@@ -1,6 +1,5 @@
 package lex
 
-
 type word []tokenKind
 
 type entry struct {
@@ -118,15 +117,6 @@ func getWord(tokens []token) word {
 		wordPattern[i] = token.kind
 	}
 	return wordPattern
-}
-
-// basicParserGet searches for a parser in the parsers trie using a word constructed from the given items
-func basicParserGet(tokens []token) (lineParser, []token, bool) { //nolint:unparam // param is used...
-	foundEntry := parsers.Search(getWord(tokens))
-	if foundEntry == nil {
-		return nil, nil, false
-	}
-	return foundEntry.parseFunc, tokens, true
 }
 
 // equalWord checks if two words are deeply equal

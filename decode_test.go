@@ -490,3 +490,72 @@ func TestUnmarshalTypeError_Error(t *testing.T) {
 		require.NotContains(t, msg, "root cause")
 	})
 }
+
+// ---------- slice tags --------------------------------------------------------
+
+func TestUnmarshal_SliceWithoutOccursErrors(t *testing.T) {
+	t.Parallel()
+	// A slice field must carry an occurs count (the 3rd tag element); without it
+	// there is no element size, which must surface as an error rather than a
+	// divide-by-zero panic.
+	type s struct {
+		Nums []int `pic:"1,6"`
+	}
+	err := Unmarshal([]byte("010203"), &s{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "occurs count")
+}
+
+// ---------- parseTag ----------------------------------------------------------
+
+func Test_parseTag(t *testing.T) {
+	t.Parallel()
+
+	t.Run("skip tag", func(t *testing.T) {
+		t.Parallel()
+		got, err := parseTag("-")
+		require.NoError(t, err)
+		require.True(t, got.skip)
+	})
+
+	t.Run("start,end", func(t *testing.T) {
+		t.Parallel()
+		got, err := parseTag("3,7")
+		require.NoError(t, err)
+		require.Equal(t, 3, got.start)
+		require.Equal(t, 7, got.end)
+		require.Equal(t, 5, got.length)
+	})
+
+	t.Run("start,end,occurs", func(t *testing.T) {
+		t.Parallel()
+		got, err := parseTag("1,6,3")
+		require.NoError(t, err)
+		require.Equal(t, 3, got.occurs)
+	})
+
+	t.Run("single non-dash element errors", func(t *testing.T) {
+		t.Parallel()
+		_, err := parseTag("5")
+		require.Error(t, err)
+	})
+
+	t.Run("too many elements errors", func(t *testing.T) {
+		t.Parallel()
+		_, err := parseTag("1,2,3,4")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "elements")
+	})
+
+	t.Run("non-positive occurs errors", func(t *testing.T) {
+		t.Parallel()
+		_, err := parseTag("1,6,0")
+		require.Error(t, err)
+	})
+
+	t.Run("end before start errors", func(t *testing.T) {
+		t.Parallel()
+		_, err := parseTag("7,3")
+		require.Error(t, err)
+	})
+}

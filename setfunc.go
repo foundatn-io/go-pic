@@ -139,6 +139,9 @@ func arraySetValueFunc(length, itemCount int) setValueFunc {
 		if source == "" {
 			return nilSetValueFunc(target, source)
 		}
+		if itemCount <= 0 {
+			return fmt.Errorf("slice field requires a positive occurs count (3rd pic tag element), got %d", itemCount)
+		}
 		itemSize := length / itemCount
 		newArray := reflect.MakeSlice(target.Type(), itemCount, itemCount)
 		setValueFunction := newSetValueFunc(target.Type().Elem(), 0, 0)
@@ -196,6 +199,9 @@ func structSetValueFunc(targetType reflect.Type) setValueFunc {
 	spec := cachedStructRepresentation(targetType)
 	return func(target reflect.Value, source string) error {
 		for i, fieldFunc := range spec.fields {
+			// Fields without a usable pic tag (e.g. untagged helper fields)
+			// fail tag parsing and are intentionally left at their zero value
+			// rather than aborting the whole decode.
 			if fieldFunc.err != nil {
 				continue
 			}

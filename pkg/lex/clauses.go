@@ -32,23 +32,25 @@ func parsePICType(s string) reflect.Kind {
 	}
 }
 
-// parsePICCount returns the total number of physical storage bytes for the
-// given PIC definition string.
+// parsePICCount returns the number of physical storage bytes occupied by the
+// given PIC definition string, in a single O(n) left-to-right pass.
 //
 // COBOL symbol behaviour:
-//   - Bare type characters (X, 9, A, S) each count as one physical byte.
-//   - V (implicit decimal point) and P (assumed decimal scaling) contribute
-//     zero physical storage bytes.
-//   - A parenthesised repetition T(N) replaces the preceding type character
-//     with N positions. If T was V or P (zero-storage), the entire T(N)
-//     contributes zero bytes.
-//   - An explicit '.' between digit groups counts as one physical byte.
-//
-// The function operates in a single O(n) left-to-right pass.
-func parsePICCount(s string) (int, error) {
+//   - Digit and character symbols (9, X, A) each occupy one byte.
+//   - A parenthesised repetition T(N) replaces the preceding symbol with N
+//     positions (so "9(4)" is four bytes, not five).
+//   - V (implicit decimal point) and P (assumed decimal scaling) are positional
+//     only and occupy zero bytes; a V(N)/P(N) repetition is likewise zero.
+//   - An explicit '.' between digit groups is a real character and occupies one
+//     byte.
+//   - S (operational sign) occupies zero bytes by default, because USAGE DISPLAY
+//     overpunches the sign onto a digit. It occupies one byte only when the
+//     copybook declares SIGN IS SEPARATE, which the grammar does not parse — so
+//     callers pass signSeparate=true to opt into that interpretation.
+func parsePICCount(s string, signSeparate bool) (int, error) {
 	s = strings.TrimRight(s, ".")
 	total := 0
-	prevWasNoStorage := false // true if the previous char was V or P
+	prevWasNoStorage := false // true if the previous char occupied no storage (V, P, or default S)
 	for i := 0; i < len(s); {
 		ch := s[i]
 		switch ch {
@@ -58,8 +60,8 @@ func parsePICCount(s string) (int, error) {
 				return 0, fmt.Errorf("unmatched '(' in PIC definition %q", s)
 			}
 			if prevWasNoStorage {
-				// V(N) or P(N): the preceding char was not counted and the
-				// repetition also contributes no storage — skip entirely.
+				// The preceding symbol contributed no storage, so its
+				// repetition contributes none either — skip entirely.
 				prevWasNoStorage = false
 				i += j + 1
 			} else {
@@ -77,6 +79,13 @@ func parsePICCount(s string) (int, error) {
 		case 'V', 'P':
 			// Implicit decimal / assumed decimal scaling: no physical byte.
 			prevWasNoStorage = true
+			i++
+		case 'S':
+			// Operational sign: a byte only under SIGN IS SEPARATE (see godoc).
+			if signSeparate {
+				total++
+			}
+			prevWasNoStorage = !signSeparate
 			i++
 		default:
 			total++

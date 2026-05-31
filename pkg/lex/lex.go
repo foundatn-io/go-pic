@@ -10,8 +10,11 @@ const (
 	alphaNumericElements = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 )
 
-// lexStatementTokens lexes tokens within a statement.
-func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // good luck simplifying this
+// lexStatementTokens is the lexer's central dispatcher: it consumes one rune,
+// emits or routes it to the matching sub-state, and returns the next
+// stateFunction for run() to drive. Returning the next state (rather than
+// calling it) keeps the scan iterative and the stack flat.
+func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // dispatch switch: one arm per token shape
 	switch currentRune := lexer.next(); {
 	case isEOL(currentRune):
 		lexer.emit(tokenKindEOL)
@@ -31,9 +34,9 @@ func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // g
 			return lexIdentifier
 		}
 	case currentRune == 'O':
-		return lexOccursToken(lexer)
+		return lexOccursToken
 	case currentRune == 'R':
-		return lexRedefinesToken(lexer)
+		return lexRedefinesToken
 	case currentRune == '+' || currentRune == '-' || ('0' <= currentRune && currentRune <= '9'):
 		lexer.backup()
 		return lexNumber
@@ -51,7 +54,7 @@ func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // g
 	default:
 		return lexer.errorf("unrecognized character in action: %#U", currentRune)
 	}
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // lexPICToken consumes a full PIC clause token (e.g. "PIC X(10)" or
@@ -87,7 +90,7 @@ func lexPICToken(l *lexerState) stateFunction {
 			// Space is a boundary — token ends before the space.
 			l.backup()
 			l.emit(tokenKindPIC)
-			return lexSpace(l)
+			return lexSpace
 
 		default:
 			// Non-PIC, non-space character (e.g. an explicit decimal '.' or
@@ -105,23 +108,21 @@ func lexPICToken(l *lexerState) stateFunction {
 				return l.errorf("unexpected character %#U in PIC definition", r)
 			}
 			l.emit(tokenKindPIC)
-			return lexStatementTokens(l)
+			return lexStatementTokens
 		}
 	}
 }
 
-// lexRedefinesToken is a state function for the lexer. It scans the input for a
-// REDEFINES token. If it encounters a REDEFINES token, it emits a tokenREDEFINES.
+// lexRedefinesToken scans a REDEFINES keyword and emits tokenKindREDEFINES.
 func lexRedefinesToken(lexer *lexerState) stateFunction {
 	if lexer.scanRedefinesToken() {
 		lexer.emit(tokenKindREDEFINES)
 	}
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
-// lexOccursToken is a state function for the lexer. It scans the input for an
-// OCCURS token. If it encounters an OCCURS token, it emits a tokenOCCURS. If
-// it encounters an error while scanning, it returns an error.
+// lexOccursToken scans an OCCURS keyword and its count, emitting
+// tokenKindOCCURS, or returns a lexer error if the clause is malformed.
 func lexOccursToken(lexer *lexerState) stateFunction {
 	valid, err := lexer.scanOccursToken()
 	if err != nil {
@@ -130,7 +131,7 @@ func lexOccursToken(lexer *lexerState) stateFunction {
 	if valid {
 		lexer.emit(tokenKindOCCURS)
 	}
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // lexIdentifier is a state function for the lexer. It scans the input for alphanumeric
@@ -153,7 +154,7 @@ func lexIdentifier(lexer *lexerState) stateFunction {
 		toEmit = tokenKindBool
 	}
 	lexer.emit(toEmit)
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // lexEnum is a state function for the lexer. It scans the input for alphanumeric
@@ -171,7 +172,7 @@ func lexEnum(lexer *lexerState) stateFunction {
 
 	lexer.next()
 	lexer.emit(tokenKindEnum)
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // lexNumber is a state function for the lexer. It scans the input for numbers
@@ -196,7 +197,7 @@ func lexNumber(lexer *lexerState) stateFunction {
 		toEmit = tokenKindComplex
 	}
 	lexer.emit(toEmit)
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // lexSpace is a state function for the lexer. It scans the input for spaces
@@ -207,7 +208,7 @@ func lexSpace(lexer *lexerState) stateFunction {
 		lexer.next()
 	}
 	lexer.emit(tokenKindSpace)
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // isSpace reports whether the currentChar is a space character.
@@ -222,8 +223,8 @@ func isEOL(currentChar rune) bool {
 	return currentChar == '\r' || currentChar == '\n'
 }
 
-// isAlphaNumeric reports whether the currentChar is an alphabetic, digit, or underscore.
-// It checks if the currentChar is an underscore ('_'), a hyphen ('-'), a letter, or a digit.
+// isAlphaNumeric reports whether currentChar may appear in a COBOL identifier:
+// a letter, a digit, an underscore, or a hyphen (data names are hyphenated).
 func isAlphaNumeric(currentChar rune) bool {
 	return currentChar == '_' || currentChar == '-' || unicode.IsLetter(currentChar) || unicode.IsDigit(currentChar)
 }
