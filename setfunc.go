@@ -68,7 +68,7 @@ func stringSetValueFunc(target reflect.Value, source string) error {
 // intSetValueFunc is a setValueFunc that converts the source string to an int
 // and sets the target to the resulting value.
 func intSetValueFunc(target reflect.Value, source string) error {
-	if len(source) < 1 {
+	if source == "" {
 		return nil
 	}
 	intValue, err := strconv.Atoi(source)
@@ -82,7 +82,7 @@ func intSetValueFunc(target reflect.Value, source string) error {
 // uintSetValueFunc is a setValueFunc that converts the source string to a uint
 // and sets the target to the resulting value.
 func uintSetValueFunc(target reflect.Value, source string) error {
-	if len(source) < 1 {
+	if source == "" {
 		return nil
 	}
 	uintValue, err := strconv.ParseUint(source, 10, 64)
@@ -97,7 +97,7 @@ func uintSetValueFunc(target reflect.Value, source string) error {
 // of the given bitSize and sets the target to the resulting value.
 func floatSetValueFunc(bitSize int) setValueFunc {
 	return func(target reflect.Value, source string) error {
-		if len(source) < 1 {
+		if source == "" {
 			return nil
 		}
 		floatValue, err := strconv.ParseFloat(source, bitSize)
@@ -114,15 +114,10 @@ func floatSetValueFunc(bitSize int) setValueFunc {
 // and each item is set on the corresponding index in the target slice.
 func arraySetValueFunc(length, itemCount int) setValueFunc {
 	return func(target reflect.Value, source string) error {
-		itemSize := length / itemCount
-		if len(source) == 0 {
+		if source == "" {
 			return nilSetValueFunc(target, source)
 		}
-
-		if target.IsNil() {
-			target.Set(reflect.MakeSlice(target.Type(), 0, 0))
-		}
-
+		itemSize := length / itemCount
 		newArray := reflect.MakeSlice(target.Type(), itemCount, itemCount)
 		setValueFunction := newSetValueFunc(target.Type().Elem(), 0, 0)
 		currentIndex := 1
@@ -130,11 +125,10 @@ func arraySetValueFunc(length, itemCount int) setValueFunc {
 			nextIndex := currentIndex + itemSize
 			value := newValFromLine(source, currentIndex, nextIndex-1)
 			if err := setValueFunction(newArray.Index(i), value); err != nil {
-				return fmt.Errorf("failed to set array data: %s %s", value, source)
+				return fmt.Errorf("failed to set array element %d (value %q): %w", i, value, err)
 			}
 			currentIndex = nextIndex
 		}
-
 		target.Set(newArray)
 		return nil
 	}
@@ -146,7 +140,7 @@ func arraySetValueFunc(length, itemCount int) setValueFunc {
 func pointerSetValueFunc(targetType reflect.Type) setValueFunc {
 	innerSetter := newSetValueFunc(targetType.Elem(), 0, 0)
 	return func(target reflect.Value, source string) error {
-		if len(source) == 0 {
+		if source == "" {
 			return nilSetValueFunc(target, source)
 		}
 		if target.IsNil() {
