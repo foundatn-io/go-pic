@@ -54,46 +54,60 @@ func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // g
 	return lexStatementTokens(lexer)
 }
 
-// lexPICToken lexes a PIC token.
+// lexPICToken consumes a full PIC clause token (e.g. "PIC X(10)" or
+// "PIC 9(9).9(2)") and emits a tokenKindPIC.
 //
-// TODO: revise this function, flow control is a mess.
-func lexPICToken(lexerState *lexerState) stateFunction {
-	var currentRune rune
+// Invariant on entry: the lexer has already consumed the 'P' that begins the
+// "PIC" keyword; the start position therefore includes "PIC …".
+//
+// Termination rules:
+//  1. A space followed by a non-PIC character (e.g. OCCURS) ends the token:
+//     backup past the space, emit, then hand off to lexSpace.
+//  2. A non-PIC character that is followed by another PIC character is an
+//     embedded separator (the explicit '.' in "9(9).9(2)"): skip it.
+//  3. Any other non-PIC character: backup, confirm we are sitting before the
+//     terminating '.', emit the token, and continue scanning.
+//  4. EOF or an unexpected character inside the PIC body: return an error.
+func lexPICToken(l *lexerState) stateFunction {
 	for {
-		currentRune = lexerState.next()
-		if !isPICChar(currentRune) {
-			// if after a pic character, we get a space it is likely
-			// there may be an OCCURS definition to follow, e.g.
-			// PIC X(10) OCCURS 12.
-			if isSpace(currentRune) {
-				switch nextRune := lexerState.peek(); {
-				case isPICChar(nextRune), isPICType(nextRune), nextRune == '.':
-					continue
+		r := l.next()
+		switch {
+		case isPICChar(r):
+			// Normal PIC character — keep accumulating.
 
-				default:
-					lexerState.backup()
-					lexerState.emit(tokenKindPIC)
-					return lexSpace(lexerState)
-				}
-			}
-			// if we've just reached the terminator '.'
-			// let's peek and see if it's actually an explicit decimal point
-			// e.g. PIC 9(9).9(2) -> 123456789.50
-			if isPICChar(lexerState.peek()) {
+		case isSpace(r):
+			// Space inside a PIC: look ahead to decide whether it is part of
+			// the PIC body or a boundary before OCCURS / REDEFINES.
+			next := l.peek()
+			if isPICChar(next) || isPICType(next) || next == '.' {
+				// Space is interior (e.g. "PIC X(10) .9(2)" is unusual but
+				// valid).  Skip and continue accumulating.
 				continue
 			}
-			if !lexerState.atPICTerminator() {
-				lexerState.backup()
-				break
+			// Space is a boundary — token ends before the space.
+			l.backup()
+			l.emit(tokenKindPIC)
+			return lexSpace(l)
+
+		default:
+			// Non-PIC, non-space character (e.g. an explicit decimal '.' or
+			// an unexpected char).
+			if isPICChar(l.peek()) {
+				// The separator between two PIC groups (e.g. the '.' in
+				// "9(9).9(2)") — continue accumulating.
+				continue
 			}
+			// We have reached the end of the PIC body.  Back up so that the
+			// next state function sees this character (typically the
+			// terminating '.').
+			l.backup()
+			if !l.atPICTerminator() {
+				return l.errorf("unexpected character %#U in PIC definition", r)
+			}
+			l.emit(tokenKindPIC)
+			return lexStatementTokens(l)
 		}
 	}
-
-	if !lexerState.atPICTerminator() {
-		return lexerState.errorf("bad character %#U", currentRune)
-	}
-	lexerState.emit(tokenKindPIC)
-	return lexStatementTokens(lexerState)
 }
 
 // lexRedefinesToken is a state function for the lexer. It scans the input for a

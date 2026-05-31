@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // Constants for float bit sizes.
@@ -23,6 +24,8 @@ func newSetValueFunc(targetType reflect.Type, picSize, occursSize int) setValueF
 	switch targetType.Kind() {
 	case reflect.String:
 		return stringSetValueFunc
+	case reflect.Bool:
+		return boolSetValueFunc
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return intSetValueFunc
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -65,6 +68,25 @@ func stringSetValueFunc(target reflect.Value, source string) error {
 	return nil
 }
 
+// boolSetValueFunc converts common COBOL boolean representations to Go bool.
+// Truthy:  "Y", "y", "T", "t", "1", "true", "TRUE", "True"
+// Falsy:   "N", "n", "F", "f", "0", "false", "FALSE", "False"
+// Empty source is treated as false (zero value).
+func boolSetValueFunc(target reflect.Value, source string) error {
+	if source == "" {
+		return nil
+	}
+	switch strings.ToUpper(strings.TrimSpace(source)) {
+	case "Y", "T", "1", "TRUE":
+		target.SetBool(true)
+	case "N", "F", "0", "FALSE":
+		target.SetBool(false)
+	default:
+		return fmt.Errorf("cannot convert %q to bool: expected Y/N, T/F, 1/0, or true/false", source)
+	}
+	return nil
+}
+
 // intSetValueFunc is a setValueFunc that converts the source string to an int
 // and sets the target to the resulting value.
 func intSetValueFunc(target reflect.Value, source string) error {
@@ -87,7 +109,7 @@ func uintSetValueFunc(target reflect.Value, source string) error {
 	}
 	uintValue, err := strconv.ParseUint(source, 10, 64)
 	if err != nil {
-		return fmt.Errorf("failed string->int conversion: %w", err)
+		return fmt.Errorf("failed string->uint conversion: %w", err)
 	}
 	target.SetUint(uintValue)
 	return nil

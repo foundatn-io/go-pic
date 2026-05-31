@@ -5,12 +5,19 @@ import (
 )
 
 var (
+	// picChars is the set of characters that may appear inside a PIC token,
+	// including the keyword letters (P, I, C), type symbols, and parentheses.
 	picChars = map[rune]struct{}{
-		'P': {}, 'I': {}, 'C': {}, leftParenthesis: {}, rightParenthesis: {}, 'X': {}, '9': {}, 'S': {}, 'V': {},
+		'P': {}, 'I': {}, 'C': {},
+		leftParenthesis: {}, rightParenthesis: {},
+		'X': {}, '9': {}, 'S': {}, 'V': {}, 'A': {},
 	}
 
+	// picTypes is the set of type-indicator characters that may follow a space
+	// inside a PIC token (used to distinguish a mid-token space from a token
+	// boundary before OCCURS or REDEFINES).
 	picTypes = map[rune]struct{}{
-		'X': {}, '9': {}, 'S': {}, 'V': {},
+		'X': {}, '9': {}, 'S': {}, 'V': {}, 'A': {},
 	}
 )
 
