@@ -103,19 +103,14 @@ func (lexer *lexerState) peek() rune {
 	return r
 }
 
-// lookAhead returns the rune at the specified position ahead in the input, without consuming any runes.
+// lookAhead returns the rune at offset i (1-based) ahead of the current position
+// without consuming input or modifying any lexer state.
 func (lexer *lexerState) lookAhead(i int) rune {
-	if int(lexer.pos) >= len(lexer.input) {
-		lexer.width = 0
+	pos := lexer.pos + Pos(i-1)
+	if int(pos) >= len(lexer.input) {
 		return endOfFile
 	}
-	r, width := utf8.DecodeRuneInString(lexer.input[lexer.pos+Pos(i-1):])
-	lexer.width = Pos(width)
-	lexer.pos += lexer.width
-	if r == '\n' {
-		lexer.line++
-	}
-	lexer.backup()
+	r, _ := utf8.DecodeRuneInString(lexer.input[pos:])
 	return r
 }
 
