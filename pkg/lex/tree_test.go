@@ -479,6 +479,87 @@ func Test_Parse(t *testing.T) {
 					},
 				},
 			},
+		}, {
+			// Level-77 items are standalone (cannot be subdivided) but parse
+			// identically to regular leaf PIC fields.
+			name: "Level77_standalone",
+			in: NewTree(New("test",
+				`000100 77  WORK-AREA     PIC X(20).  00000100
+000110 77  NUMERIC-WORK  PIC 9(4).   00000110
+`)),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 24,
+				Children: []*Record{
+					{Name: "WORK-AREA", Typ: reflect.String, Length: 20},
+					{Name: "NUMERIC-WORK", Typ: reflect.Uint, Length: 4},
+				},
+			},
+		}, {
+			// V (implicit decimal) contributes 0 physical bytes; type is Float64.
+			name: "PIC_V_implicitDecimal",
+			in: NewTree(New("test",
+				`000100     05  AMOUNT.                             00000100
+000110         10  AMT-VALUE   PIC 9(5)V9(2).   00000110
+`)),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 7,
+				Children: []*Record{{
+					Name:   "AMOUNT",
+					Typ:    reflect.Struct,
+					Length: 7,
+					Children: []*Record{
+						{Name: "AMT-VALUE", Typ: reflect.Float64, Length: 7},
+					},
+				}},
+			},
+		}, {
+			// S (sign) occupies 1 physical byte; type is Int (signed).
+			name: "PIC_S_signedInteger",
+			in: NewTree(New("test",
+				`000100     05  BALANCE   PIC S9(4).   00000100
+`)),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 5,
+				Children: []*Record{
+					{Name: "BALANCE", Typ: reflect.Int, Length: 5},
+				},
+			},
+		}, {
+			// A (alphabetic) — tests the 'A' picChar fix; PIC A and PIC A(N).
+			name: "PIC_A_alphabetic",
+			in: NewTree(New("test",
+				`000100     05  FIRST-NAME   PIC A(20).  00000100
+000110     05  INITIAL      PIC A.      00000110
+`)),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 21,
+				Children: []*Record{
+					{Name: "FIRST-NAME", Typ: reflect.String, Length: 20},
+					{Name: "INITIAL", Typ: reflect.String, Length: 1},
+				},
+			},
+		}, {
+			// P (assumed decimal scaling) contributes 0 physical bytes; type is Float64.
+			name: "PIC_P_assumedDecimal",
+			in: NewTree(New("test",
+				`000100     05  RATE   PIC PPP9(3).   00000100
+`)),
+			want: &Record{
+				Name:   "test",
+				Typ:    reflect.Struct,
+				Length: 3,
+				Children: []*Record{
+					{Name: "RATE", Typ: reflect.Float64, Length: 3},
+				},
+			},
 		},
 	}
 
