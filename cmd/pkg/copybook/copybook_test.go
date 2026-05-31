@@ -3,7 +3,6 @@ package copybook
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -73,7 +72,7 @@ func Test_Build(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.name, "main", template.Copybook())
 
-			b, err := ioutil.ReadAll(tt.input)
+			b, err := io.ReadAll(tt.input)
 			require.NoError(t, err)
 
 			lxr := lex.New(tt.name, string(b))

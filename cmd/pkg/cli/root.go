@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -159,7 +158,6 @@ func run(r io.Reader, output, pkg string, preview bool) error {
 		return fmt.Errorf("failed to read input data: %w", err)
 	}
 	tree := lex.NewTree(lex.New(n, string(b)))
-	time.Sleep(time.Millisecond)
 	c.Root, err = tree.Parse()
 	if err != nil {
 		return fmt.Errorf("failed to parse copybook: %w", err)
