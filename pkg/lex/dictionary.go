@@ -1,8 +1,5 @@
 package lex
 
-import (
-	"log"
-)
 
 type word []tokenKind
 
@@ -112,7 +109,6 @@ func init() { //nolint:gochecknoinits
 	for _, entry := range dictionary {
 		parsers.Insert(entry.wordPattern, entry.parseFunc, entry.lineType)
 	}
-	log.Println("trie preloaded")
 }
 
 // getWord constructs a word from a list of items

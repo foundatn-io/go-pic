@@ -1,8 +1,6 @@
 package lex
 
 import (
-	"fmt"
-	"log"
 	"unicode"
 )
 
@@ -49,12 +47,9 @@ func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // g
 	case currentRune <= unicode.MaxASCII && unicode.IsPrint(currentRune):
 		lexer.emit(tokenKindChar)
 	case currentRune == substituteHexElement:
-		log.Printf("found SUBSTITUTE rune")
 		lexer.emit(tokenKindEOF)
 	default:
-		errorMessage := fmt.Errorf("unrecognized character in action: %#U", currentRune)
-		log.Println(errorMessage)
-		return lexer.errorf(errorMessage.Error())
+		return lexer.errorf("unrecognized character in action: %#U", currentRune)
 	}
 	return lexStatementTokens(lexer)
 }
@@ -95,9 +90,7 @@ func lexPICToken(lexerState *lexerState) stateFunction {
 	}
 
 	if !lexerState.atPICTerminator() {
-		errorMessage := fmt.Errorf("bad character %#U", currentRune)
-		log.Println(errorMessage)
-		return lexerState.errorf(errorMessage.Error())
+		return lexerState.errorf("bad character %#U", currentRune)
 	}
 	lexerState.emit(tokenKindPIC)
 	return lexStatementTokens(lexerState)
@@ -138,9 +131,7 @@ func lexIdentifier(lexer *lexerState) stateFunction {
 	// When finished globbing alphanumeric characters, evaluate the word.
 	word := lexer.input[lexer.start:lexer.pos]
 	if !lexer.atTerminator() {
-		err := fmt.Errorf("bad character %#U", lexer.current())
-		log.Println(err)
-		return lexer.errorf(err.Error())
+		return lexer.errorf("bad character %#U", lexer.current())
 	}
 
 	toEmit := tokenKindIdentifier
@@ -161,9 +152,7 @@ func lexEnum(lexer *lexerState) stateFunction {
 	}
 
 	if !lexer.atEnumTerminator() {
-		err := fmt.Errorf("bad character %#U", lexer.current())
-		log.Println(err)
-		return lexer.errorf(err.Error())
+		return lexer.errorf("bad character %#U", lexer.current())
 	}
 
 	lexer.next()

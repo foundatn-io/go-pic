@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"reflect"
 )
 
@@ -20,7 +19,6 @@ type Tree struct {
 
 // NewTree creates a new parse tree with the provided lexer.
 func NewTree(inputLexer Lexer) *Tree {
-	log.Println("Building new parse tree")
 	root := &Record{Typ: reflect.Struct, Name: inputLexer.getName(), depthMap: make(map[string]*Record)}
 	return &Tree{
 		lexer:     inputLexer,
@@ -31,13 +29,11 @@ func NewTree(inputLexer Lexer) *Tree {
 
 // Parse processes the lexer tokens and returns the root record.
 func (tree *Tree) Parse() (*Record, error) {
-	log.Println("Parsing lexer tokens")
 	for lineTokens := tree.scanLine(); tree.currentToken.kind != tokenKindEOF; lineTokens = tree.scanLine() {
 		if line := buildLine(lineTokens); line != nil {
 			tree.lines = append(tree.lines, *line)
 		}
 	}
-	log.Println("Reached EOF token, input lexed.")
 	if err := tree.parseLines(tree.state); err != nil {
 		return nil, fmt.Errorf("error parsing lines: %w", err)
 	}
@@ -63,7 +59,6 @@ func (tree *Tree) parseLines(rootRecord *Record) error { //nolint: gocyclo // TO
 	for !errors.Is(tree.nextLine(), io.EOF) {
 		switch tree.currentLine.typ {
 		case lineJunk, lineEnum:
-			log.Printf("%s on copybook line %d resulted in no-op", tree.currentLine.typ, tree.lineIndex)
 			continue
 		case lineRedefines, lineMultilineRedefines, lineGroupRedefines:
 			if _, err := tree.currentLine.fn(tree, tree.currentLine, rootRecord); err != nil {

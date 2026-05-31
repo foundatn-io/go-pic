@@ -2,7 +2,6 @@ package lex
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 )
@@ -15,10 +14,9 @@ const (
 // and returns a new Record. It is used to parse different types of lines.
 type lineParser func(tree *Tree, currentLine line, rootRecord *Record) (*Record, error)
 
-// noop is a lineParser that logs a no-operation message and returns nil.
+// noop is a lineParser that does nothing and returns nil.
 // It is used when the current line does not require any action.
-func noop(tree *Tree, currentLine line, _ *Record) (*Record, error) {
-	log.Printf("%s on copybook line %d resulted in no-operation", currentLine.typ, tree.lineIndex)
+func noop(_ *Tree, _ line, _ *Record) (*Record, error) {
 	return nil, nil
 }
 
@@ -89,7 +87,7 @@ func parseGroupRedefinitions(tree *Tree, currentLine line, rootRecord *Record) (
 		return nil, fmt.Errorf("redefinition target %s does not exist", target)
 	}
 
-	if destination.depthMap == nil || len(destination.depthMap) == 0 {
+	if len(destination.depthMap) == 0 {
 		parent, seenGroup := rootRecord.depthMap[destination.depth]
 		if seenGroup {
 			copyDepthMap(parent, destination)
@@ -228,7 +226,7 @@ func delve(tree *Tree, rootRecord *Record, newRecord *Record) (*Record, error) {
 	parentRecord, seenGroup := rootRecord.depthMap[newRecord.depth]
 	if seenGroup {
 		parentRecord.Children = append(parentRecord.Children, newRecord)
-		if newRecord.depthMap == nil || len(newRecord.depthMap) == 0 {
+		if len(newRecord.depthMap) == 0 {
 			copyDepthMap(parentRecord, newRecord)
 		}
 		if err := tree.parseLines(newRecord); err != nil {
