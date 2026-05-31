@@ -10,12 +10,6 @@ import (
 	"strings"
 )
 
-// ErrNotAPointer is returned when the target object is not a pointer.
-var ErrNotAPointer = errors.New("decode: unmarshal target object is not a pointer")
-
-// ErrNilPointer is returned when the target object is nil.
-var ErrNilPointer = errors.New("decode: unmarshal target object is nil")
-
 type decoder struct {
 	s    *bufio.Scanner
 	done bool
