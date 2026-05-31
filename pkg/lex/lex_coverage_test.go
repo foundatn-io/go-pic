@@ -303,17 +303,27 @@ func Test_lexSignToken(t *testing.T) {
 		require.Equal(t, "SIGN IS TRAILING SEPARATE", sign.value)
 	})
 
-	t.Run("data name starting with S is not mistaken for SIGN", func(t *testing.T) {
+	// Data names that begin with S — including names made entirely of the
+	// letters in "SIGN" — must lex as identifiers, not be swallowed by the SIGN
+	// dispatch. (SIGN itself is a COBOL reserved word, so it is intentionally
+	// excluded as a data name, as are OCCURS and REDEFINES.)
+	t.Run("S-initial data names are not mistaken for SIGN", func(t *testing.T) {
 		t.Parallel()
-		toks := lexKinds("000110     05  STATUS      PIC X(2).   00000110\n")
-		var found bool
-		for _, tok := range toks {
-			require.NotEqual(t, tokenKindSIGN, tok.kind, "STATUS should not yield a SIGN token")
-			if tok.kind == tokenKindIdentifier && tok.value == "STATUS" {
-				found = true
-			}
+		for _, name := range []string{"STATUS", "SSSS", "SINGING", "SIGN-CODE", "SIGN-OF-THINGS"} {
+			name := name
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+				toks := lexKinds("000110     05  " + name + "      PIC X(2).   00000110\n")
+				var found bool
+				for _, tok := range toks {
+					require.NotEqual(t, tokenKindSIGN, tok.kind, "%s should not yield a SIGN token", name)
+					if tok.kind == tokenKindIdentifier && tok.value == name {
+						found = true
+					}
+				}
+				require.True(t, found, "expected %s to lex as an identifier", name)
+			})
 		}
-		require.True(t, found, "expected STATUS to lex as an identifier")
 	})
 }
 

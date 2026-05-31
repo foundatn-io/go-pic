@@ -33,12 +33,29 @@ func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // d
 			}
 			return lexIdentifier
 		}
+	// 'O', 'R' and 'S' begin the OCCURS / REDEFINES / SIGN clause keywords, but
+	// they also begin ordinary data names (OURS, RATE, STATUS, SINGING, …).
+	// Only divert to the clause scanner when the upcoming word is exactly the
+	// keyword; otherwise fall through to identifier lexing. backup() undoes the
+	// next() that read the first letter so the scanner sees the whole word.
 	case currentRune == 'O':
-		return lexOccursToken
+		lexer.backup()
+		if lexer.upcomingKeyword("OCCURS") {
+			return lexOccursToken
+		}
+		return lexIdentifier
 	case currentRune == 'R':
-		return lexRedefinesToken
+		lexer.backup()
+		if lexer.upcomingKeyword("REDEFINES") {
+			return lexRedefinesToken
+		}
+		return lexIdentifier
 	case currentRune == 'S':
-		return lexSignToken
+		lexer.backup()
+		if lexer.upcomingKeyword("SIGN") {
+			return lexSignToken
+		}
+		return lexIdentifier
 	case currentRune == '+' || currentRune == '-' || ('0' <= currentRune && currentRune <= '9'):
 		lexer.backup()
 		return lexNumber
@@ -123,13 +140,12 @@ func lexPICToken(l *lexerState) stateFunction {
 	}
 }
 
-// lexSignToken scans a SIGN clause and emits a single tokenKindSIGN. When the
-// 'S'-initial word is not the SIGN keyword (e.g. a data name like STATUS) it
-// emits nothing and identifier lexing recovers the word.
+// lexSignToken scans a SIGN clause and emits a single tokenKindSIGN spanning
+// the whole clause. It is reached only when the dispatcher's upcomingKeyword
+// check has already confirmed the SIGN keyword.
 func lexSignToken(lexer *lexerState) stateFunction {
-	if lexer.scanSignClause() {
-		lexer.emit(tokenKindSIGN)
-	}
+	lexer.scanSignClause()
+	lexer.emit(tokenKindSIGN)
 	return lexStatementTokens
 }
 

@@ -202,23 +202,17 @@ func (lexer *lexerState) scanOccursToken() (bool, error) {
 	return true, nil
 }
 
-// scanSignClause scans a SIGN clause that follows a PIC definition — for
-// example "SIGN IS TRAILING SEPARATE" or "SIGN LEADING SEPARATE CHARACTER".
-// On success it consumes the whole clause up to (but not including) the
-// terminating period or EOL and returns true. If the word starting with 'S' is
-// not the SIGN keyword (e.g. a data name like STATUS), it returns false without
-// emitting so identifier lexing can recover the word — mirroring
-// scanOccursToken.
-func (lexer *lexerState) scanSignClause() bool {
+// scanSignClause consumes a SIGN clause that follows a PIC definition — for
+// example "SIGN IS TRAILING SEPARATE" or "SIGN LEADING SEPARATE CHARACTER" —
+// up to (but not including) the terminating period or EOL. It is reached only
+// after upcomingKeyword has confirmed the SIGN keyword, so the keyword test
+// here is just to consume those letters.
+func (lexer *lexerState) scanSignClause() {
 	lexer.acceptRun("SIGN")
-	if !isSpace(lexer.peek()) {
-		lexer.next()
-		return false
-	}
 	for {
 		switch r := lexer.peek(); {
 		case r == picRight, isEOL(r), r == endOfFile:
-			return true
+			return
 		default:
 			lexer.next()
 		}
