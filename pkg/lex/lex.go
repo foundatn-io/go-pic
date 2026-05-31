@@ -111,7 +111,7 @@ func lexRedefinesToken(lexer *lexerState) stateFunction {
 func lexOccursToken(lexer *lexerState) stateFunction {
 	valid, err := lexer.scanOccursToken()
 	if err != nil {
-		return lexer.errorf(err.Error())
+		return lexer.errorf("%s", err.Error())
 	}
 	if valid {
 		lexer.emit(tokenKindOCCURS)
