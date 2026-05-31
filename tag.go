@@ -15,7 +15,6 @@ const (
 	ignoreTagValue = "-"
 
 	omitIndicator   = 1
-	simpleIndicator = 2 //nolint:deadcode,varcheck // is unused but kept for clarity
 	occursIndicator = 3
 )
 
