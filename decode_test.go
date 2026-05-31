@@ -8,6 +8,7 @@ import (
 )
 
 func TestUnmarshal_Omit(t *testing.T) {
+	t.Parallel()
 	type stuff struct {
 		String string  `pic:"1,5"`
 		Int    int     `pic:"-"`
@@ -25,6 +26,7 @@ func TestUnmarshal_Omit(t *testing.T) {
 }
 
 func TestUnmarshal_OmitArray(t *testing.T) {
+	t.Parallel()
 	type stuff struct {
 		String string  `pic:"1,5"`
 		Int    []int   `pic:"-"`
@@ -42,6 +44,7 @@ func TestUnmarshal_OmitArray(t *testing.T) {
 }
 
 func TestUnmarshal_OmitStruct(t *testing.T) {
+	t.Parallel()
 	type abcde struct {
 		A int `pic:"1,1"`
 		B int `pic:"2,2"`
@@ -67,22 +70,19 @@ func TestUnmarshal_OmitStruct(t *testing.T) {
 }
 
 func TestUnmarshal_Other(t *testing.T) {
-	t.Run("Field Length 1", func(t *testing.T) {
+	t.Parallel()
+
+	t.Run("FieldLength1", func(t *testing.T) {
+		t.Parallel()
 		var st = struct {
 			F1 string `pic:"1,1"`
 		}{}
-
-		err := Unmarshal([]byte("v"), &st)
-		if err != nil {
-			t.Errorf("Unmarshal() err %v", err)
-		}
-
-		if st.F1 != "v" {
-			t.Errorf("Unmarshal() want %v, have %v", "v", st.F1)
-		}
+		require.NoError(t, Unmarshal([]byte("v"), &st))
+		require.Equal(t, "v", st.F1)
 	})
 
-	t.Run("Replicate basic OCCURS clauses", func(t *testing.T) {
+	t.Run("BasicOCCURS_primitives", func(t *testing.T) {
+		t.Parallel()
 		type basicWithOccurs struct {
 			String    string `pic:"1,5"`
 			Int       int    `pic:"6,10"`
@@ -90,12 +90,12 @@ func TestUnmarshal_Other(t *testing.T) {
 		}
 		expect := &basicWithOccurs{"foo", 123, []int{12, 34, 56}}
 		got := &basicWithOccurs{}
-		err := Unmarshal([]byte("foo  123  123456"), got)
-		require.NoError(t, err)
+		require.NoError(t, Unmarshal([]byte("foo  123  123456"), got))
 		require.Equal(t, expect, got)
 	})
 
-	t.Run("Replicate basic OCCURS clauses", func(t *testing.T) {
+	t.Run("BasicOCCURS_structs", func(t *testing.T) {
+		t.Parallel()
 		type dummy struct {
 			A int `pic:"1,1"`
 			B int `pic:"2,2"`
@@ -107,28 +107,31 @@ func TestUnmarshal_Other(t *testing.T) {
 		}
 		expect := &basicWithOccursStruct{"foo", 123, []dummy{{A: 1, B: 2}, {A: 3, B: 4}, {A: 5, B: 6}}}
 		got := &basicWithOccursStruct{}
-		err := Unmarshal([]byte("foo  123  123456"), got)
-		require.NoError(t, err)
+		require.NoError(t, Unmarshal([]byte("foo  123  123456"), got))
 		require.Equal(t, expect, got)
 	})
 
-	t.Run("Invalid Unmarshal Errors", func(t *testing.T) {
+	t.Run("InvalidUnmarshalErrors", func(t *testing.T) {
+		t.Parallel()
 		for _, test := range []struct {
 			name      string
 			v         interface{}
 			shouldErr bool
 		}{
-			{"Invalid Unmarshal Nil", nil, true},
-			{"Invalid Unmarshal Not Pointer 1", struct{}{}, true},
-			{"Invalid Unmarshal Not Pointer 2", []struct{}{}, true},
-			{"Valid Unmarshal slice", &[]struct{}{}, false},
-			{"Valid Unmarshal struct", &struct{}{}, true},
+			{"Nil", nil, true},
+			{"NotPointer_struct", struct{}{}, true},
+			{"NotPointer_slice", []struct{}{}, true},
+			{"ValidSlice", &[]struct{}{}, false},
+			{"ValidStruct_emptyInput", &struct{}{}, true}, // EOF on empty input
 		} {
 			tt := test
 			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
 				err := Unmarshal([]byte{}, tt.v)
-				if tt.shouldErr != (err != nil) {
-					t.Errorf("Unmarshal() err want %v, have %v (%v)", tt.shouldErr, err != nil, err)
+				if tt.shouldErr {
+					require.Error(t, err)
+				} else {
+					require.NoError(t, err)
 				}
 			})
 		}
@@ -136,6 +139,8 @@ func TestUnmarshal_Other(t *testing.T) {
 }
 
 func TestUnmarshal(t *testing.T) {
+	t.Parallel()
+
 	type basicTypes struct {
 		String string  `pic:"1,5"`
 		Int    int     `pic:"6,10"`
@@ -186,15 +191,15 @@ func TestUnmarshal(t *testing.T) {
 		err      error
 	}{
 		{
-			name:   "Slice Case (no trailing new line)",
-			val:    []byte("foo  123  1.2  " + "\n" + "bar  321  2.1  "), //nolint:goconst // test case
+			name:   "SliceCase_noTrailingNewline",
+			val:    []byte("foo  123  1.2  " + "\n" + "bar  321  2.1  "),
 			target: &[]basicTypes{},
 			expected: &[]basicTypes{
 				{"foo", 123, 1.2},
 				{"bar", 321, 2.1},
 			},
 		}, {
-			name:   "Slice Case (trailing new line)",
+			name:   "SliceCase_trailingNewline",
 			val:    []byte("foo  123  1.2  " + "\n" + "bar  321  2.1  " + "\n"),
 			target: &[]basicTypes{},
 			expected: &[]basicTypes{
@@ -202,7 +207,7 @@ func TestUnmarshal(t *testing.T) {
 				{"bar", 321, 2.1},
 			},
 		}, {
-			name:   "Slice Case (blank line mid file)",
+			name:   "SliceCase_blankLineMidFile",
 			val:    []byte("foo  123  1.2  " + "\n" + "\n" + "bar  321  2.1  " + "\n"),
 			target: &[]basicTypes{},
 			expected: &[]basicTypes{
@@ -211,30 +216,30 @@ func TestUnmarshal(t *testing.T) {
 				{"bar", 321, 2.1},
 			},
 		}, {
-			name:     "Basic Struct Case",
+			name:     "BasicStruct",
 			val:      []byte("foo  123  1.2  "),
 			target:   &basicTypes{},
 			expected: &basicTypes{"foo", 123, 1.2},
 		}, {
-			name:     "Unmarshal Error",
+			name:     "UnmarshalError_badTypes",
 			val:      []byte("foo  nan  ddd  "),
 			target:   &basicTypes{},
 			expected: &basicTypes{},
 			err:      fmt.Errorf("unmarshal: pic: cannot unmarshal foo  nan  ddd   into Go struct field basicTypes.Int of type int: failed string->int conversion: strconv.Atoi: parsing \"nan\": invalid syntax"),
 		}, {
-			name:     "Empty Line",
+			name:     "EmptyLine_EOF",
 			val:      []byte(""),
 			target:   &basicTypes{},
 			expected: &basicTypes{},
 			err:      fmt.Errorf("unmarshal: EOF"),
 		}, {
-			name:     "Invalid Target",
+			name:     "InvalidTarget_notPointer",
 			val:      []byte("foo  123  1.2  "),
 			target:   basicTypes{},
 			expected: basicTypes{},
 			err:      fmt.Errorf("unmarshal: decode: unmarshal target object is not a pointer"),
 		}, {
-			name:   "offsetcheck",
+			name:   "OccursOffset",
 			val:    []byte("000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 00000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 000000000.00 "),
 			target: &occursOffset{},
 			expected: &occursOffset{
@@ -260,7 +265,7 @@ func TestUnmarshal(t *testing.T) {
 					"000000000.00"},
 			},
 		}, {
-			name:   "BasicStructUnpack",
+			name:   "NestedStruct",
 			val:    []byte("thirteen13131thirteen13131ABCDE"),
 			target: &nestedStruct{},
 			expected: &nestedStruct{
@@ -269,7 +274,7 @@ func TestUnmarshal(t *testing.T) {
 				C: C{CA: []string{"A", "B", "C", "D", "E"}},
 			},
 		}, {
-			name:   "MultiNestedStructUnpack",
+			name:   "MultiNestedStruct",
 			val:    []byte("thirteen13131thirteen13131ABCDEAA"),
 			target: &multiNestedStruct{},
 			expected: &multiNestedStruct{
@@ -281,6 +286,7 @@ func TestUnmarshal(t *testing.T) {
 	} {
 		tt := test
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := Unmarshal(tt.val, tt.target)
 			if tt.err != nil || err != nil {
 				require.EqualError(t, err, tt.err.Error())
@@ -289,4 +295,34 @@ func TestUnmarshal(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewValFromLine(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name       string
+		line       string
+		start, end int
+		want       string
+	}{
+		{"empty line", "", 1, 5, ""},
+		{"start beyond length", "abc", 10, 15, ""},
+		{"end clipped to length", "hello", 1, 100, "hello"},
+		{"normal extract", "hello world", 7, 11, "world"},
+		{"single char", "abc", 2, 2, "b"},
+		{"trims spaces", "  hi  ", 1, 6, "hi"},
+	} {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, newValFromLine(tt.line, tt.start, tt.end))
+		})
+	}
+}
+
+func TestUnmarshalTypeError_Unwrap(t *testing.T) {
+	t.Parallel()
+	cause := fmt.Errorf("underlying cause")
+	e := &UnmarshalTypeError{Cause: cause}
+	require.ErrorIs(t, e, cause)
 }
