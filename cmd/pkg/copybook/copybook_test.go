@@ -3,7 +3,6 @@ package copybook
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -73,7 +72,7 @@ func Test_Build(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.name, "main", template.Copybook())
 
-			b, err := ioutil.ReadAll(tt.input)
+			b, err := io.ReadAll(tt.input)
 			require.NoError(t, err)
 
 			lxr := lex.New(tt.name, string(b))
@@ -86,4 +85,23 @@ func Test_Build(t *testing.T) {
 			require.NotEmpty(t, buf)
 		})
 	}
+}
+
+func Test_Preview(t *testing.T) {
+	input := strings.NewReader(`000160     05  DUMMY-GROUP-1.                   00000115
+000170         10  DUMMY-SUB-GROUP-1.              00000116
+000180             15  DUMMY-GROUP-1-OBJECT-A   PIC 9.   00000117
+000190             15  DUMMY-GROUP-1-OBJECT-B   PIC X.   00000118
+`)
+	b, err := io.ReadAll(input)
+	require.NoError(t, err)
+
+	c := New("preview_test", "main", template.Copybook())
+	lxr := lex.New("preview_test", string(b))
+	tree := lex.NewTree(lxr)
+	c.Root, err = tree.Parse()
+	require.NoError(t, err)
+
+	// Preview writes to the log; we just ensure it doesn't panic or error.
+	require.NotPanics(t, func() { c.Preview() })
 }

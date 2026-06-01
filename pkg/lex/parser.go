@@ -2,7 +2,6 @@ package lex
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 )
@@ -11,58 +10,96 @@ const (
 	picPrefix = "PIC "
 )
 
+// Token positions within the recognized line patterns (see dictionary.go).
+// Every pattern is a fixed sequence of token kinds, so the parser addresses a
+// field by its index in that sequence rather than by re-scanning.
+const (
+	// Common leading layout of number-delimited lines:
+	//   [0]seq# [1]space [2]level [3]space [4]name ...
+	idxLevel = 2
+	idxName  = 4
+
+	// picPattern and occursPattern both carry the PIC clause at index 6:
+	//   ... [4]name [5]space [6]"PIC X(n)" ...
+	idxPICClause = 6
+	// picSignPattern: ... [6]"PIC S9(n)" [7]space [8]"SIGN … SEPARATE" ...
+	idxSignClause = 8
+	// occursPattern: ... [6]"PIC X(n)" [7]space [8]"OCCURS n." ...
+	idxOccursClause = 8
+
+	// redefinesPattern: ... [8]targetName [9]space [10]"PIC X(n)" ...
+	idxRedefinesTarget = 8
+	idxRedefinesPIC    = 10
+
+	// groupRedefinesPattern: ... [8]"targetName." (trailing dot, no PIC) ...
+	idxGroupRedefinesTarget = 8
+)
+
 // lineParser is a function type that takes a Tree, a line, and a Record,
 // and returns a new Record. It is used to parse different types of lines.
 type lineParser func(tree *Tree, currentLine line, rootRecord *Record) (*Record, error)
 
-// noop is a lineParser that logs a no-operation message and returns nil.
+// noop is a lineParser that does nothing and returns nil.
 // It is used when the current line does not require any action.
-func noop(tree *Tree, currentLine line, _ *Record) (*Record, error) {
-	log.Printf("%s on copybook line %d resulted in no-operation", currentLine.typ, tree.lineIndex)
+func noop(_ *Tree, _ line, _ *Record) (*Record, error) {
 	return nil, nil
 }
 
-// parsePIC is a lineParser that builds a Record from a PIC definition line.
-// It extracts the picture number definition, calculates its length, and
-// creates a new Record with this information.
-//
-// TODO: explain magic number 6, 4, 2
-func parsePIC(_ *Tree, currentLine line, _ *Record) (*Record, error) {
-	pictureNumberDefinition := currentLine.tokens[6].value[len(picPrefix):]
-	length, err := parsePICCount(pictureNumberDefinition)
+// parsePIC builds a Record from a plain PIC definition line, deriving the
+// field's Go type and byte length from its picture clause.
+func parsePIC(tree *Tree, currentLine line, _ *Record) (*Record, error) {
+	pictureNumberDefinition := currentLine.tokens[idxPICClause].value[len(picPrefix):]
+	length, err := parsePICCount(pictureNumberDefinition, tree.signSeparate)
 	if err != nil {
 		return nil, err
 	}
 	return &Record{
 		depthMap: map[string]*Record{},
-		Name:     currentLine.tokens[4].value,
+		Name:     currentLine.tokens[idxName].value,
 		Length:   length,
-		depth:    currentLine.tokens[2].value,
+		depth:    currentLine.tokens[idxLevel].value,
 		Typ:      parsePICType(pictureNumberDefinition),
 	}, nil
 }
 
-// parseRedefinitions is a lineParser that builds a Record from a REDEFINES
-// definition line. It extracts the picture number definition, calculates its
-// length, and creates a new Record with this information. It then replaces
-// the redefinition target in the root Record with the new Record.
-//
-// TODO: explain magic number 10, 8
-func parseRedefinitions(_ *Tree, currentLine line, rootRecord *Record) (*Record, error) {
-	pictureNumberDefinition := currentLine.tokens[10].value[len(picPrefix):]
-	length, err := parsePICCount(pictureNumberDefinition)
+// parsePICSign builds a Record from a PIC line that carries a SIGN clause. The
+// clause is authoritative for this field: SIGN … SEPARATE reserves a sign byte,
+// any other SIGN form is an overpunch (zero bytes), regardless of the
+// copybook-wide WithSignSeparate default.
+func parsePICSign(_ *Tree, currentLine line, _ *Record) (*Record, error) {
+	pictureNumberDefinition := currentLine.tokens[idxPICClause].value[len(picPrefix):]
+	separate := strings.Contains(currentLine.tokens[idxSignClause].value, "SEPARATE")
+	length, err := parsePICCount(pictureNumberDefinition, separate)
+	if err != nil {
+		return nil, err
+	}
+	return &Record{
+		depthMap: map[string]*Record{},
+		Name:     currentLine.tokens[idxName].value,
+		Length:   length,
+		depth:    currentLine.tokens[idxLevel].value,
+		Typ:      parsePICType(pictureNumberDefinition),
+	}, nil
+}
+
+// parseRedefinitions builds a Record from a REDEFINES line that carries its own
+// PIC clause, then overlays it onto the redefinition target already held in the
+// root Record.
+func parseRedefinitions(tree *Tree, currentLine line, rootRecord *Record) (*Record, error) {
+	pictureNumberDefinition := currentLine.tokens[idxRedefinesPIC].value[len(picPrefix):]
+	length, err := parsePICCount(pictureNumberDefinition, tree.signSeparate)
 	if err != nil {
 		return nil, err
 	}
 
 	newRecord := &Record{
 		depthMap: map[string]*Record{},
-		Name:     currentLine.tokens[4].value,
+		Name:     currentLine.tokens[idxName].value,
 		Length:   length,
 		Typ:      parsePICType(pictureNumberDefinition),
 	}
 
-	target := currentLine.tokens[8].value
+	target := currentLine.tokens[idxRedefinesTarget].value
 	destination, index, err := rootRecord.fromCache(target)
 	if err != nil {
 		return nil, err
@@ -70,17 +107,15 @@ func parseRedefinitions(_ *Tree, currentLine line, rootRecord *Record) (*Record,
 	if destination == nil {
 		return nil, fmt.Errorf("redefinition target %s does not exist", target)
 	}
-	return rootRecord.redefine(index, destination, newRecord)
+	return rootRecord.redefine(index, destination, newRecord), nil
 }
 
-// parseGroupRedefinitions is a lineParser that builds a Record from a
-// REDEFINES definition line for groups. It creates a new Record and replaces
-// the redefinition target in the root Record with the new Record.
-//
-// TODO: explain magic numbers 8, 4, 2
+// parseGroupRedefinitions builds a struct Record from a REDEFINES line that
+// targets a group (no PIC clause). It overlays the new group onto the target in
+// the root Record and recurses to parse the group's children.
 func parseGroupRedefinitions(tree *Tree, currentLine line, rootRecord *Record) (*Record, error) {
 	// Trim the trailing period from the target name, if present
-	target := strings.TrimSuffix(currentLine.tokens[8].value, ".")
+	target := strings.TrimSuffix(currentLine.tokens[idxGroupRedefinesTarget].value, ".")
 	destination, index, err := rootRecord.fromCache(target)
 	if err != nil {
 		return nil, err
@@ -89,7 +124,7 @@ func parseGroupRedefinitions(tree *Tree, currentLine line, rootRecord *Record) (
 		return nil, fmt.Errorf("redefinition target %s does not exist", target)
 	}
 
-	if destination.depthMap == nil || len(destination.depthMap) == 0 {
+	if len(destination.depthMap) == 0 {
 		parent, seenGroup := rootRecord.depthMap[destination.depth]
 		if seenGroup {
 			copyDepthMap(parent, destination)
@@ -98,18 +133,15 @@ func parseGroupRedefinitions(tree *Tree, currentLine line, rootRecord *Record) (
 	}
 
 	newRecord := &Record{
-		Name:     currentLine.tokens[4].value,
+		Name:     currentLine.tokens[idxName].value,
 		Typ:      reflect.Struct,
-		depth:    currentLine.tokens[2].value,
+		depth:    currentLine.tokens[idxLevel].value,
 		depthMap: destination.depthMap,
 	}
 
 	rootRecord.Length -= destination.Length
 
-	newRecord, err = rootRecord.redefine(index, destination, newRecord)
-	if err != nil {
-		return nil, err
-	}
+	newRecord = rootRecord.redefine(index, destination, newRecord)
 	if err := tree.parseLines(newRecord); err != nil {
 		return nil, err
 	}
@@ -117,26 +149,23 @@ func parseGroupRedefinitions(tree *Tree, currentLine line, rootRecord *Record) (
 	return newRecord, nil
 }
 
-// parseOccurs is a lineParser that builds a Record from an OCCURS definition
-// line. It extracts the picture number definition and occurrence count,
-// calculates the length, and creates a new Record with this information.
-//
-// TODO: explain magic numbers 6, 4, 2, 8
-func parseOccurs(_ *Tree, currentLine line, _ *Record) (*Record, error) {
-	pictureNumberDefinition := strings.TrimSpace(currentLine.tokens[6].value)[len(picPrefix):]
-	length, err := parsePICCount(pictureNumberDefinition)
+// parseOccurs builds a Record from an OCCURS line, capturing both the element's
+// PIC length and its repetition count.
+func parseOccurs(tree *Tree, currentLine line, _ *Record) (*Record, error) {
+	pictureNumberDefinition := strings.TrimSpace(currentLine.tokens[idxPICClause].value)[len(picPrefix):]
+	length, err := parsePICCount(pictureNumberDefinition, tree.signSeparate)
 	if err != nil {
 		return nil, err
 	}
-	occurrenceCount, err := parseOccursCount(currentLine.tokens[8])
+	occurrenceCount, err := parseOccursCount(currentLine.tokens[idxOccursClause])
 	if err != nil {
 		return nil, err
 	}
 	return &Record{
-		Name:     currentLine.tokens[4].value,
+		Name:     currentLine.tokens[idxName].value,
 		Length:   length,
 		Occurs:   occurrenceCount,
-		depth:    currentLine.tokens[2].value,
+		depth:    currentLine.tokens[idxLevel].value,
 		depthMap: map[string]*Record{},
 		Typ:      parsePICType(pictureNumberDefinition),
 	}, nil
@@ -149,12 +178,12 @@ func parseRedefinesMulti(tree *Tree, currentLine line, rootRecord *Record) (*Rec
 	if err := tree.nextLine(); err != nil {
 		return nil, err
 	}
-	_, index, ok := basicParserGet(tree.currentLine.tokens)
-	if !ok || !equalWord(getWord(index), multiRedefinesPartPattern) {
+	continuation := tree.currentLine.tokens
+	if !equalWord(getWord(continuation), multiRedefinesPartPattern) {
 		return nil, fmt.Errorf("parser indicated multi-line redefinition, but failed to verify next line")
 	}
-	currentLine.tokens = lineFromMultiRedefines(currentLine.tokens, index)
-	return parseRedefinitions(nil, currentLine, rootRecord)
+	currentLine.tokens = lineFromMultiRedefines(currentLine.tokens, continuation)
+	return parseRedefinitions(tree, currentLine, rootRecord)
 }
 
 // parseOccursMulti is a lineParser that builds a Record from a multi-line
@@ -164,12 +193,12 @@ func parseOccursMulti(tree *Tree, currentLine line, _ *Record) (*Record, error) 
 	if err := tree.nextLine(); err != nil {
 		return nil, err
 	}
-	_, index, ok := basicParserGet(tree.currentLine.tokens)
-	if !ok || !equalWord(getWord(index), multiOccursPartPattern) {
-		return nil, fmt.Errorf("parser indicated multi-line occurs, but failed to verify next line: %v", tree.currentLine.tokens)
+	continuation := tree.currentLine.tokens
+	if !equalWord(getWord(continuation), multiOccursPartPattern) {
+		return nil, fmt.Errorf("parser indicated multi-line occurs, but failed to verify next line: %v", continuation)
 	}
-	currentLine.tokens = lineFromMultiOccurs(currentLine.tokens, index)
-	return parseOccurs(nil, currentLine, nil)
+	currentLine.tokens = lineFromMultiOccurs(currentLine.tokens, continuation)
+	return parseOccurs(tree, currentLine, nil)
 }
 
 func parseDelimitedStruct(tree *Tree, currentLine line, rootRecord *Record, recordIndicatorIndex, nameIndex, groupIndex int) (*Record, error) {
@@ -179,12 +208,9 @@ func parseDelimitedStruct(tree *Tree, currentLine line, rootRecord *Record, reco
 	return parseStruct(tree, currentLine, rootRecord, nameIndex, groupIndex)
 }
 
-// parseNumDelimitedStruct is a function that parses a struct from a line
-// that is delimited by numbers. It checks if the line is a record description,
-// and if so, it returns a noop. Otherwise, it calls parseStruct with the
-// appropriate indices for the name and group.
-//
-// TODO: explain magic numbers 2, 4, 2
+// parseNumDelimitedStruct parses a group header that begins with a sequence
+// number (numDelimitedStructPattern: [0]seq# [1]space [2]level [3]space
+// [4]name ...). The level doubles as the group key.
 func parseNumDelimitedStruct(tree *Tree, currentLine line, rootRecord *Record) (*Record, error) {
 	var (
 		recordIndicatorIndex = 2
@@ -228,7 +254,7 @@ func delve(tree *Tree, rootRecord *Record, newRecord *Record) (*Record, error) {
 	parentRecord, seenGroup := rootRecord.depthMap[newRecord.depth]
 	if seenGroup {
 		parentRecord.Children = append(parentRecord.Children, newRecord)
-		if newRecord.depthMap == nil || len(newRecord.depthMap) == 0 {
+		if len(newRecord.depthMap) == 0 {
 			copyDepthMap(parentRecord, newRecord)
 		}
 		if err := tree.parseLines(newRecord); err != nil {

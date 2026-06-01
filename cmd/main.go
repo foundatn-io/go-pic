@@ -1,3 +1,4 @@
+// Command gopic generates Go struct representations from COBOL copybook files.
 package main
 
 import (

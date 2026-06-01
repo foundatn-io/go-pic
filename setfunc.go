@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // Constants for float bit sizes.
@@ -19,10 +20,12 @@ type setValueFunc func(target reflect.Value, source string) error
 
 // newSetValueFunc returns a setValueFunc appropriate for the given targetType.
 // picSize and occursSize are used for slice types to determine the size of the slice.
-func newSetValueFunc(targetType reflect.Type, picSize, occursSize int) setValueFunc {
+func newSetValueFunc(targetType reflect.Type, picSize, occursSize int) setValueFunc { //nolint:gocyclo // one arm per reflect.Kind
 	switch targetType.Kind() {
 	case reflect.String:
 		return stringSetValueFunc
+	case reflect.Bool:
+		return boolSetValueFunc
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return intSetValueFunc
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -33,7 +36,7 @@ func newSetValueFunc(targetType reflect.Type, picSize, occursSize int) setValueF
 		return floatSetValueFunc(float64BitSize)
 	case reflect.Slice:
 		return arraySetValueFunc(picSize, occursSize)
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return pointerSetValueFunc(targetType)
 	case reflect.Interface:
 		return interfaceSetValueFunc
@@ -65,10 +68,29 @@ func stringSetValueFunc(target reflect.Value, source string) error {
 	return nil
 }
 
+// boolSetValueFunc converts common COBOL boolean representations to Go bool.
+// Truthy:  "Y", "y", "T", "t", "1", "true", "TRUE", "True"
+// Falsy:   "N", "n", "F", "f", "0", "false", "FALSE", "False"
+// Empty source is treated as false (zero value).
+func boolSetValueFunc(target reflect.Value, source string) error {
+	if source == "" {
+		return nil
+	}
+	switch strings.ToUpper(strings.TrimSpace(source)) {
+	case "Y", "T", "1", "TRUE":
+		target.SetBool(true)
+	case "N", "F", "0", "FALSE":
+		target.SetBool(false)
+	default:
+		return fmt.Errorf("cannot convert %q to bool: expected Y/N, T/F, 1/0, or true/false", source)
+	}
+	return nil
+}
+
 // intSetValueFunc is a setValueFunc that converts the source string to an int
 // and sets the target to the resulting value.
 func intSetValueFunc(target reflect.Value, source string) error {
-	if len(source) < 1 {
+	if source == "" {
 		return nil
 	}
 	intValue, err := strconv.Atoi(source)
@@ -82,12 +104,12 @@ func intSetValueFunc(target reflect.Value, source string) error {
 // uintSetValueFunc is a setValueFunc that converts the source string to a uint
 // and sets the target to the resulting value.
 func uintSetValueFunc(target reflect.Value, source string) error {
-	if len(source) < 1 {
+	if source == "" {
 		return nil
 	}
 	uintValue, err := strconv.ParseUint(source, 10, 64)
 	if err != nil {
-		return fmt.Errorf("failed string->int conversion: %w", err)
+		return fmt.Errorf("failed string->uint conversion: %w", err)
 	}
 	target.SetUint(uintValue)
 	return nil
@@ -97,7 +119,7 @@ func uintSetValueFunc(target reflect.Value, source string) error {
 // of the given bitSize and sets the target to the resulting value.
 func floatSetValueFunc(bitSize int) setValueFunc {
 	return func(target reflect.Value, source string) error {
-		if len(source) < 1 {
+		if source == "" {
 			return nil
 		}
 		floatValue, err := strconv.ParseFloat(source, bitSize)
@@ -114,15 +136,13 @@ func floatSetValueFunc(bitSize int) setValueFunc {
 // and each item is set on the corresponding index in the target slice.
 func arraySetValueFunc(length, itemCount int) setValueFunc {
 	return func(target reflect.Value, source string) error {
-		itemSize := length / itemCount
-		if len(source) == 0 {
+		if source == "" {
 			return nilSetValueFunc(target, source)
 		}
-
-		if target.IsNil() {
-			target.Set(reflect.MakeSlice(target.Type(), 0, 0))
+		if itemCount <= 0 {
+			return fmt.Errorf("slice field requires a positive occurs count (3rd pic tag element), got %d", itemCount)
 		}
-
+		itemSize := length / itemCount
 		newArray := reflect.MakeSlice(target.Type(), itemCount, itemCount)
 		setValueFunction := newSetValueFunc(target.Type().Elem(), 0, 0)
 		currentIndex := 1
@@ -130,11 +150,10 @@ func arraySetValueFunc(length, itemCount int) setValueFunc {
 			nextIndex := currentIndex + itemSize
 			value := newValFromLine(source, currentIndex, nextIndex-1)
 			if err := setValueFunction(newArray.Index(i), value); err != nil {
-				return fmt.Errorf("failed to set array data: %s %s", value, source)
+				return fmt.Errorf("failed to set array element %d (value %q): %w", i, value, err)
 			}
 			currentIndex = nextIndex
 		}
-
 		target.Set(newArray)
 		return nil
 	}
@@ -146,7 +165,7 @@ func arraySetValueFunc(length, itemCount int) setValueFunc {
 func pointerSetValueFunc(targetType reflect.Type) setValueFunc {
 	innerSetter := newSetValueFunc(targetType.Elem(), 0, 0)
 	return func(target reflect.Value, source string) error {
-		if len(source) == 0 {
+		if source == "" {
 			return nilSetValueFunc(target, source)
 		}
 		if target.IsNil() {
@@ -156,11 +175,21 @@ func pointerSetValueFunc(targetType reflect.Type) setValueFunc {
 	}
 }
 
-// interfaceSetValueFunc is a setValueFunc that sets the target to a new value
-// derived from the source string. The target must be settable and its underlying
-// value must have a type that is compatible with the source string.
+// interfaceSetValueFunc sets the concrete value stored inside an interface field.
+// target.Elem() returns the concrete value but it is not addressable, so we
+// allocate a fresh addressable value of the same type, set it, then store it
+// back into the interface.
 func interfaceSetValueFunc(target reflect.Value, source string) error {
-	return newSetValueFunc(target.Elem().Type(), 0, 0)(target.Elem(), source)
+	if target.IsNil() {
+		return nil
+	}
+	inner := target.Elem()
+	newVal := reflect.New(inner.Type()).Elem()
+	if err := newSetValueFunc(inner.Type(), 0, 0)(newVal, source); err != nil {
+		return err
+	}
+	target.Set(newVal)
+	return nil
 }
 
 // structSetValueFunc returns a setValueFunc that sets the fields of the target
@@ -170,6 +199,9 @@ func structSetValueFunc(targetType reflect.Type) setValueFunc {
 	spec := cachedStructRepresentation(targetType)
 	return func(target reflect.Value, source string) error {
 		for i, fieldFunc := range spec.fields {
+			// Fields without a usable pic tag (e.g. untagged helper fields)
+			// fail tag parsing and are intentionally left at their zero value
+			// rather than aborting the whole decode.
 			if fieldFunc.err != nil {
 				continue
 			}

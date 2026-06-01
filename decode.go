@@ -1,3 +1,5 @@
+// Package pic decodes fixed-width records described by COBOL PIC clauses into
+// Go structs via struct tags.
 package pic
 
 import (
@@ -9,12 +11,6 @@ import (
 	"reflect"
 	"strings"
 )
-
-// ErrNotAPointer is returned when the target object is not a pointer.
-var ErrNotAPointer = errors.New("decode: unmarshal target object is not a pointer")
-
-// ErrNilPointer is returned when the target object is nil.
-var ErrNilPointer = errors.New("decode: unmarshal target object is nil")
 
 type decoder struct {
 	s    *bufio.Scanner
@@ -60,7 +56,7 @@ func NewDecoder(r io.Reader) Decoder {
 // object is not a slice, it decodes the first line into the target object.
 func (d *decoder) Decode(v interface{}) error {
 	rv := reflect.ValueOf(v)
-	if rv.Kind() != reflect.Ptr {
+	if rv.Kind() != reflect.Pointer {
 		return ErrNotAPointer
 	}
 	if rv.IsNil() {
@@ -72,10 +68,9 @@ func (d *decoder) Decode(v interface{}) error {
 	return d.decodeLine(rv.Elem())
 }
 
-// decodeLine scans the next line in the scanner, sets d.done to true if the
-// scanner has reached EOF (and returns ErrEOF),
-// otherwise, unpacks a byte representation of the bytes associated
-// with that line, into the object v using the identified setter function, set.
+// decodeLine scans the next line from the scanner and unpacks it into v using
+// the setter resolved from v's type. At end of input it marks the decoder done
+// and returns io.EOF, which decodeLines treats as a clean stop.
 func (d *decoder) decodeLine(v reflect.Value) error {
 	if ok := d.s.Scan(); !ok {
 		d.done = true

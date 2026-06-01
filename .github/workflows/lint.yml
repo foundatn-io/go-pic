@@ -13,11 +13,14 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2.3.4
-      - name: Run linter
-        uses: golangci/golangci-lint-action@v2.5.2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          version: v1.55.0
+          go-version-file: go.mod
+      - name: Run linter
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.12.2
           args: --timeout=5m
         env:
           GOFLAGS: "-mod=readonly"

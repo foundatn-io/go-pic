@@ -1,22 +1,15 @@
 package lex
 
-const (
-	itemTypeSize = 14
-)
-
 // Trie is the structure in which clause/line type patterns are stored
 type Trie struct {
 	root *Node
 }
 
-// Node is a child in the trie, which may indicate whether it is the final
-// token in a clause/line type pattern, returning the associated parser, word
-// and lineType with that pattern.
-// Otherwise, the Node contains links to children, itself, to illustrate whether
-// it is part of, but not the final token of, a pattern that has been entered in
-// the trie.
+// Node is a child in the trie. isEnd is non-nil when this node terminates a
+// recognized pattern. children is indexed by tokenKind, so its size is kept
+// in sync with the set of token kinds via the tokenKindCount sentinel.
 type Node struct {
-	children [itemTypeSize]*Node
+	children [tokenKindCount]*Node
 	isEnd    *entry
 }
 
@@ -46,7 +39,7 @@ func (t *Trie) Insert(word word, p lineParser, typ lineType) {
 }
 
 // Search will search for the given word
-func (t *Trie) Search(word word) *entry { //nolint:golint
+func (t *Trie) Search(word word) *entry { //nolint:revive // exported method on unexported-friendly API
 	current := t.root
 	for i := 0; i < len(word); i++ {
 		// if the tokenKind is not in the children...

@@ -1,3 +1,4 @@
+// Package lex lexes and parses COBOL copybook definitions into a Record tree.
 package lex
 
 import (
@@ -7,81 +8,96 @@ import (
 	"strings"
 )
 
-type picType int
-
 const (
-	unknown picType = iota
-	unsigned
-	signed
-	decimal
-	alpha
-
 	alphaIndicators     = "XA"
 	decimalIndicators   = ".VP"
 	signedIntIndicators = "S"
 	intIndicators       = "9"
 )
 
-var (
-	typeMap = map[picType]reflect.Kind{
-		unknown:  reflect.Invalid,
-		unsigned: reflect.Uint,
-		signed:   reflect.Int,
-		decimal:  reflect.Float64,
-		alpha:    reflect.String,
-	}
-)
-
-// parsePICType identifies an equivalent Go type from the given substring
-// that contains a PIC definition
+// parsePICType returns the Go reflect.Kind that best represents the given
+// PIC definition string (e.g. "X(5)", "9(9).9(2)", "S9(4)").
 func parsePICType(s string) reflect.Kind {
-	picType := unknown
 	s = strings.TrimRight(s, ".")
-
 	switch {
 	case strings.ContainsAny(s, alphaIndicators):
-		if alpha > picType {
-			picType = alpha
-		}
+		return reflect.String
 	case strings.ContainsAny(s, decimalIndicators):
-		if decimal > picType {
-			picType = decimal
-		}
+		return reflect.Float64
 	case strings.ContainsAny(s, signedIntIndicators):
-		if signed > picType {
-			picType = signed
-		}
+		return reflect.Int
 	case strings.ContainsAny(s, intIndicators):
-		picType = unsigned
+		return reflect.Uint
+	default:
+		return reflect.Invalid
 	}
-	return typeMap[picType]
 }
 
-// parsePICCount identifies the fixed width, or length, of the given
-// PIC definition such as: X(2)., XX., 9(9)., etc.
+// parsePICCount returns the number of physical storage bytes occupied by the
+// given PIC definition string, in a single O(n) left-to-right pass.
 //
-// TODO: this can be simplified further, and should include tests
-func parsePICCount(s string) (int, error) {
+// COBOL symbol behavior:
+//   - Digit and character symbols (9, X, A) each occupy one byte.
+//   - A parenthesised repetition T(N) replaces the preceding symbol with N
+//     positions (so "9(4)" is four bytes, not five).
+//   - V (implicit decimal point) and P (assumed decimal scaling) are positional
+//     only and occupy zero bytes; a V(N)/P(N) repetition is likewise zero.
+//   - An explicit '.' between digit groups is a real character and occupies one
+//     byte.
+//   - S (operational sign) occupies zero bytes by default, because USAGE DISPLAY
+//     overpunches the sign onto a digit. It occupies one byte only when the
+//     copybook declares SIGN IS SEPARATE, which the grammar does not parse — so
+//     callers pass signSeparate=true to opt into that interpretation.
+func parsePICCount(s string, signSeparate bool) (int, error) {
 	s = strings.TrimRight(s, ".")
-	picChars := []rune(s)
-	totalLength := 0
-
-	for strings.Contains(string(picChars), "(") {
-		left := strings.Index(string(picChars), "(")
-		right := strings.Index(string(picChars), ")")
-		start := left - 1
-		end := right + 1
-		length, err := strconv.Atoi(string(picChars[left+1 : right]))
-		if err != nil {
-			return 0, fmt.Errorf("failed to convert PIC count '%s' to int: %w", string(picChars[left+1:right]), err)
+	total := 0
+	prevWasNoStorage := false // true if the previous char occupied no storage (V, P, or default S)
+	for i := 0; i < len(s); {
+		ch := s[i]
+		switch ch {
+		case '(':
+			j := strings.IndexByte(s[i:], ')')
+			if j < 0 {
+				return 0, fmt.Errorf("unmatched '(' in PIC definition %q", s)
+			}
+			if prevWasNoStorage {
+				// The preceding symbol contributed no storage, so its
+				// repetition contributes none either — skip entirely.
+				prevWasNoStorage = false
+				i += j + 1
+			} else {
+				// Normal T(N): undo the single byte already counted for T,
+				// then add the actual repetition count.
+				total--
+				count, err := strconv.Atoi(s[i+1 : i+j])
+				if err != nil {
+					return 0, fmt.Errorf("failed to convert PIC count %q: %w", s[i+1:i+j], err)
+				}
+				total += count
+				prevWasNoStorage = false
+				i += j + 1
+			}
+		case 'V', 'P':
+			// Implicit decimal / assumed decimal scaling: no physical byte.
+			prevWasNoStorage = true
+			i++
+		case 'S':
+			// Operational sign: a byte only under SIGN IS SEPARATE (see godoc).
+			if signSeparate {
+				total++
+			}
+			prevWasNoStorage = !signSeparate
+			i++
+		default:
+			total++
+			prevWasNoStorage = false
+			i++
 		}
-		totalLength += length
-		picChars = append(picChars[:start], picChars[end:]...)
 	}
-	return totalLength + len(picChars), nil
+	return total, nil
 }
 
-// parseOccursCount captures N where N is the OCCURS count
+// parseOccursCount captures N where N is the OCCURS count.
 // e.g. OCCURS 12. returns 12
 func parseOccursCount(t token) (int, error) {
 	countStr := strings.TrimSuffix(strings.TrimPrefix(t.value, "OCCURS "), ".")

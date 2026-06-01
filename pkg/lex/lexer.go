@@ -103,19 +103,14 @@ func (lexer *lexerState) peek() rune {
 	return r
 }
 
-// lookAhead returns the rune at the specified position ahead in the input, without consuming any runes.
+// lookAhead returns the rune at offset i (1-based) ahead of the current position
+// without consuming input or modifying any lexer state.
 func (lexer *lexerState) lookAhead(i int) rune {
-	if int(lexer.pos) >= len(lexer.input) {
-		lexer.width = 0
+	pos := lexer.pos + Pos(i-1)
+	if int(pos) >= len(lexer.input) {
 		return endOfFile
 	}
-	r, width := utf8.DecodeRuneInString(lexer.input[lexer.pos+Pos(i-1):])
-	lexer.width = Pos(width)
-	lexer.pos += lexer.width
-	if r == '\n' {
-		lexer.line++
-	}
-	lexer.backup()
+	r, _ := utf8.DecodeRuneInString(lexer.input[pos:])
 	return r
 }
 
@@ -205,6 +200,37 @@ func (lexer *lexerState) scanOccursToken() (bool, error) {
 	}
 	lexer.backup()
 	return true, nil
+}
+
+// scanSignClause consumes a SIGN clause that follows a PIC definition — for
+// example "SIGN IS TRAILING SEPARATE" or "SIGN LEADING SEPARATE CHARACTER" —
+// up to (but not including) the terminating period or EOL. It is reached only
+// after upcomingKeyword has confirmed the SIGN keyword, so the keyword test
+// here is just to consume those letters.
+func (lexer *lexerState) scanSignClause() {
+	lexer.acceptRun("SIGN")
+	for {
+		switch r := lexer.peek(); {
+		case r == picRight, isEOL(r), r == endOfFile:
+			return
+		default:
+			lexer.next()
+		}
+	}
+}
+
+// upcomingKeyword reports whether the input at the current position begins with
+// keyword followed by a word boundary, so "SIGN" matches in "SIGN IS …" but not
+// inside a picture like "S9(4)" or a longer word like "SIGNAL".
+func (lexer *lexerState) upcomingKeyword(keyword string) bool {
+	if !strings.HasPrefix(lexer.input[lexer.pos:], keyword) {
+		return false
+	}
+	after := int(lexer.pos) + len(keyword)
+	if after >= len(lexer.input) {
+		return true
+	}
+	return !isAlphaNumeric(rune(lexer.input[after]))
 }
 
 // atPICTerminator checks if the current character is a PIC terminator.

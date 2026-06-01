@@ -1,3 +1,4 @@
+// Package template renders parsed copybook records into Go struct source.
 package template
 
 import (

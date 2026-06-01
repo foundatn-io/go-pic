@@ -1,29 +1,43 @@
 package pic
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
 
-// UnmarshalTypeError represents an unmarshal malfunction
+// ErrNotAPointer is returned when the target object is not a pointer.
+var ErrNotAPointer = errors.New("decode: unmarshal target object is not a pointer")
+
+// ErrNilPointer is returned when the target object is nil.
+var ErrNilPointer = errors.New("decode: unmarshal target object is nil")
+
+// UnmarshalTypeError describes a failure to unmarshal a value into a specific Go type.
 type UnmarshalTypeError struct {
-	Value  string       // raw value
-	Type   reflect.Type // type of Go value it could not be assigned to
-	Struct string       // name of the struct type containing the field
-	Field  string       // name of the field holding the Go value
-	Cause  error        // original error
+	Value  string       // raw value that could not be assigned
+	Type   reflect.Type // target Go type
+	Struct string       // containing struct name, if any
+	Field  string       // containing field name, if any
+	Cause  error        // underlying error
 }
 
-// Error converts details of an UnmarshalTypeError into a meaningful string
+// Error returns a human-readable description of the unmarshal failure.
 func (e *UnmarshalTypeError) Error() string {
-	var err error
+	var msg string
 	if e.Struct != "" || e.Field != "" {
-		err = fmt.Errorf("pic: cannot unmarshal %s into Go struct field %s.%s of type %s", e.Value, e.Struct, e.Field, e.Type.String())
+		msg = fmt.Sprintf("pic: cannot unmarshal %s into Go struct field %s.%s of type %s",
+			e.Value, e.Struct, e.Field, e.Type)
 	} else {
-		err = fmt.Errorf("pic: cannot unmarshal %s into Go value of type %s", e.Value, e.Type.String())
+		msg = fmt.Sprintf("pic: cannot unmarshal %s into Go value of type %s",
+			e.Value, e.Type)
 	}
 	if e.Cause != nil {
-		return fmt.Sprintf("%s: %s", err.Error(), e.Cause.Error())
+		return msg + ": " + e.Cause.Error()
 	}
-	return err.Error()
+	return msg
+}
+
+// Unwrap returns the underlying cause so errors.Is and errors.As can traverse the chain.
+func (e *UnmarshalTypeError) Unwrap() error {
+	return e.Cause
 }

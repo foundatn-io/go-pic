@@ -1,3 +1,4 @@
+// Package copybook models a parsed copybook and renders it to a Go source file.
 package copybook
 
 import (

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"reflect"
 )
 
@@ -16,28 +15,44 @@ type Tree struct {
 	state        *Record
 	currentLine  line
 	lineIndex    int
+
+	// signSeparate reports whether signed (S) PIC fields reserve a separate
+	// byte for their sign (SIGN IS SEPARATE). It is off by default, matching
+	// the COBOL default where the sign is overpunched onto a digit.
+	signSeparate bool
+}
+
+// Option configures a Tree at construction time.
+type Option func(*Tree)
+
+// WithSignSeparate makes signed (S) PIC fields reserve one byte for the sign,
+// as under a SIGN IS SEPARATE clause. The grammar does not parse SIGN clauses,
+// so this is a copybook-wide toggle rather than per-field detection.
+func WithSignSeparate() Option {
+	return func(t *Tree) { t.signSeparate = true }
 }
 
 // NewTree creates a new parse tree with the provided lexer.
-func NewTree(inputLexer Lexer) *Tree {
-	log.Println("Building new parse tree")
+func NewTree(inputLexer Lexer, opts ...Option) *Tree {
 	root := &Record{Typ: reflect.Struct, Name: inputLexer.getName(), depthMap: make(map[string]*Record)}
-	return &Tree{
+	tree := &Tree{
 		lexer:     inputLexer,
 		state:     root,
 		lineIndex: -1,
 	}
+	for _, opt := range opts {
+		opt(tree)
+	}
+	return tree
 }
 
 // Parse processes the lexer tokens and returns the root record.
 func (tree *Tree) Parse() (*Record, error) {
-	log.Println("Parsing lexer tokens")
 	for lineTokens := tree.scanLine(); tree.currentToken.kind != tokenKindEOF; lineTokens = tree.scanLine() {
 		if line := buildLine(lineTokens); line != nil {
 			tree.lines = append(tree.lines, *line)
 		}
 	}
-	log.Println("Reached EOF token, input lexed.")
 	if err := tree.parseLines(tree.state); err != nil {
 		return nil, fmt.Errorf("error parsing lines: %w", err)
 	}
@@ -63,7 +78,6 @@ func (tree *Tree) parseLines(rootRecord *Record) error { //nolint: gocyclo // TO
 	for !errors.Is(tree.nextLine(), io.EOF) {
 		switch tree.currentLine.typ {
 		case lineJunk, lineEnum:
-			log.Printf("%s on copybook line %d resulted in no-op", tree.currentLine.typ, tree.lineIndex)
 			continue
 		case lineRedefines, lineMultilineRedefines, lineGroupRedefines:
 			if _, err := tree.currentLine.fn(tree, tree.currentLine, rootRecord); err != nil {
@@ -119,5 +133,5 @@ func (tree *Tree) nextLine() error {
 }
 
 func isParseableToken(t token) bool {
-	return !(t == (token{}) || t.kind == tokenKindError || t.kind == tokenKindEOL || tokenKindEOF == t.kind)
+	return t != (token{}) && t.kind != tokenKindError && t.kind != tokenKindEOL && t.kind != tokenKindEOF
 }

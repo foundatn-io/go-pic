@@ -1,8 +1,6 @@
 package lex
 
 import (
-	"fmt"
-	"log"
 	"unicode"
 )
 
@@ -12,8 +10,11 @@ const (
 	alphaNumericElements = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 )
 
-// lexStatementTokens lexes tokens within a statement.
-func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // good luck simplifying this
+// lexStatementTokens is the lexer's central dispatcher: it consumes one rune,
+// emits or routes it to the matching sub-state, and returns the next
+// stateFunction for run() to drive. Returning the next state (rather than
+// calling it) keeps the scan iterative and the stack flat.
+func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // dispatch switch: one arm per token shape
 	switch currentRune := lexer.next(); {
 	case isEOL(currentRune):
 		lexer.emit(tokenKindEOL)
@@ -27,15 +28,34 @@ func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // g
 		// special look-ahead for "PIC" so we don't break lexerState.backup().
 		if lexer.pos < Pos(len(lexer.input)) {
 			// Look for PIC
-			if (currentRune < '0' || '9' < currentRune) && lexer.peek() == 'I' && lexer.lookAhead(2) == 'C' { //nolint:gomnd // obvious meaning
+			if (currentRune < '0' || '9' < currentRune) && lexer.peek() == 'I' && lexer.lookAhead(2) == 'C' { //nolint:mnd // obvious meaning
 				return lexPICToken
 			}
 			return lexIdentifier
 		}
+	// 'O', 'R' and 'S' begin the OCCURS / REDEFINES / SIGN clause keywords, but
+	// they also begin ordinary data names (OURS, RATE, STATUS, SINGING, …).
+	// Only divert to the clause scanner when the upcoming word is exactly the
+	// keyword; otherwise fall through to identifier lexing. backup() undoes the
+	// next() that read the first letter so the scanner sees the whole word.
 	case currentRune == 'O':
-		return lexOccursToken(lexer)
+		lexer.backup()
+		if lexer.upcomingKeyword("OCCURS") {
+			return lexOccursToken
+		}
+		return lexIdentifier
 	case currentRune == 'R':
-		return lexRedefinesToken(lexer)
+		lexer.backup()
+		if lexer.upcomingKeyword("REDEFINES") {
+			return lexRedefinesToken
+		}
+		return lexIdentifier
+	case currentRune == 'S':
+		lexer.backup()
+		if lexer.upcomingKeyword("SIGN") {
+			return lexSignToken
+		}
+		return lexIdentifier
 	case currentRune == '+' || currentRune == '-' || ('0' <= currentRune && currentRune <= '9'):
 		lexer.backup()
 		return lexNumber
@@ -49,81 +69,105 @@ func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // g
 	case currentRune <= unicode.MaxASCII && unicode.IsPrint(currentRune):
 		lexer.emit(tokenKindChar)
 	case currentRune == substituteHexElement:
-		log.Printf("found SUBSTITUTE rune")
 		lexer.emit(tokenKindEOF)
 	default:
-		errorMessage := fmt.Errorf("unrecognized character in action: %#U", currentRune)
-		log.Println(errorMessage)
-		return lexer.errorf(errorMessage.Error())
+		return lexer.errorf("unrecognized character in action: %#U", currentRune)
 	}
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
-// lexPICToken lexes a PIC token.
+// lexPICToken consumes a full PIC clause token (e.g. "PIC X(10)" or
+// "PIC 9(9).9(2)") and emits a tokenKindPIC.
 //
-// TODO: revise this function, flow control is a mess.
-func lexPICToken(lexerState *lexerState) stateFunction {
-	var currentRune rune
+// Invariant on entry: the lexer has already consumed the 'P' that begins the
+// "PIC" keyword; the start position therefore includes "PIC …".
+//
+// Termination rules:
+//  1. A space followed by a non-PIC character (e.g. OCCURS) ends the token:
+//     backup past the space, emit, then hand off to lexSpace.
+//  2. A non-PIC character that is followed by another PIC character is an
+//     embedded separator (the explicit '.' in "9(9).9(2)"): skip it.
+//  3. Any other non-PIC character: backup, confirm we are sitting before the
+//     terminating '.', emit the token, and continue scanning.
+//  4. EOF or an unexpected character inside the PIC body: return an error.
+func lexPICToken(l *lexerState) stateFunction {
 	for {
-		currentRune = lexerState.next()
-		if !isPICChar(currentRune) {
-			// if after a pic character, we get a space it is likely
-			// there may be an OCCURS definition to follow, e.g.
-			// PIC X(10) OCCURS 12.
-			if isSpace(currentRune) {
-				switch nextRune := lexerState.peek(); {
-				case isPICChar(nextRune), isPICType(nextRune), nextRune == '.':
-					continue
+		r := l.next()
+		switch {
+		case isPICChar(r):
+			// Normal PIC character — keep accumulating.
 
-				default:
-					lexerState.backup()
-					lexerState.emit(tokenKindPIC)
-					return lexSpace(lexerState)
-				}
+		case isSpace(r):
+			// Space inside a PIC: look ahead to decide whether it is part of
+			// the PIC body or a boundary before a following clause.
+			if l.upcomingKeyword("SIGN") {
+				// A SIGN clause begins after the picture. 'S' is also a PIC
+				// char, so without this check the picture would bleed into
+				// "SIGN". End the PIC token before the space.
+				l.backup()
+				l.emit(tokenKindPIC)
+				return lexSpace
 			}
-			// if we've just reached the terminator '.'
-			// let's peek and see if it's actually an explicit decimal point
-			// e.g. PIC 9(9).9(2) -> 123456789.50
-			if isPICChar(lexerState.peek()) {
+			next := l.peek()
+			if isPICChar(next) || isPICType(next) || next == '.' {
+				// Space is interior (e.g. "PIC X(10) .9(2)" is unusual but
+				// valid).  Skip and continue accumulating.
 				continue
 			}
-			if !lexerState.atPICTerminator() {
-				lexerState.backup()
-				break
+			// Space is a boundary — token ends before the space.
+			l.backup()
+			l.emit(tokenKindPIC)
+			return lexSpace
+
+		default:
+			// Non-PIC, non-space character (e.g. an explicit decimal '.' or
+			// an unexpected char).
+			if isPICChar(l.peek()) {
+				// The separator between two PIC groups (e.g. the '.' in
+				// "9(9).9(2)") — continue accumulating.
+				continue
 			}
+			// We have reached the end of the PIC body.  Back up so that the
+			// next state function sees this character (typically the
+			// terminating '.').
+			l.backup()
+			if !l.atPICTerminator() {
+				return l.errorf("unexpected character %#U in PIC definition", r)
+			}
+			l.emit(tokenKindPIC)
+			return lexStatementTokens
 		}
 	}
-
-	if !lexerState.atPICTerminator() {
-		errorMessage := fmt.Errorf("bad character %#U", currentRune)
-		log.Println(errorMessage)
-		return lexerState.errorf(errorMessage.Error())
-	}
-	lexerState.emit(tokenKindPIC)
-	return lexStatementTokens(lexerState)
 }
 
-// lexRedefinesToken is a state function for the lexer. It scans the input for a
-// REDEFINES token. If it encounters a REDEFINES token, it emits a tokenREDEFINES.
+// lexSignToken scans a SIGN clause and emits a single tokenKindSIGN spanning
+// the whole clause. It is reached only when the dispatcher's upcomingKeyword
+// check has already confirmed the SIGN keyword.
+func lexSignToken(lexer *lexerState) stateFunction {
+	lexer.scanSignClause()
+	lexer.emit(tokenKindSIGN)
+	return lexStatementTokens
+}
+
+// lexRedefinesToken scans a REDEFINES keyword and emits tokenKindREDEFINES.
 func lexRedefinesToken(lexer *lexerState) stateFunction {
 	if lexer.scanRedefinesToken() {
 		lexer.emit(tokenKindREDEFINES)
 	}
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
-// lexOccursToken is a state function for the lexer. It scans the input for an
-// OCCURS token. If it encounters an OCCURS token, it emits a tokenOCCURS. If
-// it encounters an error while scanning, it returns an error.
+// lexOccursToken scans an OCCURS keyword and its count, emitting
+// tokenKindOCCURS, or returns a lexer error if the clause is malformed.
 func lexOccursToken(lexer *lexerState) stateFunction {
 	valid, err := lexer.scanOccursToken()
 	if err != nil {
-		return lexer.errorf(err.Error())
+		return lexer.errorf("%s", err.Error())
 	}
 	if valid {
 		lexer.emit(tokenKindOCCURS)
 	}
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // lexIdentifier is a state function for the lexer. It scans the input for alphanumeric
@@ -138,9 +182,7 @@ func lexIdentifier(lexer *lexerState) stateFunction {
 	// When finished globbing alphanumeric characters, evaluate the word.
 	word := lexer.input[lexer.start:lexer.pos]
 	if !lexer.atTerminator() {
-		err := fmt.Errorf("bad character %#U", lexer.current())
-		log.Println(err)
-		return lexer.errorf(err.Error())
+		return lexer.errorf("bad character %#U", lexer.current())
 	}
 
 	toEmit := tokenKindIdentifier
@@ -148,7 +190,7 @@ func lexIdentifier(lexer *lexerState) stateFunction {
 		toEmit = tokenKindBool
 	}
 	lexer.emit(toEmit)
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // lexEnum is a state function for the lexer. It scans the input for alphanumeric
@@ -161,14 +203,12 @@ func lexEnum(lexer *lexerState) stateFunction {
 	}
 
 	if !lexer.atEnumTerminator() {
-		err := fmt.Errorf("bad character %#U", lexer.current())
-		log.Println(err)
-		return lexer.errorf(err.Error())
+		return lexer.errorf("bad character %#U", lexer.current())
 	}
 
 	lexer.next()
 	lexer.emit(tokenKindEnum)
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // lexNumber is a state function for the lexer. It scans the input for numbers
@@ -193,7 +233,7 @@ func lexNumber(lexer *lexerState) stateFunction {
 		toEmit = tokenKindComplex
 	}
 	lexer.emit(toEmit)
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // lexSpace is a state function for the lexer. It scans the input for spaces
@@ -204,7 +244,7 @@ func lexSpace(lexer *lexerState) stateFunction {
 		lexer.next()
 	}
 	lexer.emit(tokenKindSpace)
-	return lexStatementTokens(lexer)
+	return lexStatementTokens
 }
 
 // isSpace reports whether the currentChar is a space character.
@@ -219,8 +259,8 @@ func isEOL(currentChar rune) bool {
 	return currentChar == '\r' || currentChar == '\n'
 }
 
-// isAlphaNumeric reports whether the currentChar is an alphabetic, digit, or underscore.
-// It checks if the currentChar is an underscore ('_'), a hyphen ('-'), a letter, or a digit.
+// isAlphaNumeric reports whether currentChar may appear in a COBOL identifier:
+// a letter, a digit, an underscore, or a hyphen (data names are hyphenated).
 func isAlphaNumeric(currentChar rune) bool {
 	return currentChar == '_' || currentChar == '-' || unicode.IsLetter(currentChar) || unicode.IsDigit(currentChar)
 }
