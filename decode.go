@@ -1,3 +1,5 @@
+// Package pic decodes fixed-width records described by COBOL PIC clauses into
+// Go structs via struct tags.
 package pic
 
 import (
@@ -54,7 +56,7 @@ func NewDecoder(r io.Reader) Decoder {
 // object is not a slice, it decodes the first line into the target object.
 func (d *decoder) Decode(v interface{}) error {
 	rv := reflect.ValueOf(v)
-	if rv.Kind() != reflect.Ptr {
+	if rv.Kind() != reflect.Pointer {
 		return ErrNotAPointer
 	}
 	if rv.IsNil() {

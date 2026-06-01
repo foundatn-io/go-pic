@@ -20,7 +20,7 @@ type setValueFunc func(target reflect.Value, source string) error
 
 // newSetValueFunc returns a setValueFunc appropriate for the given targetType.
 // picSize and occursSize are used for slice types to determine the size of the slice.
-func newSetValueFunc(targetType reflect.Type, picSize, occursSize int) setValueFunc {
+func newSetValueFunc(targetType reflect.Type, picSize, occursSize int) setValueFunc { //nolint:gocyclo // one arm per reflect.Kind
 	switch targetType.Kind() {
 	case reflect.String:
 		return stringSetValueFunc
@@ -36,7 +36,7 @@ func newSetValueFunc(targetType reflect.Type, picSize, occursSize int) setValueF
 		return floatSetValueFunc(float64BitSize)
 	case reflect.Slice:
 		return arraySetValueFunc(picSize, occursSize)
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return pointerSetValueFunc(targetType)
 	case reflect.Interface:
 		return interfaceSetValueFunc

@@ -28,7 +28,7 @@ func lexStatementTokens(lexer *lexerState) stateFunction { //nolint:gocyclo // d
 		// special look-ahead for "PIC" so we don't break lexerState.backup().
 		if lexer.pos < Pos(len(lexer.input)) {
 			// Look for PIC
-			if (currentRune < '0' || '9' < currentRune) && lexer.peek() == 'I' && lexer.lookAhead(2) == 'C' { //nolint:gomnd // obvious meaning
+			if (currentRune < '0' || '9' < currentRune) && lexer.peek() == 'I' && lexer.lookAhead(2) == 'C' { //nolint:mnd // obvious meaning
 				return lexPICToken
 			}
 			return lexIdentifier

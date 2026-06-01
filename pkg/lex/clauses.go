@@ -1,3 +1,4 @@
+// Package lex lexes and parses COBOL copybook definitions into a Record tree.
 package lex
 
 import (
@@ -35,7 +36,7 @@ func parsePICType(s string) reflect.Kind {
 // parsePICCount returns the number of physical storage bytes occupied by the
 // given PIC definition string, in a single O(n) left-to-right pass.
 //
-// COBOL symbol behaviour:
+// COBOL symbol behavior:
 //   - Digit and character symbols (9, X, A) each occupy one byte.
 //   - A parenthesised repetition T(N) replaces the preceding symbol with N
 //     positions (so "9(4)" is four bytes, not five).

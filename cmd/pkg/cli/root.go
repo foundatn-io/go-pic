@@ -1,3 +1,4 @@
+// Package cli wires up the gopic command-line interface.
 package cli
 
 import (
@@ -14,6 +15,9 @@ import (
 	"github.com/foundatn-io/go-pic/cmd/pkg/template"
 	"github.com/foundatn-io/go-pic/pkg/lex"
 )
+
+// outputDirPerm is the permission applied to generated output directories.
+const outputDirPerm os.FileMode = 0o750
 
 var rootCmd = &cobra.Command{
 	Use:   "gopic",
@@ -108,7 +112,7 @@ func dirRun(cmd *cobra.Command, _ []string) error { //nolint:gocyclo
 
 	_, err = os.Stat(out)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(out, os.ModePerm)
+		errDir := os.MkdirAll(out, outputDirPerm)
 		if errDir != nil {
 			return fmt.Errorf("failed to create dir %s: %w", out, errDir)
 		}

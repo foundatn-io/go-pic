@@ -21,7 +21,7 @@ jobs:
       - run: git fetch --prune --unshallow
 
       - name: "Run test coverage"
-        uses: "docker://golang:1.21.6-bullseye"
+        uses: "docker://golang:1.26-bookworm"
         env:
           GO111MODULE: "on"
         with:

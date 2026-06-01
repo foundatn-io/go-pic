@@ -133,5 +133,5 @@ func (tree *Tree) nextLine() error {
 }
 
 func isParseableToken(t token) bool {
-	return !(t == (token{}) || t.kind == tokenKindError || t.kind == tokenKindEOL || tokenKindEOF == t.kind)
+	return t != (token{}) && t.kind != tokenKindError && t.kind != tokenKindEOL && t.kind != tokenKindEOF
 }

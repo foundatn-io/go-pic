@@ -21,7 +21,7 @@ func TestTranslateToGoType(t *testing.T) {
 		{"int", &lex.Record{Typ: reflect.Int}, "int"},
 		{"uint", &lex.Record{Typ: reflect.Uint}, "uint"},
 		{"float64", &lex.Record{Typ: reflect.Float64}, "float64"},
-		{"struct uses sanitised name", &lex.Record{Typ: reflect.Struct, Name: "MY-GROUP"}, "MYGROUP"},
+		{"struct uses sanitized name", &lex.Record{Typ: reflect.Struct, Name: "MY-GROUP"}, "MYGROUP"},
 		{"slice prefix when occurs", &lex.Record{Typ: reflect.String, Occurs: 3}, "[]string"},
 	} {
 		tt := tt

@@ -133,8 +133,10 @@ func makeStructRepresentation(structType reflect.Type) structRepresentation {
 // cachedStructRepresentation returns a structRepresentation for the given type,
 // building and caching it on first use to avoid redundant reflection work.
 func cachedStructRepresentation(structType reflect.Type) structRepresentation {
-	if fieldRep, ok := structFieldCache.Load(structType); ok {
-		return fieldRep.(structRepresentation)
+	if cached, ok := structFieldCache.Load(structType); ok {
+		if rep, ok := cached.(structRepresentation); ok {
+			return rep
+		}
 	}
 	fieldRep := makeStructRepresentation(structType)
 	structFieldCache.Store(structType, fieldRep)

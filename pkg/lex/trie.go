@@ -6,7 +6,7 @@ type Trie struct {
 }
 
 // Node is a child in the trie. isEnd is non-nil when this node terminates a
-// recognised pattern. children is indexed by tokenKind, so its size is kept
+// recognized pattern. children is indexed by tokenKind, so its size is kept
 // in sync with the set of token kinds via the tokenKindCount sentinel.
 type Node struct {
 	children [tokenKindCount]*Node
@@ -39,7 +39,7 @@ func (t *Trie) Insert(word word, p lineParser, typ lineType) {
 }
 
 // Search will search for the given word
-func (t *Trie) Search(word word) *entry { //nolint:golint
+func (t *Trie) Search(word word) *entry { //nolint:revive // exported method on unexported-friendly API
 	current := t.root
 	for i := 0; i < len(word); i++ {
 		// if the tokenKind is not in the children...

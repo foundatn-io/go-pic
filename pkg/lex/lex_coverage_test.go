@@ -80,7 +80,7 @@ func Test_lexerErrorPaths(t *testing.T) {
 	t.Run("identifier_bad_terminator", func(t *testing.T) {
 		t.Parallel()
 		// An identifier immediately followed by '@' — not alphanumeric and not a
-		// recognised terminator — triggers the error path in lexIdentifier.
+		// recognized terminator — triggers the error path in lexIdentifier.
 		l := &lexerState{
 			name:  "test",
 			input: "FIELD@",
@@ -97,7 +97,7 @@ func Test_lexerErrorPaths(t *testing.T) {
 		require.True(t, hasError, "expected an error token for bad identifier terminator")
 	})
 
-	t.Run("unrecognised_character", func(t *testing.T) {
+	t.Run("unrecognized_character", func(t *testing.T) {
 		t.Parallel()
 		// A non-printable, non-substitute rune triggers the default errorf branch.
 		l := &lexerState{

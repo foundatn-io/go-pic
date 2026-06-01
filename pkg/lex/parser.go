@@ -10,7 +10,7 @@ const (
 	picPrefix = "PIC "
 )
 
-// Token positions within the recognised line patterns (see dictionary.go).
+// Token positions within the recognized line patterns (see dictionary.go).
 // Every pattern is a fixed sequence of token kinds, so the parser addresses a
 // field by its index in that sequence rather than by re-scanning.
 const (
